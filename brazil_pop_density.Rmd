@@ -1,0 +1,169 @@
+---
+author: "Katherine Siegel"
+date: "February 21, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Load packages
+library(tidyverse)
+library(sf)
+library(RCurl)
+library(fasterize)
+library(raster)
+
+# ### Set wd
+# setwd("~/Documents/SESYNC/brazil_dinamica_data/popdens")
+```
+
+## Population density (2010)
+I have data on population and population density for each municipio in Para state from the 2010 census: https://censo2010.ibge.gov.br/sinopse/index.php?uf=15&dados=8, "Sinopse do Censo Demografico 2010: Para," IBGE. "Tabela 2.1 - Populacao residente, total, urbana total e urbana na sede municipial, com indicacao da area total e densidade demografica, segundo as Unidades da Federacao e os municipios - 2010." Fonte: IBGE, Censo Demográfico 2010.
+
+I also have shapefiles of the municipios from IBGE: http://mapasinterativos.ibge.gov.br/arcgis/rest/services/DPA2010/MapServer. "Divisão Pol????tico Administrativa: Municipios"
+
+### Pop density data
+```{r}
+### Open csv of pop data
+pd <- read_csv("~/Documents/SESYNC/dinamica/brazil_dinamica_data/popdens/pop_dens_data.csv")
+pd <- pd[complete.cases(pd), ]
+pd$municipio_uc <- toupper(pd$municipio)
+
+### Fix punctuation in pop data
+#### Drop "." in "total"
+pd$total <- str_remove(pd$total, "[.]")
+#### Convert total to numeric
+pd$total <- as.numeric(pd$total)
+
+### Fix municipio area
+#### Divide area by 10 because read_csv dropped "," that is decimal point
+pd$area_km2_corr <- pd$area_total_km2/10
+
+### Fix population density data
+#### Convert "," to "." and convert to numeric
+pd$pop_dens_corr <- as.numeric(gsub(",", ".", pd$pop_dens_individ_km2))
+```
+
+### Merge with municipio polygons
+```{r}
+### Open shp of municipios
+mcp <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/para_municipios.shp", 
+               options = "ENCODING=latin1",
+               stringsAsFactors = FALSE)
+
+### Merge
+mcp_pd <- merge(x = mcp, 
+                y = pd, 
+                by.x = "NM_MUNICIP", 
+                by.y = "municipio_uc", 
+                all = TRUE)
+
+### Make simplified version for ESRI
+mcp_pd <- dplyr::select(mcp_pd, 
+                        municip = municipio,
+                        pop = total,
+                        area_km2 = area_km2_corr,
+                        pd_km2 = pop_dens_corr,
+                        geometry = geometry)
+
+
+### Write sf
+st_write(mcp_pd, 
+         "~/Documents/SESYNC/dinamica/brazil_dinamica_data/para_pop_density.shp")
+```
+
+## Population density (2000)
+I have data on population for each census sector in Para state from the 2000 census: https://www.ibge.gov.br/estatisticas-novoportal/sociais/educacao/9663-censo-demografico-2000.html?edicao=10192&t=resultados, "Censo Demografico 2000: Tabelas- Agregados por Setores Censitarios," IBGE. "Pessoa1_PA.csv" Fonte: IBGE, Censo Demografico 2000.
+
+I also have shapefiles of the census sectors from IBGE. "Setores Censitarios 2000."
+```{r}
+### Open csv of pop data
+pd_00 <- read_csv("~/Documents/SESYNC/dinamica/brazil_dinamica_data/popdens/census2000/Pessoa1_PA.csv")
+
+### Column with population data is V1330 ("Pessoas (popula??o residente no setor) Nota: Esta vari?vel possui os mesmos valores da vari?vel V0237 [mirador]"). Cod_setor is the sector code
+pd_00 <- select(pd_00, 
+                cod_setor = Cod_setor,
+                situacao = Situacao,
+                tipo_do_setor = Tipo_do_setor,
+                pop = V1330)
+pd_00$cod_setor <- as.factor(as.character(pd_00$cod_setor))
+```
+
+### Convert municipios to raster 
+```{r}
+### Make empty raster
+r <- raster(ncols = 100, nrow = 100)
+mcp_r <- rasterize(mcp, r)
+```
+
+
+### Merge with sector data
+```{r}
+### Open shp of municipios
+sect <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/popdens/census2000/setores/15SE500G.shp")
+# sect <- st_read("para_setores_censitarios.shp", 
+#                options = "ENCODING=latin1",
+#                stringsAsFactors = FALSE)
+
+### Merge
+sect_pd <- merge(x = sect, 
+                y = pd_00, 
+                by.x = "CODIGO", 
+                by.y = "cod_setor", 
+                all.y = TRUE)
+
+### Look at pops where sector = NA
+sect_check_2 <- sect_pd[is.na(sect_pd$GEOCODIGO), ]
+
+### Drop duplicate rows
+st_geometry(sect_pd) <- NULL
+sect_pd_unique <- sect_pd[!duplicated(sect_pd), ]
+
+### Add geometry back in
+sect_pd_unique <- merge(x = sect_pd_unique,
+                        y = sect,
+                        by = "CODIGO", 
+                        all.x = TRUE)
+```
+
+There are 4127 reported population values without an associated sector in the shp
+
+IBGE downloads not currently working. For now, I will calculate the pop density by municipio using what I have at the moment.
+```{r}
+### Group by municipio
+mcp_summ <- as.data.frame(sect_pd) %>%
+  group_by(NM_MUNICIP) %>%
+  summarise(mcp_pop = sum(pop, na.rm = TRUE))
+
+### 13469 outside of any municipio
+
+### Merge with municipio area from pd (2010)
+pd_area <- pd[]
+mcp_summ <- merge(mcp_summ, 
+                  pd[, c(5, 6)], 
+                  by.x = "NM_MUNICIP", 
+                  by.y = "municipio_uc") ## drops pop with no municip
+
+### Calculate pd
+mcp_summ$pop_dens <- mcp_summ$mcp_pop / mcp_summ$area_km2_corr
+
+### Merge with shp
+mcp_pd_00 <- merge(x = mcp, 
+                   y = mcp_summ, 
+                   by = "NM_MUNICIP", 
+                   all = TRUE)
+
+### Make simplified version for ESRI
+mcp_pd_00 <- dplyr::select(mcp_pd_00, 
+                           municip = NM_MUNICIP,
+                           pop = mcp_pop,
+                           area_km2 = area_km2_corr,
+                           pd_km2 = pop_dens,
+                           geometry = geometry)
+
+
+### Write sf
+st_write(mcp_pd_00, "~/Documents/SESYNC/dinamica/brazil_dinamica_data/popdens/para_pop_density_2000.shp")
+```
+

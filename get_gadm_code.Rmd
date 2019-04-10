@@ -1,0 +1,35 @@
+---
+title: "gadm_sesync"
+author: "Katherine Siegel"
+date: "January 15, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Packages
+library(raster)
+library(tidyverse)
+library(rgdal)
+
+### wd
+setwd("~/Documents/SESYNC/gadm_data")
+```
+
+### Get GADM data for case study countries
+```{r}
+peru <- getData('GADM', country = "Peru", level = 3)
+# colo <- getData('GADM', country = "Colombia", level = 2)
+braz <- getData('GADM', country = "Brazil", level = 3)
+boli <- getData('GADM', country = "Bolivia", level = 3)
+```
+
+### Save as shp
+```{r}
+writeOGR(peru, dsn = ".", layer = "peru_admin_units", driver = "ESRI Shapefile")
+# writeOGR(colo, dsn = ".", layer = "colo_admin_units", driver = "ESRI Shapefile")
+writeOGR(braz, dsn = ".", layer = "braz_admin_units", driver = "ESRI Shapefile")
+writeOGR(boli, dsn = ".", layer = "boli_admin_units", driver = "ESRI Shapefile")
+```
+
