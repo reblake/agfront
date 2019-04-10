@@ -1,0 +1,43 @@
+---
+title: "boli_data_prep"
+author: "Katherine Siegel"
+date: "February 27, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Load packages
+library(tidyverse)
+library(sf)
+
+# ### Set wd
+# setwd("~/Documents/SESYNC/bolivia_dinamica_data")
+```
+
+### Calculate pop density for 2012
+Use shp from GeoBolivia for population by municipio is 2012: municipios_339_pob2012,shp. This file has a column for pop density, but it is rounded to the nearest whole number.
+```{r}
+### Open file
+b_pd <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/pop_dens/municipios_339_pob2012.shp", stringsAsFactors = FALSE)
+
+### Convert character to numeric
+b_pd$pob2012 <- as.integer(b_pd$pob2012)
+b_pd$area_km2 <- as.integer(b_pd$area_km2)
+
+### Calculate pop density
+b_pd$densidad12 <- b_pd$pob2012/b_pd$area_km2
+
+### Write output
+st_write(b_pd, 
+         "~/Documents/SESYNC/dinamica/bolivia_dinamica_data/pop_dens/municipios_339_pob2012.shp", 
+         delete_layer = TRUE)
+```
+
+### Poverty rates
+```{r}
+### Open file
+pov <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/pobreza/nbi_vam_2012.shp")
+```
+
