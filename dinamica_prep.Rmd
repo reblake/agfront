@@ -44,3 +44,16 @@ Made raster of population density in ArcMap (Polygon to Raster): pd_2012 (cell s
 bolpd <- raster("~/Documents/SESYNC/dinamica/bol_pd.tif")
 ```
 
+### Rivers
+
+#### Rios principales
+Convert crs
+```{r}
+rios_princ <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/rios/rios_2002/rios_principales.shp") %>%
+  st_transform(., crs = 102033)
+
+### Save projected version
+st_write(rios_princ, "~/Documents/SESYNC/dinamica/bolivia_dinamica_data/rios/rios_2002/rios_principales_projected.shp")
+```
+
+Used gdal to make raster ()
