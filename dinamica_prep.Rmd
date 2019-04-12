@@ -1,0 +1,64 @@
+---
+title: "dinamica_prep"
+author: "Katherine Siegel"
+date: "April 10, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Packages
+library(tidyverse)
+library(raster)
+library(sf)
+library(stars)
+```
+
+### Amboro-Carrasco
+```{r}
+### Open shp of buffer
+ambcar <- st_read("~/Documents/SESYNC/dinamica/case_study_shp/AmbCar/AmbCarBuf.shp")
+
+### Transform to equal area projection (ESRI South America Equidistant Conic)
+ambcar_pr <- st_transform(ambcar, crs = 102033)
+
+### Open shp of municipios
+municip <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/pop_dens/municipios_339_pob2012.shp") %>% 
+  st_transform(., crs = 102033)
+st_write(municip, 
+         "~/Documents/SESYNC/dinamica/bolivia_dinamica_data/pop_dens/municipios_339_pob2012_projected.shp")
+
+### intersect pop density and PA polygon
+ambcar_pd <- st_intersection(ambcar_pr, municip)
+st_write(ambcar_pd, 
+         "~/Documents/SESYNC/dinamica/processed_layers/bol_popdens.shp")
+
+# ### Add dummy column to sf
+# ambcar_pr$site <- as.factor("amboro_carrasco")
+
+# ### Write output
+# st_write(ambcar_pr, 
+#          "~/Documents/SESYNC/dinamica/case_study_shp/AmbCar/ambcarbuf_pr.shp")
+
+# ### Convert to sp
+# municip_sp <- as(municip, 'Spatial')
+# 
+# ### Prep empty raster
+# ras <- raster()
+# 
+# ### Set raster extent
+# extent(ras) <- extent(municip_sp)
+# 
+# ### Set pixel size
+# res(ras) <- 3
+# 
+# # ### Convert to raster
+# municip_ras <- rasterize(municip_sp, ras, "densidad12")
+```
+
+Made raster of population density in ArcMap (Polygon to Raster): pd_2012 (cell size = 30)
+```{r}
+bolpd <- raster("~/Documents/SESYNC/dinamica/bol_pd.tif")
+```
+
