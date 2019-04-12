@@ -16,6 +16,8 @@ library(stars)
 ```
 
 ### Amboro-Carrasco
+
+#### Population density
 ```{r}
 ### Open shp of buffer
 ambcar <- st_read("~/Documents/SESYNC/dinamica/case_study_shp/AmbCar/AmbCarBuf.shp")
@@ -33,29 +35,9 @@ st_write(municip,
 ambcar_pd <- st_intersection(ambcar_pr, municip)
 st_write(ambcar_pd, 
          "~/Documents/SESYNC/dinamica/processed_layers/bol_popdens.shp")
-
-# ### Add dummy column to sf
-# ambcar_pr$site <- as.factor("amboro_carrasco")
-
-# ### Write output
-# st_write(ambcar_pr, 
-#          "~/Documents/SESYNC/dinamica/case_study_shp/AmbCar/ambcarbuf_pr.shp")
-
-# ### Convert to sp
-# municip_sp <- as(municip, 'Spatial')
-# 
-# ### Prep empty raster
-# ras <- raster()
-# 
-# ### Set raster extent
-# extent(ras) <- extent(municip_sp)
-# 
-# ### Set pixel size
-# res(ras) <- 3
-# 
-# # ### Convert to raster
-# municip_ras <- rasterize(municip_sp, ras, "densidad12")
 ```
+Converted this to raster using gdal in gitbash: 
+gdal_rasterize -a densidad12 -tr 30 30 bol_popdens.shp bol_popdens.tiff
 
 Made raster of population density in ArcMap (Polygon to Raster): pd_2012 (cell size = 30)
 ```{r}
