@@ -56,4 +56,14 @@ rios_princ <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/rios/ri
 st_write(rios_princ, "~/Documents/SESYNC/dinamica/bolivia_dinamica_data/rios/rios_2002/rios_principales_projected.shp")
 ```
 
+#### Rios menores
+Convert crs
+```{r}
+rios_men <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/rios/rios_menores/rios_menores.shp") %>%
+  st_transform(., crs = 102033)
+
+### Save projected version
+st_write(rios_men, "~/Documents/SESYNC/dinamica/bolivia_dinamica_data/rios/rios_menores/rios_menores_projected.shp")
+```
+
 Used gdal to make raster ()
