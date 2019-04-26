@@ -15,9 +15,9 @@ library(sf)
 library(stars)
 ```
 
-### Amboro-Carrasco
+## Amboro-Carrasco
 
-#### Population density
+### Population density
 ```{r}
 ### Open shp of buffer
 ambcar <- st_read("~/Documents/SESYNC/dinamica/case_study_shp/AmbCar/AmbCarBuf.shp")
@@ -45,15 +45,41 @@ bolpd <- raster("~/Documents/SESYNC/dinamica/bol_pd.tif")
 ```
 
 ### Rivers
-
 #### Rios principales
 Convert crs
 ```{r}
 rios_princ <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/rios/rios_2002/rios_principales.shp") %>%
   st_transform(., crs = 102033)
 
+### Add column for label for raster
+rios_princ <- rios_princ %>%
+  mutate(label = 1)
+
 ### Save projected version
 st_write(rios_princ, "~/Documents/SESYNC/dinamica/bolivia_dinamica_data/rios/rios_2002/rios_principales_projected.shp")
+```
+Converted this to raster using gdal in gitbash: 
+gdal_rasterize -a label -a_nodata 0 -tr 30 30 filename.shp filename.tiff
+
+#### other code to convert to raster
+```{r}
+### Convert to raster
+presence.absence.raster <- function(mask.raster, 
+                                    env.data,
+                                    raster.label = "") {
+  require(raster)
+  
+  # set the background cells in the raster to 0
+  mask.raster[!is.na(mask.raster)] <- 0
+  
+  # set the cells that contain rivers to 1
+  env.raster <- rasterize(env.data, mask.raster, field = 1)
+  env.raster <- merge(env.raster, mask.raster)
+  
+  #label the raster
+  names(env.raster) <- raster.label
+  return(env.raster)
+}
 ```
 
 #### Rios menores
@@ -62,8 +88,67 @@ Convert crs
 rios_men <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/rios/rios_menores/rios_menores.shp") %>%
   st_transform(., crs = 102033)
 
+### Add column for label for raster
+rios_men <- rios_men %>%
+  mutate(label = 1)
+
 ### Save projected version
 st_write(rios_men, "~/Documents/SESYNC/dinamica/bolivia_dinamica_data/rios/rios_menores/rios_menores_projected.shp")
 ```
 
-Used gdal to make raster ()
+### Roads
+```{r}
+### Open and reproject
+boli_rds <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/roads_diva_gis/BOL_roads.shp") %>%
+  st_transform(., crs = 102033)
+
+### Add column for label for raster
+boli_rds <- boli_rds %>%
+  mutate(label = 1)
+
+### Save projected version
+st_write(boli_rds, "~/Documents/SESYNC/dinamica/processed_layers/boli_roads_projected.shp")
+```
+
+### Poverty rate
+```{r}
+### Open and reproject
+boli_pobr <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/pobreza/nbi_vam_2012.shp") %>%
+  st_transform(., crs = 102033) %>%
+st_write(boli_pobr, 
+         "~/Documents/SESYNC/dinamica/processed_layers/boli_pobr_projected.shp")
+```
+
+## Jamanxim
+### Roads
+```{r}
+### Open and reproject
+braz_rds <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/BRA_roads_divagis.shp") %>%
+  st_transform(., crs = 102033)
+
+### Add column for label for raster
+braz_rds <- braz_rds %>%
+  mutate(label = 1)
+
+# ### Save projected version
+# st_write(braz_rds, "~/Documents/SESYNC/dinamica/processed_layers/braz_roads_projected.shp")
+
+### Crop to just include Para
+braz <- getData('GADM', country = "Brazil", level = 1) %>%
+  st_as_sf() %>%
+  subset(., GID_1 == "BRA.14_1") %>%
+  st_transform(., crs = 102033)
+st_write(braz, 
+         "~/Documents/SESYNC/dinamica/processed_layers/braz_para_bound.shp")
+```
+
+### Pop density
+```{r}
+### Open file
+braz_pd <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/popdens/para_pop_density.shp") %>%
+  st_transform(., crs = 102033)
+
+### Save output
+st_write(braz_pd, "~/Documents/SESYNC/dinamica/processed_layers/braz_popdens_projected.shp")
+```
+
