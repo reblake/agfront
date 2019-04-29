@@ -141,6 +141,7 @@ braz <- getData('GADM', country = "Brazil", level = 1) %>%
 st_write(braz, 
          "~/Documents/SESYNC/dinamica/processed_layers/braz_para_bound.shp")
 ```
+Cropped in gdal. Made tif of roads in Para using gdal.
 
 ### Pop density
 ```{r}
@@ -150,5 +151,30 @@ braz_pd <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/popdens/par
 
 ### Save output
 st_write(braz_pd, "~/Documents/SESYNC/dinamica/processed_layers/braz_popdens_projected.shp")
+```
+Made tif of pop density in Para using gdal.
+
+### Cities
+Map of urban areas over 100k people from 2000
+https://ww2.ibge.gov.br/home/geociencias/geografia/mapas_doc1.shtm
+```{r}
+### Open and reproject
+urb <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/areas_urbanizadas_do_brasil_2005_ibge/AreasUrbanizadas_MunicipiosAcima100k_porMunicipio.shp") %>%
+  st_transform(., crs = 102033)
+
+### Save output
+st_write(urb, "~/Documents/SESYNC/dinamica/processed_layers/braz_urban_projected.shp")
+```
+Crop urban layer to Para boundaries in gdal
+ogr2ogr -clipsrc braz_para_bound.shp braz_para_urb.shp braz_urban_projected.shp
+
+### Mines
+```{r}
+mines <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/SIGMINE/PA.shp") %>%
+  st_transform(., crs = 102033)
+
+### Save output
+st_write(mines,
+         "~/Documents/SESYNC/dinamica/processed_layers/braz_mines_para_projected.shp")
 ```
 
