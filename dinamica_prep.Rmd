@@ -17,7 +17,7 @@ library(stars)
 
 ## Amboro-Carrasco
 
-### Population density
+### Shapefile of Amb-Car
 ```{r}
 ### Open shp of buffer
 ambcar <- st_read("~/Documents/SESYNC/dinamica/case_study_shp/AmbCar/AmbCarBuf.shp")
@@ -25,6 +25,17 @@ ambcar <- st_read("~/Documents/SESYNC/dinamica/case_study_shp/AmbCar/AmbCarBuf.s
 ### Transform to equal area projection (ESRI South America Equidistant Conic)
 ambcar_pr <- st_transform(ambcar, crs = 102033)
 
+### Add column for label
+ambcar_pr$label <- 1
+
+### Save ouput
+st_write(ambcar_pr, 
+         "~/Documents/SESYNC/dinamica/processed_layers/ambcar_proj.shp")
+```
+
+
+### Population density
+```{r}
 ### Open shp of municipios
 municip <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/pop_dens/municipios_339_pob2012.shp") %>% 
   st_transform(., crs = 102033)
@@ -120,6 +131,20 @@ st_write(boli_pobr,
 ```
 
 ## Jamanxim
+
+### Shapefile of Jamanxim
+```{r}
+### Open shp of buffer
+jambuf <- st_read("~/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/JamanBuffer.shp")
+
+### Transform to equal area projection (ESRI South America Equidistant Conic)
+jambuf_pr <- st_transform(jambuf, crs = 102033)
+
+### Save ouput
+st_write(jambuf_pr, 
+         "~/Documents/SESYNC/dinamica/processed_layers/jaman_proj.shp")
+```
+
 ### Roads
 ```{r}
 ### Open and reproject
