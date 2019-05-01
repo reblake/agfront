@@ -1,0 +1,33 @@
+---
+title: "openstreet"
+author: "Katherine Siegel"
+date: "May 1, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Load packages
+library(tidyverse)
+library(sf)
+# library(osmdata)
+```
+
+### Bolivia roads
+Got roads from Geofrabik (https://download.geofabrik.de/south-america.html)
+```{r}
+### Open roads file
+bol_rds <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/openstreetmap/gis_osm_roads_free_1.shp")
+
+### Open bounding box for Amb-Car region
+bol_bb <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/openstreetmap/ambcar_larger_buffer.shp")
+
+### Get roads within bounding box
+ambcar_rds <- st_intersection(bol_rds, bol_bb)
+
+### Write output
+st_write(ambcar_rds,
+         "~/Documents/SESYNC/dinamica/bolivia_dinamica_data/openstreetmap/ambcar_rds.shp")
+```
+

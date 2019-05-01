@@ -107,7 +107,7 @@ rios_men <- rios_men %>%
 st_write(rios_men, "~/Documents/SESYNC/dinamica/bolivia_dinamica_data/rios/rios_menores/rios_menores_projected.shp")
 ```
 
-### Roads
+### Roads (DIVA GIS)
 ```{r}
 ### Open and reproject
 boli_rds <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/roads_diva_gis/BOL_roads.shp") %>%
@@ -119,6 +119,16 @@ boli_rds <- boli_rds %>%
 
 ### Save projected version
 st_write(boli_rds, "~/Documents/SESYNC/dinamica/processed_layers/boli_roads_projected.shp")
+```
+
+### Roads (OSM)
+```{r}
+### Open and reproject
+boli_osm <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/openstreetmap/ambcar_rds.shp") %>%
+  st_transform(., crs = 102033)
+
+### Save projected version
+st_write(boli_osm, "~/Documents/SESYNC/dinamica/processed_layers/boli_osm_roads_projected.shp")
 ```
 
 ### Poverty rate
