@@ -31,3 +31,20 @@ st_write(ambcar_rds,
          "~/Documents/SESYNC/dinamica/bolivia_dinamica_data/openstreetmap/ambcar_rds.shp")
 ```
 
+### Brazil roads
+Got roads from Geofrabik (https://download.geofabrik.de/south-america.html)
+```{r}
+### Open roads file
+braz_rds <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/openstreetmaps/gis_osm_roads_free_1.shp")
+
+### Open bounding box for Amb-Car region
+braz_bb <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/openstreetmaps/jaman_larger_buffer.shp")
+
+### Get roads within bounding box
+jaman_rds <- st_intersection(braz_rds, braz_bb)
+
+### Write output
+st_write(jaman_rds,
+         "~/Documents/SESYNC/dinamica/brazil_dinamica_data/openstreetmaps/jaman_rds.shp")
+```
+

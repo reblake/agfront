@@ -155,7 +155,7 @@ st_write(jambuf_pr,
          "~/Documents/SESYNC/dinamica/processed_layers/jaman_proj.shp")
 ```
 
-### Roads
+### Roads (DIVA GIS)
 ```{r}
 ### Open and reproject
 braz_rds <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/BRA_roads_divagis.shp") %>%
@@ -177,6 +177,17 @@ st_write(braz,
          "~/Documents/SESYNC/dinamica/processed_layers/braz_para_bound.shp")
 ```
 Cropped in gdal. Made tif of roads in Para using gdal.
+
+### Roads (OSM)
+```{r}
+### Open and reproject
+braz_osm <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/openstreetmaps/jaman_rds.shp") %>%
+  st_transform(., crs = 102033)
+
+### Save projected version
+st_write(braz_osm,
+         "~/Documents/SESYNC/dinamica/processed_layers/braz_osm_roads_projected.shp")
+```
 
 ### Pop density
 ```{r}
