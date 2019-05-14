@@ -175,6 +175,17 @@ braz <- getData('GADM', country = "Brazil", level = 1) %>%
   st_transform(., crs = 102033)
 st_write(braz, 
          "~/Documents/SESYNC/dinamica/processed_layers/braz_para_bound.shp")
+
+### Crop to northern brazilian states
+braz <- getData('GADM', country = "Brazil", level = 1) %>%
+  st_as_sf() %>%
+  subset(., GID_1 == "BRA.14_1" |
+           GID_1 == "BRA.4_1" |
+           GID_1 == "BRA.12_1" |
+           GID_1 == "BRA.22_1") %>%
+  st_transform(., crs = 102033)
+st_write(braz, 
+         "~/Documents/SESYNC/dinamica/processed_layers/braz_northern_states.shp")
 ```
 Cropped in gdal. Made tif of roads in Para using gdal.
 
