@@ -186,6 +186,16 @@ braz <- getData('GADM', country = "Brazil", level = 1) %>%
   st_transform(., crs = 102033)
 st_write(braz, 
          "~/Documents/SESYNC/dinamica/processed_layers/braz_northern_states.shp")
+
+### See if there are invalid geoms in roads dataset
+any(na.omit(st_is_valid(braz_rds)) == FALSE)
+
+### Intersect
+rds_north <- st_intersection(braz_rds, braz)
+
+### Write output roads
+st_write(rds_north, 
+         "~/Documents/SESYNC/dinamica/processed_layers/braz_rds_northern_states.shp")
 ```
 Cropped in gdal. Made tif of roads in Para using gdal.
 
