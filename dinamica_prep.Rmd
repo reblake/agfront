@@ -199,7 +199,7 @@ st_write(rds_north,
 ```
 Cropped in gdal. Made tif of roads in Para using gdal. Then made tif of roads in northern states.
 
-Used Euclidean distance tool in ArcGIS (output cell size = 30) to make raster with distance to roads (braz_rd_dist).
+Cropped roads in QGIS/gdal: braz_rd_northern_bound.shp, then rasterized in gdal: gdal_rasterize -burn 1 -tr 30 30 braz_rd_northern_bound.shp braz_rd_northern_bound.tiff
 
 ### Roads (OSM)
 ```{r}
