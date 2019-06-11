@@ -199,7 +199,13 @@ st_write(rds_north,
 ```
 Cropped in gdal. Made tif of roads in Para using gdal. Then made tif of roads in northern states.
 
-Cropped roads in QGIS/gdal: braz_rd_northern_bound.shp, then rasterized in gdal: gdal_rasterize -burn 1 -tr 30 30 braz_rd_northern_bound.shp braz_rd_northern_bound.tiff
+Cropped roads in QGIS/gdal: 
+1. made northern states polygon:
+braz_rd_northern_bound.shp, then rasterized in gdal: gdal_rasterize -burn 1 -tr 30 30 braz_rd_northern_bound.shp braz_rd_northern_bound.tiff
+2. cropped roads to northern states: braz_northern_rds_qgis.shp
+3. still too large to rasterize in gdal
+4. crop to northern_polygon.shp in gdal ogr2ogr -clipsrc northern_polygon.shp braz_northern_rds.shp braz_northern_rds_qgis.shp
+5. still doesn't work.
 
 ### Roads (OSM)
 ```{r}
@@ -211,6 +217,7 @@ braz_osm <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/openstreet
 st_write(braz_osm,
          "~/Documents/SESYNC/dinamica/processed_layers/braz_osm_roads_projected.shp")
 ```
+Clipped to area around Jamanxim in rgdal: braz_osm_roads_projected.shp (epsg: 102033)
 
 ### Pop density
 ```{r}
@@ -335,7 +342,13 @@ crop_ac_3030 <- resample(x = crop_ac_disag,
                           method = "bilinear")
 
 ### Write output
-writeRaster(crop_jac_3030,
+writeRaster(crop_ac_3030,
             filename = "~/Documents/SESYNC/dinamica/processed_layers/crop_suit_ambcar",
             format = "GTiff")
 ```
+
+## Distance to roads
+1. rasterize OSM rds in gdal:
+gdal_rasterize -a rast_val -tr 30 30 braz_osm_roads_projected.shp braz_osm_rds.tiff
+2. rasterize diva-gis roads in gdal
+2. use Proximity (Raster Distance) in QGIS to make distance raster: braz_osm_rds_dist.tif

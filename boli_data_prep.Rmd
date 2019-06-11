@@ -17,7 +17,7 @@ library(sf)
 ```
 
 ### Calculate pop density for 2012
-Use shp from GeoBolivia for population by municipio is 2012: municipios_339_pob2012,shp. This file has a column for pop density, but it is rounded to the nearest whole number.
+Use shp from GeoBolivia for population by municipio is 2012: municipios_339_pob2012.shp. This file has a column for pop density, but it is rounded to the nearest whole number.
 ```{r}
 ### Open file
 b_pd <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/pop_dens/municipios_339_pob2012.shp", stringsAsFactors = FALSE)
