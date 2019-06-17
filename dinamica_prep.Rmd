@@ -69,29 +69,6 @@ rios_princ <- rios_princ %>%
 ### Save projected version
 st_write(rios_princ, "~/Documents/SESYNC/dinamica/bolivia_dinamica_data/rios/rios_2002/rios_principales_projected.shp")
 ```
-Converted this to raster using gdal in gitbash: 
-gdal_rasterize -a label -a_nodata 0 -tr 30 30 filename.shp filename.tiff
-
-#### other code to convert to raster
-```{r}
-### Convert to raster
-presence.absence.raster <- function(mask.raster, 
-                                    env.data,
-                                    raster.label = "") {
-  require(raster)
-  
-  # set the background cells in the raster to 0
-  mask.raster[!is.na(mask.raster)] <- 0
-  
-  # set the cells that contain rivers to 1
-  env.raster <- rasterize(env.data, mask.raster, field = 1)
-  env.raster <- merge(env.raster, mask.raster)
-  
-  #label the raster
-  names(env.raster) <- raster.label
-  return(env.raster)
-}
-```
 
 #### Rios menores
 Convert crs
@@ -106,6 +83,9 @@ rios_men <- rios_men %>%
 ### Save projected version
 st_write(rios_men, "~/Documents/SESYNC/dinamica/bolivia_dinamica_data/rios/rios_menores/rios_menores_projected.shp")
 ```
+
+Converted this to raster using gdal in gitbash: 
+gdal_rasterize -a label -a_nodata 0 -tr 30 30 filename.shp filename.tiff
 
 ### Roads (DIVA GIS)
 ```{r}
@@ -219,6 +199,31 @@ st_write(braz_osm,
 ```
 Clipped to area around Jamanxim in rgdal: braz_osm_roads_projected.shp (epsg: 102033)
 
+##### Open both roads
+```{r}
+### divagis
+dgis <- st_read("~/Documents/SESYNC/dinamica/processed_layers/braz_northern_rds.shp") %>%
+  st_transform(., crs = 102033)
+
+### osm
+osm <- st_read("~/Documents/SESYNC/dinamica/processed_layers/braz_osm_roads_projected.shp") %>%
+  st_transform(., crs = 102033)
+
+### Drop columns
+dgis <- dplyr::select(dgis, rast_val = raster_val,
+                      geometry = geometry)
+osm <- dplyr::select(osm, rast_val = rast_val,
+                      geometry = geometry)
+
+### Combine 
+all_rd <- rbind(dgis, osm)
+
+### Save 
+st_write(all_rd,
+         "~/Documents/SESYNC/dinamica/processed_layers/braz_all_raods.shp")
+```
+gdal_rasterize -a mine -tr 30 30 braz_mines_para_projected.shp braz_mines_para_projected.tiff
+
 ### Pop density
 ```{r}
 ### Open file
@@ -249,10 +254,33 @@ ogr2ogr -clipsrc braz_para_bound.shp braz_para_urb.shp braz_urban_projected.shp
 mines <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/SIGMINE/PA.shp") %>%
   st_transform(., crs = 102033)
 
+### Add column to burn into
+mines$mine <- 1
+
 ### Save output
 st_write(mines,
          "~/Documents/SESYNC/dinamica/processed_layers/braz_mines_para_projected.shp")
 ```
+gdal_rasterize -a mine -tr 30 30 braz_mines_para_projected.shp braz_mines_para_projected.tiff
+
+### Rivers
+Data from divagis
+```{r}
+### Open line files
+rio_line <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/BRA_divagis_water/BRA_water_lines_dcw.shp") %>%
+  st_transform(., crs = 102033)
+
+rio_line$rio <- 1
+
+### Write out, then crop to Para in gdal
+st_write(rio_line,
+         "~/Documents/SESYNC/dinamica/processed_layers/bra_rios_proj.shp")
+# ### Open area files -- these aren't rivers
+# rio_area <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/BRA_divagis_water/BRA_water_areas_dcw.shp") %>%
+#   st_transform(., crs = 102033)
+```
+too slow: ogr2ogr -clipsrc braz_para_bound.shp braz_para_rios.shp bra_rios_proj.shp
+Deleted rivers in ArcMap, the converted to raster in gdal
 
 ## Global layer
 ### Crop suitability
