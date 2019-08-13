@@ -505,11 +505,17 @@ writeRaster(j_precip_resample,
 
 ```
 
-```{r}
-### Open BOL DEM
-dem_bol <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/processed_layers/DEMAmbCar.tif")
+### DEM
+Get slope and aspect rasters from QGIS
+(datatype_location.tif)
 
-###
+Now want to downsample in gdal using 
+gdalwarp -s_srs EPSG:102033 -t_srs EPSG:102033 -r near -of GTiff -tr 1 1 "C:\\Users\\Katherine Siegel\\Documents\\SESYNC\\dinamica\\processed_layers\\slope_ja
+man.tif" "C:/Users/Katherine Siegel/AppData/Local/Temp/processing_02ef3f1f41ff4353ac5ac497de3127fb/e80dc7117b1749889b13e818c5c33439/OUTPUT.tif"
+
+But there isn't enough disk space
+```{r}
+
 
 ```
 
