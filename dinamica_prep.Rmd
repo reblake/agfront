@@ -52,7 +52,42 @@ gdal_rasterize -a densidad12 -tr 30 30 bol_popdens.shp bol_popdens.tiff
 
 Made raster of population density in ArcMap (Polygon to Raster): pd_2012 (cell size = 30)
 ```{r}
-bolpd <- raster("~/Documents/SESYNC/dinamica/bol_pd.tif")
+# bolpd <- raster("~/Documents/SESYNC/dinamica/bol_pd.tif")
+```
+
+#### 8/12
+Resample file so it matches extent and resolution of land use/land cover map
+```{r}
+### Open pop density shp
+ambcar_pd <- st_read("~/Documents/SESYNC/dinamica/processed_layers/bol_popdens.shp")
+
+### Open ambcar LUC raster
+ac_2008 <- raster("D:/dinamica/bolivia_simple/data/unsuper_bol_2008_dry_102033.tif")
+
+### Get extent
+ambcar_ext <- extent(ac_2008)
+
+### Crop pop dens to extent
+ambcar_pd <- st_crop(ambcar_pd, xmin = -613219.5, ymin = 1585781,
+                     xmax = -332403.2, ymax = 1758667)
+
+### Write output
+st_write(ambcar_pd, 
+         "~/Documents/SESYNC/dinamica/processed_layers/bol_popdens_cropped.shp")
+
+### Rasterize in gdal:  
+### gdal_rasterize -a densidad12 -tr 28.21707 28.21707 bol_popdens_cropped.shp bol_popdens_test.tiff
+
+### Open gdal raster output
+bpd_test <- raster("~/Documents/SESYNC/dinamica/processed_layers/bol_popdens_test.tiff")
+
+### Resample to match ac_2008
+bpd_resample <- raster::resample(bpd_test, ac_2008, "bilinear")
+
+### Save output raster
+writeRaster(bpd_resample,
+            filename = "~/Documents/SESYNC/dinamica/processed_layers/final/bol_popdens.tiff",
+            format = "GTiff")
 ```
 
 ### Rivers
@@ -87,6 +122,21 @@ st_write(rios_men, "~/Documents/SESYNC/dinamica/bolivia_dinamica_data/rios/rios_
 Converted this to raster using gdal in gitbash: 
 gdal_rasterize -a label -a_nodata 0 -tr 30 30 filename.shp filename.tiff
 
+#### 8/12
+```{r}
+### Open rios raster
+ambcar_rios <- raster("~/Documents/SESYNC/dinamica/processed_layers/bol_dist_rios_menores.tif")
+
+### Resample to match ac_2008
+ambcar_rios_resample <- raster::resample(ambcar_rios, 
+                                         ac_2008, "bilinear")
+
+### Save output raster
+writeRaster(ambcar_rios_resample,
+            filename = "~/Documents/SESYNC/dinamica/processed_layers/final/bol_dist_rios_menores.tiff",
+            format = "GTiff")
+```
+
 ### Roads (DIVA GIS)
 ```{r}
 ### Open and reproject
@@ -111,6 +161,21 @@ boli_osm <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/openstree
 st_write(boli_osm, "~/Documents/SESYNC/dinamica/processed_layers/boli_osm_roads_projected.shp")
 ```
 
+#### 8/12
+```{r}
+### Open roads raster
+ambcar_rds <- raster("~/Documents/SESYNC/dinamica/processed_layers/bol_osm_dist.tif")
+
+### Resample to match ac_2008
+ambcar_rds_resample <- raster::resample(ambcar_rds, 
+                                         ac_2008, "bilinear")
+
+### Save output raster
+writeRaster(ambcar_rds_resample,
+            filename = "~/Documents/SESYNC/dinamica/processed_layers/final/bol_dist_rds.tiff",
+            format = "GTiff")
+```
+
 ### Poverty rate
 ```{r}
 ### Open and reproject
@@ -118,6 +183,37 @@ boli_pobr <- st_read("~/Documents/SESYNC/dinamica/bolivia_dinamica_data/pobreza/
   st_transform(., crs = 102033) %>%
 st_write(boli_pobr, 
          "~/Documents/SESYNC/dinamica/processed_layers/boli_pobr_projected.shp")
+```
+
+#### 8/12
+```{r}
+### Open pov rate raster
+ambcar_pov <- raster("~/Documents/SESYNC/dinamica/processed_layers/boli_pobr_clip.tif")
+
+### Resample to match ac_2008
+ambcar_pov_resample <- raster::resample(ambcar_pov, 
+                                         ac_2008, "bilinear")
+
+### Save output raster
+writeRaster(ambcar_pov_resample,
+            filename = "~/Documents/SESYNC/dinamica/processed_layers/final/bol_pobreza.tiff",
+            format = "GTiff")
+```
+
+### Crop suitability
+#### 8/12
+```{r}
+### Open crop suit raster
+ambcar_cs <- raster("~/Documents/SESYNC/dinamica/processed_layers/crop_suit_ambcar.tif")
+
+### Resample to match ac_2008
+ambcar_cs_resample <- raster::resample(ambcar_cs, 
+                                         ac_2008, "bilinear")
+
+### Save output raster
+writeRaster(ambcar_cs_resample,
+            filename = "~/Documents/SESYNC/dinamica/processed_layers/final/bol_cropsuit.tiff",
+            format = "GTiff")
 ```
 
 ## Jamanxim
@@ -380,3 +476,82 @@ writeRaster(crop_ac_3030,
 gdal_rasterize -a rast_val -tr 30 30 braz_osm_roads_projected.shp braz_osm_rds.tiff
 2. rasterize diva-gis roads in gdal
 2. use Proximity (Raster Distance) in QGIS to make distance raster: braz_osm_rds_dist.tif
+
+## DEM & Precip
+Reproject DEM and precip to correct CRS in QGIS (/processed_layers/datatype_location_102033.tif)
+
+### Precip
+Resample precip to be at correct resolution
+```{r}
+### Open precip files
+ac_precip <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/processed_layers/ppt_ambcar_102033.tif")
+j_precip <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/processed_layers/ppt_jaman_102033.tif")
+
+### Resample to match bol raster
+ac_precip_resample <- raster::resample(ac_precip, 
+                                         ac_2008, "bilinear")
+
+### Resample to match braz raster
+j_precip_resample <- raster::resample(j_precip, 
+                                      j_2008, "bilinear")
+
+### Write output rasters
+writeRaster(ac_precip_resample,
+            filename = "~/Documents/SESYNC/dinamica/processed_layers/final/bol_precip.tiff",
+            format = "GTiff")
+writeRaster(j_precip_resample,
+            filename = "~/Documents/SESYNC/dinamica/processed_layers/final/bra_precip.tiff",
+            format = "GTiff")
+
+```
+
+```{r}
+### Open BOL DEM
+dem_bol <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/processed_layers/DEMAmbCar.tif")
+
+###
+
+```
+
+
+## Make base raster for gdal
+```{r}
+### Jamanxim
+#### Open raster
+j_2008 <- raster("D:/dinamica/brazil_simple/data/unsuper_bra_2008_dry_102033.tif")
+
+#### Set all values to 1
+values(j_2008) <- 1
+
+#### Write output
+writeRaster(j_2008,
+            filename = "D:/dinamica/brazil_dinamica_data/bra_blank.tif",
+            format = "GTiff")
+
+### AmbCar
+#### Open raster
+ac_2008 <- raster("D:/dinamica/bolivia_simple/data/unsuper_bol_2008_dry_102033.tif")
+
+#### Set all values to 1
+values(ac_2008) <- 1
+
+#### Write output
+writeRaster(ac_2008,
+            filename = "D:/dinamica/bolivia_dinamica_data/bol_blank.tif",
+            format = "GTiff")
+```
+
+### Make raster stack
+```{r}
+ac_stack <- raster::stack(bpd_resample, 
+                          ambcar_rios_resample, 
+                          ambcar_rds_resample,
+                          ambcar_pov_resample,
+                          ambcar_cs_resample)
+
+### Write out stack
+writeRaster(ac_stack,
+            "D:/dinamica/bolivia_simple/data/bolivia_static_vars.tif", 
+            format = "GTiff")
+```
+
