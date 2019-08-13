@@ -634,3 +634,12 @@ hist(values(bol_aspect), na.rm = TRUE)
 dev.off()
 ```
 
+## Check Aldo's layers
+```{r}
+### Urban
+peru_urb <- raster("D:/dinamica/aldo/p_urb_dist.tif")
+
+### River
+peru_riv <- raster("D:/dinamica/aldo/p_rivers_dist.tif")
+```
+
