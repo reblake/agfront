@@ -477,10 +477,26 @@ gdal_rasterize -a rast_val -tr 30 30 braz_osm_roads_projected.shp braz_osm_rds.t
 2. rasterize diva-gis roads in gdal
 2. use Proximity (Raster Distance) in QGIS to make distance raster: braz_osm_rds_dist.tif
 
-## DEM & Precip
-Reproject DEM and precip to correct CRS in QGIS (/processed_layers/datatype_location_102033.tif)
+## DEM
+Got slope and aspect layers from DEM using QGIS. Here, load the rasters to doublecheck that they are the correct resolution and extent
 
-### Precip
+```{r}
+### Open bol DEM files
+bol_elev <- raster("D:/dinamica/processed_layers/dem_ambcar_102033.tif")
+bol_slope <- raster("D:/dinamica/processed_layers/slope_ambcar.tif")
+bol_aspect <- raster("D:/dinamica/processed_layers/aspect_ambcar.tif")
+
+### Resample to match bol raster
+ac_precip_resample <- raster::resample(ac_precip, 
+                                         ac_2008, "bilinear")
+
+```
+
+
+
+
+## Precip
+Reproject precip to correct CRS in QGIS (/processed_layers/datatype_location_102033.tif).
 Resample precip to be at correct resolution
 ```{r}
 ### Open precip files
@@ -502,20 +518,6 @@ writeRaster(ac_precip_resample,
 writeRaster(j_precip_resample,
             filename = "~/Documents/SESYNC/dinamica/processed_layers/final/bra_precip.tiff",
             format = "GTiff")
-
-```
-
-### DEM
-Get slope and aspect rasters from QGIS
-(datatype_location.tif)
-
-Now want to downsample in gdal using 
-gdalwarp -s_srs EPSG:102033 -t_srs EPSG:102033 -r near -of GTiff -tr 1 1 "C:\\Users\\Katherine Siegel\\Documents\\SESYNC\\dinamica\\processed_layers\\slope_ja
-man.tif" "C:/Users/Katherine Siegel/AppData/Local/Temp/processing_02ef3f1f41ff4353ac5ac497de3127fb/e80dc7117b1749889b13e818c5c33439/OUTPUT.tif"
-
-But there isn't enough disk space
-```{r}
-
 
 ```
 
@@ -547,17 +549,88 @@ writeRaster(ac_2008,
             format = "GTiff")
 ```
 
-### Make raster stack
+### Make raster brick
+#### Bolivia
 ```{r}
-ac_stack <- raster::stack(bpd_resample, 
-                          ambcar_rios_resample, 
-                          ambcar_rds_resample,
-                          ambcar_pov_resample,
-                          ambcar_cs_resample)
+### Open Bolivia rasters
+crop_suit <- raster("D:/dinamica/processed_layers/final/bol_cropsuit.tif")
+dist_rds <- raster("D:/dinamica/processed_layers/final/bol_dist_rds.tif")
+dist_rios <- raster("D:/dinamica/processed_layers/final/bol_dist_rios_menores.tif")
+pop_dens <- raster("D:/dinamica/processed_layers/final/bol_popdens.tif")
+precip <- raster("D:/dinamica/processed_layers/final/bol_precip.tif")
+poverty <- raster("D:/dinamica/processed_layers/final/bol_pobreza.tif")
+bol_elev <- raster("D:/dinamica/processed_layers/dem_ambcar_102033.tif")
+bol_slope <- raster("D:/dinamica/processed_layers/slope_ambcar.tif")
+bol_aspect <- raster("D:/dinamica/processed_layers/aspect_ambcar.tif")
 
-### Write out stack
-writeRaster(ac_stack,
-            "D:/dinamica/bolivia_simple/data/bolivia_static_vars.tif", 
-            format = "GTiff")
+
+### Make brick
+ac_brick <- raster::brick(crop_suit, 
+                          dist_rds, 
+                          dist_rios,
+                          pop_dens,
+                          precip,
+                          poverty,
+                          bol_elev,
+                          bol_slope,
+                          bol_aspect)
+
+# ### Write out stack
+# writeRaster(ac_stack,
+#             "D:/dinamica/bolivia_simple/data/bolivia_static_vars.tif", 
+#             format = "GTiff")
+
+### Write out brick
+writeRaster(ac_brick, 
+            filename = "D:/dinamica/bolivia_simple/data/bolivia_static_vars.tif", 
+            format = "GTiff",
+            overwrite = TRUE, 
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Make histograms of values
+#### crop suit
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bol_dinamica_notes/bol_cropsuit.pdf")
+hist(values(crop_suit), na.rm = TRUE)
+dev.off()
+
+#### dist_rds
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bol_dinamica_notes/bol_dist_rds.pdf")
+hist(values(dist_rds), na.rm = TRUE)
+dev.off()
+
+#### dist_rios
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bol_dinamica_notes/bol_dist_rios.pdf")
+hist(values(dist_rios), na.rm = TRUE)
+dev.off()
+
+#### pop_dens
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bol_dinamica_notes/bol_pop_dens.pdf")
+hist(values(pop_dens), na.rm = TRUE)
+dev.off()
+
+#### poverty
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bol_dinamica_notes/bol_poverty.pdf")
+hist(values(poverty), na.rm = TRUE)
+dev.off()
+
+#### precip
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bol_dinamica_notes/bol_precip.pdf")
+hist(values(precip), na.rm = TRUE)
+dev.off()
+
+#### elev
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bol_dinamica_notes/bol_elev.pdf")
+hist(values(bol_elev), na.rm = TRUE)
+dev.off()
+
+#### slope
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bol_dinamica_notes/bol_slope.pdf")
+hist(values(bol_slope), na.rm = TRUE)
+dev.off()
+
+#### aspect
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bol_dinamica_notes/bol_aspect.pdf")
+hist(values(bol_aspect), na.rm = TRUE)
+dev.off()
 ```
 
