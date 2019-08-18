@@ -293,7 +293,30 @@ braz_osm <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/openstreet
 st_write(braz_osm,
          "~/Documents/SESYNC/dinamica/processed_layers/braz_osm_roads_projected.shp")
 ```
-Clipped to area around Jamanxim in rgdal: braz_osm_roads_projected.shp (epsg: 102033)
+
+#### 8/18
+Resample file so it matches extent and resolution of land use/land cover map
+```{r}
+### Open dist to OSM roads
+jaman_rd <- raster("D:/dinamica/processed_layers/bra_osm_dist.tif")
+
+### Open land cover map
+jm_2008 <- raster("D:/dinamica/brazil_simple/data/unsuper_bra_2008_dry_102033.tif")
+
+### Resample to match jm_2008
+j_rd_resample <- raster::resample(jaman_rd, jm_2008,
+                                  "bilinear")
+
+### Save output raster
+writeRaster(j_rd_resample,
+            filename = "D:/dinamica/processed_layers/bra_osm_dist_resample.tiff",
+            format = "GTiff")
+
+### Write to simple dinamica model data folder
+writeRaster(j_rd_resample,
+            filename = "D:/dinamica/brazil_simple/data/bra_osm_dist_resample.tiff",
+            format = "GTiff")
+```
 
 ##### Open both roads
 ```{r}
@@ -329,7 +352,40 @@ braz_pd <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/popdens/par
 ### Save output
 st_write(braz_pd, "~/Documents/SESYNC/dinamica/processed_layers/braz_popdens_projected.shp")
 ```
-Made tif of pop density in Para using gdal.
+Made tif of pop density in Para using gdal (braz_popdens_projected.tif)
+
+#### 8/18
+Resample file so it matches extent and resolution of land use/land cover map
+```{r}
+### Open pop density
+jaman_pd <- raster("D:/dinamica/processed_layers/braz_popdens_projected.tiff")
+
+### Need to crop this raster in gdal
+### x_min: 385189.152
+### y_min: 2675334.064
+### x_max: 544187.735
+### y_max: 2973205.205
+
+### gdal code: 
+###gdalwarp -te 385189.152 2675334.064 544187.735 2973205.205 braz_popdens_projected.tiff braz_popdens_projected_clipped.tiff
+
+### Open the clipped version
+jaman_pd <- raster("D:/dinamica/processed_layers/braz_popdens_projected_clipped.tiff")
+
+### Resample to match jm_2008
+j_pd_resample <- raster::resample(jaman_pd, jm_2008,
+                                  "bilinear")
+
+### Save output raster
+writeRaster(j_pd_resample,
+            filename = "D:/dinamica/processed_layers/braz_popdens_projected_clipped_resample.tiff",
+            format = "GTiff")
+
+### Write to simple dinamica model data folder
+writeRaster(j_pd_resample,
+            filename = "D:/dinamica/brazil_simple/data/bra_pd_resample.tiff",
+            format = "GTiff")
+```
 
 ### Cities
 Map of urban areas over 100k people from 2000
@@ -345,6 +401,30 @@ st_write(urb, "~/Documents/SESYNC/dinamica/processed_layers/braz_urban_projected
 Crop urban layer to Para boundaries in gdal
 ogr2ogr -clipsrc braz_para_bound.shp braz_para_urb.shp braz_urban_projected.shp
 
+
+#### 8/18
+Resample file so it matches extent and resolution of land use/land cover map
+```{r}
+### Open distance to city
+jaman_urb <- raster("D:/dinamica/processed_layers/braz_dist_urb.tif")
+
+### Need to redo calculation of distance to urban areas for Jamanxim area
+
+# ### Resample to match jm_2008
+# j_urb_resample <- raster::resample(jaman_urb, jm_2008,
+#                                   "bilinear")
+
+# ### Save output raster
+# writeRaster(j_pd_resample,
+#             filename = "D:/dinamica/processed_layers/braz_popdens_projected_clipped_resample.tiff",
+#             format = "GTiff")
+# 
+# ### Write to simple dinamica model data folder
+# writeRaster(j_pd_resample,
+#             filename = "D:/dinamica/brazil_simple/data/bra_pd_resample.tiff",
+#             format = "GTiff")
+```
+
 ### Mines
 ```{r}
 mines <- st_read("~/Documents/SESYNC/dinamica/brazil_dinamica_data/SIGMINE/PA.shp") %>%
@@ -358,6 +438,27 @@ st_write(mines,
          "~/Documents/SESYNC/dinamica/processed_layers/braz_mines_para_projected.shp")
 ```
 gdal_rasterize -a mine -tr 30 30 braz_mines_para_projected.shp braz_mines_para_projected.tiff
+
+#### 8/18
+Resample file so it matches extent and resolution of land use/land cover map
+```{r}
+### Open dist to mines
+jaman_mines <- raster("D:/dinamica/processed_layers/braz_dist_mines.tif")
+
+### Resample to match jm_2008
+j_mines_resample <- raster::resample(jaman_mines, jm_2008,
+                                  "bilinear")
+
+### Save output raster
+writeRaster(j_mines_resample,
+            filename = "D:/dinamica/processed_layers/bra_dist_mines_resample.tiff",
+            format = "GTiff")
+
+### Write to simple dinamica model data folder
+writeRaster(j_mines_resample,
+            filename = "D:/dinamica/brazil_simple/data/bra_dist_mines_resample.tiff",
+            format = "GTiff")
+```
 
 ### Rivers
 Data from divagis
@@ -377,6 +478,29 @@ st_write(rio_line,
 ```
 too slow: ogr2ogr -clipsrc braz_para_bound.shp braz_para_rios.shp bra_rios_proj.shp
 Deleted rivers in ArcMap, the converted to raster in gdal
+
+#### 8/18
+Resample file so it matches extent and resolution of land use/land cover map
+```{r}
+### Open dist to rivers
+jaman_rios <- raster("D:/dinamica/processed_layers/bra_rios_dist.tif")
+
+### Need to redo distance to rivers file (use bra_rios_proj.shp as file of rivers near Jamanxim)
+
+# ### Resample to match jm_2008
+# j_rios_resample <- raster::resample(jaman_rios, jm_2008,
+#                                   "bilinear")
+# 
+# ### Save output raster
+# writeRaster(j_rios_resample,
+#             filename = "D:/dinamica/processed_layers/bra_dist_rios_resample.tiff",
+#             format = "GTiff")
+# 
+# ### Write to simple dinamica model data folder
+# writeRaster(j_rios_resample,
+#             filename = "D:/dinamica/brazil_simple/data/bra_dist_rios_resample.tiff",
+#             format = "GTiff")
+```
 
 ## Global layer
 ### Crop suitability
