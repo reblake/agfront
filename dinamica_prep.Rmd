@@ -403,10 +403,17 @@ ogr2ogr -clipsrc braz_para_bound.shp braz_para_urb.shp braz_urban_projected.shp
 
 
 #### 8/18
-Resample file so it matches extent and resolution of land use/land cover map
+Resample file so it matches extent and resolution of land use/land cover map. There was an issue with the file, so restarting the process. Opened copy of AreasUrbanizadas_MunicipiosAcima100k_porMunicipio.shp in ArcMap and manually removed cities that are very far from Jamanxim. Then made bra_dist_urb2 in ArcMap. Now need to clip and resample it.
 ```{r}
-### Open distance to city
-jaman_urb <- raster("D:/dinamica/processed_layers/braz_dist_urb.tif")
+### Open city shp to reproject
+brazil_urb <- st_read("D:/dinamica/brazil_dinamica_data/areas_urbanizadas_do_brasil_2005_ibge/AreasUrbanizadas_MunicipiosAcima100k_porMunicipio_reduced.shp")
+
+### Project to CRS of rest of files and write out
+brazil_urb <- st_transform(brazil_urb, crs = 102033) %>%
+  st_write(., "D:/dinamica/processed_layers/areas_urbanizadas_reduced.shp")
+
+### Now use Euclidean distance to make raster using this output (in ArcGIS)
+
 
 ### Need to redo calculation of distance to urban areas for Jamanxim area
 
@@ -480,7 +487,7 @@ too slow: ogr2ogr -clipsrc braz_para_bound.shp braz_para_rios.shp bra_rios_proj.
 Deleted rivers in ArcMap, the converted to raster in gdal
 
 #### 8/18
-Resample file so it matches extent and resolution of land use/land cover map
+Resample file so it matches extent and resolution of land use/land cover map. Had to redo rivers file to be in same projection as the rest of files (made bra_riv_dist.tif in ArcGIS). Now need to clip it and resample it.
 ```{r}
 ### Open dist to rivers
 jaman_rios <- raster("D:/dinamica/processed_layers/bra_rios_dist.tif")
