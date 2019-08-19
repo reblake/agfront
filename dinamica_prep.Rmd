@@ -216,6 +216,22 @@ writeRaster(ambcar_cs_resample,
             format = "GTiff")
 ```
 
+### Protected area status
+#### 8/12
+```{r}
+### Open file
+bol_protectedarea <- raster("D:/dinamica/processed_layers/final/ambcar_proj_buffers.tiff")
+
+### Resample to match ac_2008
+ambcar_pa_resample <- raster::resample(bol_protectedarea, 
+                                         ac_2008, "bilinear")
+
+### Save output raster
+writeRaster(ambcar_pa_resample,
+            filename = "D:/dinamica/processed_layers/final/bol_protect_stat_resample.tiff",
+            format = "GTiff")
+```
+
 ## Jamanxim
 
 ### Shapefile of Jamanxim
@@ -413,7 +429,7 @@ x_max: 544187.735
 y_max: 2973205.205
 
 gdal code: 
-gdalwarp -te 385189.152 2675334.064 544187.735 2973205.205 braz_popdens_projected.tiff braz_popdens_projected_clipped.tiff
+gdalwarp -te 385189.152 2675334.064 544187.735 2973205.205 bra_dist_urb2_2.tif bra_dist_urb2_clip.tif
 ```{r}
 ### Open clipped distance to urban areas tif
 brazil_urb <- raster("D:/dinamica/processed_layers/bra_dist_urb2_clip.tif")
@@ -489,25 +505,42 @@ Deleted rivers in ArcMap, the converted to raster in gdal
 
 #### 8/18
 Resample file so it matches extent and resolution of land use/land cover map. Had to redo rivers file to be in same projection as the rest of files (made bra_riv_dist.tif in ArcGIS). Now need to clip it and resample it.
+
+Clip it using gdal code from pop dens and cities:
+gdalwarp -te 385189.152 2675334.064 544187.735 2973205.205 bra_riv_dist.tif bra_riv_dist_clip.tif
 ```{r}
 ### Open dist to rivers
-jaman_rios <- raster("D:/dinamica/processed_layers/bra_rios_dist.tif")
+jaman_rios <- raster("D:/dinamica/processed_layers/bra_riv_dist_clip.tif")
 
-### Need to redo distance to rivers file (use bra_rios_proj.shp as file of rivers near Jamanxim)
+### Resample to match jm_2008
+j_rios_resample <- raster::resample(jaman_rios, jm_2008,
+                                  "bilinear")
 
-# ### Resample to match jm_2008
-# j_rios_resample <- raster::resample(jaman_rios, jm_2008,
-#                                   "bilinear")
-# 
-# ### Save output raster
-# writeRaster(j_rios_resample,
-#             filename = "D:/dinamica/processed_layers/bra_dist_rios_resample.tiff",
-#             format = "GTiff")
-# 
-# ### Write to simple dinamica model data folder
-# writeRaster(j_rios_resample,
-#             filename = "D:/dinamica/brazil_simple/data/bra_dist_rios_resample.tiff",
-#             format = "GTiff")
+### Save output raster
+writeRaster(j_rios_resample,
+            filename = "D:/dinamica/processed_layers/final/bra_dist_rios_resample.tiff",
+            format = "GTiff")
+
+### Write to simple dinamica model data folder
+writeRaster(j_rios_resample,
+            filename = "D:/dinamica/brazil_simple/data/bra_dist_rios_resample.tiff",
+            format = "GTiff")
+```
+
+### Protected area status
+#### 8/19
+```{r}
+### Open file
+jam_protectedarea <- raster("D:/dinamica/processed_layers/jaman_proj_buffers.tiff")
+
+### Resample to match jm_2008
+jaman_pa_resample <- raster::resample(jam_protectedarea, 
+                                         jm_2008, "bilinear")
+
+### Save output raster
+writeRaster(jaman_pa_resample,
+            filename = "D:/dinamica/processed_layers/final/bra_protect_stat_resample.tiff",
+            format = "GTiff")
 ```
 
 ## Global layer
@@ -694,7 +727,7 @@ poverty <- raster("D:/dinamica/processed_layers/final/bol_pobreza.tif")
 bol_elev <- raster("D:/dinamica/processed_layers/dem_ambcar_102033.tif")
 bol_slope <- raster("D:/dinamica/processed_layers/slope_ambcar.tif")
 bol_aspect <- raster("D:/dinamica/processed_layers/aspect_ambcar.tif")
-
+bol_protectedarea <- raster("D:/dinamica/processed_layers/final/bol_protect_stat_resample.tif")
 
 ### Make brick
 ac_brick <- raster::brick(crop_suit, 
@@ -705,7 +738,8 @@ ac_brick <- raster::brick(crop_suit,
                           poverty,
                           bol_elev,
                           bol_slope,
-                          bol_aspect)
+                          bol_aspect,
+                          bol_protectedarea)
 
 # ### Write out stack
 # writeRaster(ac_stack,
@@ -714,7 +748,7 @@ ac_brick <- raster::brick(crop_suit,
 
 ### Write out brick
 writeRaster(ac_brick, 
-            filename = "D:/dinamica/bolivia_simple/data/bolivia_static_vars.tif", 
+            filename = "D:/dinamica/bolivia_simple/data/bolivia_static_vars_2.tif", 
             format = "GTiff",
             overwrite = TRUE, 
             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
@@ -764,6 +798,44 @@ dev.off()
 pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bol_dinamica_notes/bol_aspect.pdf")
 hist(values(bol_aspect), na.rm = TRUE)
 dev.off()
+```
+
+#### Brazil
+```{r}
+### Open Brazil rasters
+# crop_suit <- raster("D:/dinamica/processed_layers/final/bol_cropsuit.tif")
+dist_rds <- raster("D:/dinamica/processed_layers/final/bra_osm_dist_resample.tif")
+dist_rios <- raster("D:/dinamica/processed_layers/final/bra_dist_rios_resample.tif")
+pop_dens <- raster("D:/dinamica/processed_layers/final/braz_popdens_projected_clipped_resample.tif")
+precip <- raster("D:/dinamica/processed_layers/final/bra_precip.tif")
+# bol_elev <- raster("D:/dinamica/processed_layers/dem_ambcar_102033.tif")
+# bol_slope <- raster("D:/dinamica/processed_layers/slope_ambcar.tif")
+# bol_aspect <- raster("D:/dinamica/processed_layers/aspect_ambcar.tif")
+bra_protectedarea <- raster("D:/dinamica/processed_layers/final/bra_protect_stat_resample.tiff")
+
+### Make brick
+ac_brick <- raster::brick(crop_suit, 
+                          dist_rds, 
+                          dist_rios,
+                          pop_dens,
+                          precip,
+                          poverty,
+                          bol_elev,
+                          bol_slope,
+                          bol_aspect,
+                          bol_protectedarea)
+
+# ### Write out stack
+# writeRaster(ac_stack,
+#             "D:/dinamica/bolivia_simple/data/bolivia_static_vars.tif", 
+#             format = "GTiff")
+
+### Write out brick
+writeRaster(ac_brick, 
+            filename = "D:/dinamica/bolivia_simple/data/bolivia_static_vars_2.tif", 
+            format = "GTiff",
+            overwrite = TRUE, 
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
 ```
 
 ## Check Aldo's layers
