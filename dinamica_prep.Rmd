@@ -403,33 +403,34 @@ ogr2ogr -clipsrc braz_para_bound.shp braz_para_urb.shp braz_urban_projected.shp
 
 
 #### 8/18
-Resample file so it matches extent and resolution of land use/land cover map. There was an issue with the file, so restarting the process. Opened copy of AreasUrbanizadas_MunicipiosAcima100k_porMunicipio.shp in ArcMap and manually removed cities that are very far from Jamanxim. Then made bra_dist_urb2 in ArcMap. Now need to clip and resample it.
+Resample file so it matches extent and resolution of land use/land cover map. There was an issue with the file, so restarting the process. Opened copy of AreasUrbanizadas_MunicipiosAcima100k_porMunicipio.shp in ArcMap and manually removed cities that are very far from Jamanxim. Then made bra_dist_urb2_2 in ArcMap. Now need to clip and resample it.
+
+Clip in gdal using same code as for pop density:
+
+x_min: 385189.152
+y_min: 2675334.064
+x_max: 544187.735
+y_max: 2973205.205
+
+gdal code: 
+gdalwarp -te 385189.152 2675334.064 544187.735 2973205.205 braz_popdens_projected.tiff braz_popdens_projected_clipped.tiff
 ```{r}
-### Open city shp to reproject
-brazil_urb <- st_read("D:/dinamica/brazil_dinamica_data/areas_urbanizadas_do_brasil_2005_ibge/AreasUrbanizadas_MunicipiosAcima100k_porMunicipio_reduced.shp")
+### Open clipped distance to urban areas tif
+brazil_urb <- raster("D:/dinamica/processed_layers/bra_dist_urb2_clip.tif")
 
-### Project to CRS of rest of files and write out
-brazil_urb <- st_transform(brazil_urb, crs = 102033) %>%
-  st_write(., "D:/dinamica/processed_layers/areas_urbanizadas_reduced.shp")
+### Resample to match jm_2008
+brazil_urb_resample <- raster::resample(brazil_urb, jm_2008,
+                                  "bilinear")
 
-### Now use Euclidean distance to make raster using this output (in ArcGIS)
+### Save output raster
+writeRaster(brazil_urb_resample,
+            filename = "D:/dinamica/processed_layers/final/braz_dist_city_resample.tiff",
+            format = "GTiff")
 
-
-### Need to redo calculation of distance to urban areas for Jamanxim area
-
-# ### Resample to match jm_2008
-# j_urb_resample <- raster::resample(jaman_urb, jm_2008,
-#                                   "bilinear")
-
-# ### Save output raster
-# writeRaster(j_pd_resample,
-#             filename = "D:/dinamica/processed_layers/braz_popdens_projected_clipped_resample.tiff",
-#             format = "GTiff")
-# 
-# ### Write to simple dinamica model data folder
-# writeRaster(j_pd_resample,
-#             filename = "D:/dinamica/brazil_simple/data/bra_pd_resample.tiff",
-#             format = "GTiff")
+### Write to simple dinamica model data folder
+writeRaster(j_pd_resample,
+            filename = "D:/dinamica/brazil_simple/data/bra_dist_urb_resample.tiff",
+            format = "GTiff")
 ```
 
 ### Mines
