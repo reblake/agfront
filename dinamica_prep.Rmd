@@ -220,17 +220,49 @@ writeRaster(ambcar_cs_resample,
 #### 8/12
 ```{r}
 ### Open file
-bol_protectedarea <- raster("D:/dinamica/processed_layers/final/ambcar_proj_buffers.tiff")
+bol_protectedarea <- raster("D:/dinamica/processed_layers/ambcar_proj_buffers.tiff")
 
 ### Resample to match ac_2008
 ambcar_pa_resample <- raster::resample(bol_protectedarea, 
-                                         ac_2008, "bilinear")
+                                         ac_2008, "ngb")
 
 ### Save output raster
 writeRaster(ambcar_pa_resample,
             filename = "D:/dinamica/processed_layers/final/bol_protect_stat_resample.tiff",
-            format = "GTiff")
+            format = "GTiff",
+            overwrite = TRUE)
+
+### Open in ArcGIS and save output to try to fix format for DINAMICA (ambcar_buff_final.tif)
+
+### Reclassify raster
+#### Make matrix: 
 ```
+
+### Cities
+List of cities in Bolivia > 100,000 inhabitants per 2012 census. 
+
+Shapefile of global urban extents from SEDAC:
+Center for International Earth Science Information Network - CIESIN - Columbia University, CUNY Institute for Demographic Research - CIDR, International Food Policy Research Institute - IFPRI, The World Bank, and Centro Internacional de Agricultura Tropical - CIAT. 2017. Global Rural-Urban Mapping Project, Version 1 (GRUMPv1): Urban Extent Polygons, Revision 01. Palisades, NY: NASA Socioeconomic Data and Applications Center (SEDAC). https://doi.org/10.7927/H4Z31WKF. Accessed 19 August 2019.
+```{r}
+### Open file
+global_urb <- st_read("D:/dinamica/bolivia_dinamica_data/global_urban_extent_polygons_v1.01.shp")
+
+### Vector of city names (cities > 100,000)
+big_cities <- c("Santa Cruz", "La Paz",
+                "Cochabamba", "Oruro",
+                "Sucre", "Tarija", "Potosi",
+                "Montero", "Trinidad")
+### El Alto included in La Paz polygon; Sacaba and Quillacollo included in Cochabamba polygon
+
+### Subset to BOL and write out
+global_urb <- global_urb %>%
+  filter(., ISO3 == "BOL" & NAME %in% big_cities) %>%
+  st_write(.,
+           "D:/dinamica/bolivia_dinamica_data/bol_urbs.shp")
+```
+
+
+
 
 ## Jamanxim
 
@@ -535,13 +567,16 @@ jam_protectedarea <- raster("D:/dinamica/processed_layers/jaman_proj_buffers.tif
 
 ### Resample to match jm_2008
 jaman_pa_resample <- raster::resample(jam_protectedarea, 
-                                         jm_2008, "bilinear")
+                                         jm_2008, "ngb")
 
 ### Save output raster
 writeRaster(jaman_pa_resample,
             filename = "D:/dinamica/processed_layers/final/bra_protect_stat_resample.tiff",
-            format = "GTiff")
+            format = "GTiff",
+            overwrite = TRUE)
 ```
+DINAMICA doesn't like this file for some reason. Opened in Arc and exported it as a tif-- see if it works now. Still doesn't work
+
 
 ## Global layer
 ### Crop suitability
@@ -588,12 +623,29 @@ crop_jam_3030 <- resample(x = crop_jam_disag,
                           y = empty_rast,
                           method = "bilinear")
 
-### Write output
-writeRaster(crop_jam_3030,
-            filename = "~/Documents/SESYNC/dinamica/processed_layers/crop_suit_jaman",
-            format = "GTiff")
+# ### Write output
+# writeRaster(crop_jam_3030,
+#             filename = "~/Documents/SESYNC/dinamica/processed_layers/crop_suit_jaman",
+#             format = "GTiff")
 ```
 proj4string for 102033: +proj=aea +lat_1=-5 +lat_2=-42 +lat_0=-32 +lon_0=-60 +x_0=0 +y_0=0 +ellps=aust_SA +units=m +no_defs
+
+##### 8/19
+Resample to match LUC raster
+```{r}
+### Open crop suit file
+crop_suit <- raster("D:/dinamica/processed_layers/final/crop_suit_jaman.tif")
+
+### Resample to match jm_2008
+jaman_cs_resample <- raster::resample(crop_suit, 
+                                         jm_2008, "bilinear")
+
+### Save output raster
+writeRaster(jaman_cs_resample,
+            filename = "D:/dinamica/processed_layers/final/bra_cropsuit_resample.tiff",
+            format = "GTiff")
+
+```
 
 #### AmbCar
 ```{r}
@@ -727,7 +779,7 @@ poverty <- raster("D:/dinamica/processed_layers/final/bol_pobreza.tif")
 bol_elev <- raster("D:/dinamica/processed_layers/dem_ambcar_102033.tif")
 bol_slope <- raster("D:/dinamica/processed_layers/slope_ambcar.tif")
 bol_aspect <- raster("D:/dinamica/processed_layers/aspect_ambcar.tif")
-bol_protectedarea <- raster("D:/dinamica/processed_layers/final/bol_protect_stat_resample.tif")
+bol_protectedarea <- raster("D:/dinamica/processed_layers/final/ambcar_buff_final.tif.tif")
 
 ### Make brick
 ac_brick <- raster::brick(crop_suit, 
@@ -803,39 +855,88 @@ dev.off()
 #### Brazil
 ```{r}
 ### Open Brazil rasters
-# crop_suit <- raster("D:/dinamica/processed_layers/final/bol_cropsuit.tif")
+crop_suit <- raster("D:/dinamica/processed_layers/final/bra_cropsuit_resample.tif")
 dist_rds <- raster("D:/dinamica/processed_layers/final/bra_osm_dist_resample.tif")
 dist_rios <- raster("D:/dinamica/processed_layers/final/bra_dist_rios_resample.tif")
+dist_urb <- raster("D:/dinamica/processed_layers/final/braz_dist_city_resample.tif")
+dist_mines <- raster("D:/dinamica/processed_layers/final/bra_dist_mines_resample.tif")
 pop_dens <- raster("D:/dinamica/processed_layers/final/braz_popdens_projected_clipped_resample.tif")
 precip <- raster("D:/dinamica/processed_layers/final/bra_precip.tif")
-# bol_elev <- raster("D:/dinamica/processed_layers/dem_ambcar_102033.tif")
-# bol_slope <- raster("D:/dinamica/processed_layers/slope_ambcar.tif")
-# bol_aspect <- raster("D:/dinamica/processed_layers/aspect_ambcar.tif")
-bra_protectedarea <- raster("D:/dinamica/processed_layers/final/bra_protect_stat_resample.tiff")
+bra_elev <- raster("D:/dinamica/processed_layers/final/bra_elev_proj.tif")
+bra_slope <- raster("D:/dinamica/processed_layers/final/bra_slope_proj.tif")
+bra_aspect <- raster("D:/dinamica/processed_layers/final/bra_aspect_proj.tif")
+bra_protectedarea <- raster("D:/dinamica/processed_layers/final/jaman_buff_final.tif")
 
 ### Make brick
-ac_brick <- raster::brick(crop_suit, 
+jm_brick <- raster::brick(crop_suit, 
                           dist_rds, 
                           dist_rios,
+                          dist_urb,
+                          dist_mines,
                           pop_dens,
                           precip,
-                          poverty,
-                          bol_elev,
-                          bol_slope,
-                          bol_aspect,
-                          bol_protectedarea)
-
-# ### Write out stack
-# writeRaster(ac_stack,
-#             "D:/dinamica/bolivia_simple/data/bolivia_static_vars.tif", 
-#             format = "GTiff")
+                          bra_elev,
+                          bra_slope,
+                          bra_aspect,
+                          bra_protectedarea)
 
 ### Write out brick
-writeRaster(ac_brick, 
-            filename = "D:/dinamica/bolivia_simple/data/bolivia_static_vars_2.tif", 
+writeRaster(jm_brick, 
+            filename = "D:/dinamica/brazil_simple/data/brazil_static_vars.tif", 
             format = "GTiff",
             overwrite = TRUE, 
             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Make histograms of values
+#### crop suit
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bra_dinamica_notes/bra_cropsuit.pdf")
+hist(values(crop_suit), na.rm = TRUE)
+dev.off()
+
+#### dist_rds
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bra_dinamica_notes/bra_dist_rds.pdf")
+hist(values(dist_rds), na.rm = TRUE)
+dev.off()
+
+#### dist_rios
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bra_dinamica_notes/bra_dist_rios.pdf")
+hist(values(dist_rios), na.rm = TRUE)
+dev.off()
+
+#### dist_urb
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bra_dinamica_notes/bra_dist_urb.pdf")
+hist(values(dist_urb), na.rm = TRUE)
+dev.off()
+
+#### dist_mines
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bra_dinamica_notes/bra_dist_mines.pdf")
+hist(values(dist_mines), na.rm = TRUE)
+dev.off()
+
+#### pop_dens
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bra_dinamica_notes/bra_pop_dens.pdf")
+hist(values(pop_dens), na.rm = TRUE)
+dev.off()
+
+#### precip
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bra_dinamica_notes/bra_precip.pdf")
+hist(values(precip), na.rm = TRUE)
+dev.off()
+
+#### elev
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bra_dinamica_notes/bra_elev.pdf")
+hist(values(bra_elev), na.rm = TRUE)
+dev.off()
+
+#### slope
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bra_dinamica_notes/bra_slope.pdf")
+hist(values(bra_slope), na.rm = TRUE)
+dev.off()
+
+#### aspect
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bra_dinamica_notes/bra_aspect.pdf")
+hist(values(bra_aspect), na.rm = TRUE)
+dev.off()
 ```
 
 ## Check Aldo's layers
