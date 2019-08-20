@@ -239,6 +239,7 @@ writeRaster(ambcar_pa_resample,
 ```
 
 ### Cities
+#### 8/19
 List of cities in Bolivia > 100,000 inhabitants per 2012 census. 
 
 Shapefile of global urban extents from SEDAC:
@@ -257,10 +258,37 @@ big_cities <- c("Santa Cruz", "La Paz",
 ### Subset to BOL and write out
 global_urb <- global_urb %>%
   filter(., ISO3 == "BOL" & NAME %in% big_cities) %>%
+  st_transform(., crs = 102033) %>%
   st_write(.,
            "D:/dinamica/bolivia_dinamica_data/bol_urbs.shp")
 ```
 
+Opened this in ArcMap and used Euclidean distance tool to calculate distance to nearest city (bol_dist_urb_use.tif). 
+
+Clip in gdal:
+
+x_min: -613219.535
+y_min: 1585781.366
+x_max: -332403.244
+y_max: 1758667.360
+
+gdal code: 
+gdalwarp -te -613219.535 1585781.366 -332403.244 1758667.360 bol_dist_urb_use.tif bol_dist_urb_clip.tif
+
+```{r}
+### Open raster of BOL dist to cities
+bol_urb <- raster("D:/dinamica/processed_layers/bol_dist_urb_clip.tif")
+
+### Resample to match ac_2008
+bol_urb_resample <- raster::resample(bol_urb, 
+                                     ac_2008, "bilinear")
+
+### Save output raster
+writeRaster(bol_urb_resample,
+            filename = "D:/dinamica/processed_layers/final/bol_dist_urb.tiff",
+            format = "GTiff")
+
+```
 
 
 
@@ -779,7 +807,8 @@ poverty <- raster("D:/dinamica/processed_layers/final/bol_pobreza.tif")
 bol_elev <- raster("D:/dinamica/processed_layers/dem_ambcar_102033.tif")
 bol_slope <- raster("D:/dinamica/processed_layers/slope_ambcar.tif")
 bol_aspect <- raster("D:/dinamica/processed_layers/aspect_ambcar.tif")
-bol_protectedarea <- raster("D:/dinamica/processed_layers/final/ambcar_buff_final.tif.tif")
+dist_urb <- raster("D:/dinamica/processed_layers/final/bol_dist_urb.tif")
+bol_protectedarea <- raster("D:/dinamica/processed_layers/final/ambcar_buff_final.tif")
 
 ### Make brick
 ac_brick <- raster::brick(crop_suit, 
@@ -791,6 +820,7 @@ ac_brick <- raster::brick(crop_suit,
                           bol_elev,
                           bol_slope,
                           bol_aspect,
+                          dist_urb,
                           bol_protectedarea)
 
 # ### Write out stack
@@ -804,7 +834,9 @@ writeRaster(ac_brick,
             format = "GTiff",
             overwrite = TRUE, 
             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
 
+```{r}
 ### Make histograms of values
 #### crop suit
 pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bol_dinamica_notes/bol_cropsuit.pdf")
@@ -849,6 +881,11 @@ dev.off()
 #### aspect
 pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bol_dinamica_notes/bol_aspect.pdf")
 hist(values(bol_aspect), na.rm = TRUE)
+dev.off()
+
+#### crop suit
+pdf("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/bol_dinamica_notes/bol_dist_urb.pdf")
+hist(values(dist_urb), na.rm = TRUE)
 dev.off()
 ```
 
