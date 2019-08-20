@@ -43,6 +43,10 @@ jaman$category <- as.integer(1)
 buff_10_diff$category <- as.integer(10)
 buff_20_diff$category <- as.integer(20)
 
+as.factor("protected")
+buff_10_diff$category <- as.factor("buffer_10k")
+buff_20_diff$category <- as.factor("buffer_20k")
+
 ### Combine into single file
 jaman_buffers <- rbind(jaman, buff_10_diff, buff_20_diff)
 
@@ -53,4 +57,51 @@ st_write(jaman_buffers,
 Convert to raster in gdal
 gdal_rasterize -a category -tr 30 30 jaman_proj_buffers.shp jaman_proj_buffers.tiff
 
+## Amboro-Carrasco
+```{r}
+### Open Amboro and Carrasco shp (from protectedplanet)
+amb <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/WDPA_Aug2019_protected_area_9779-shapefile-polygons.shp")
+car <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/WDPA_Aug2019_protected_area_20037-shapefile-polygons.shp")
+
+### Union to single sf
+ambcar <- st_union(amb, car)
+
+### Transform to equal area projection (ESRI South America Equidistant Conic)
+ambcar <- st_transform(ambcar, crs = 102033)
+
+### Make 10km and 20km buffers
+buff_10 <- st_buffer(ambcar, 10000)
+buff_20 <- st_buffer(ambcar, 20000)
+
+### Drop overlap between buff_20 and buff_10 (want buff_20 as ring)
+buff_20_diff <- st_difference(buff_20, st_union(buff_10))
+
+### Drop overlap between buff_10 and jaman (want buff_10 as ring)
+buff_10_diff <- st_difference(buff_10, st_union(ambcar))
+
+### Add column to each file with what it is
+ambcar$category <- as.integer(1)
+buff_10_diff$category <- as.integer(10)
+buff_20_diff$category <- as.integer(20)
+
+### Combine into single file
+ambcar_buffers <- rbind(ambcar, buff_10_diff,
+                        buff_20_diff)
+
+### Drop excess columns
+ambcar_buffers <- dplyr::select(ambcar_buffers,
+                                NAME = NAME, 
+                                category = category,
+                                geometry = geometry)
+
+### Write feature
+st_write(ambcar_buffers, 
+         "D:/dinamica/processed_layers/ambcar_proj_buffers.shp")
+```
+
+Convert to raster in gdal
+gdal_rasterize -a category -tr 30 30 ambcar_proj_buffers.shp ambcar_proj_buffers.tiff 
+(copy output to "final" and "bolivia_simple/data")
+
+## old misc
 ogr2ogr -clipsrc -skipfailures braz_northern_states.shp braz_northern_rds.shp braz_roads_projected.shp
