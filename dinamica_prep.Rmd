@@ -237,6 +237,7 @@ writeRaster(ambcar_pa_resample,
 ### Reclassify raster
 #### Make matrix: 
 ```
+Tried to fix it in Dinamica directly: bol_protection_dinamica.tif
 
 ### Cities
 #### 8/19
@@ -603,7 +604,12 @@ writeRaster(jaman_pa_resample,
             format = "GTiff",
             overwrite = TRUE)
 ```
-DINAMICA doesn't like this file for some reason. Opened in Arc and exported it as a tif-- see if it works now. Still doesn't work
+DINAMICA doesn't like this file for some reason. Opened in Arc and exported it as a tif-- see if it works now. Still doesn't work. Also tried exporting is as a .ers
+```{r}
+bra_protectedarea_ers <- raster("D:/dinamica/processed_layers/final/bra_protection_dinamica.ers")
+
+```
+
 
 
 ## Global layer
@@ -808,7 +814,7 @@ bol_elev <- raster("D:/dinamica/processed_layers/dem_ambcar_102033.tif")
 bol_slope <- raster("D:/dinamica/processed_layers/slope_ambcar.tif")
 bol_aspect <- raster("D:/dinamica/processed_layers/aspect_ambcar.tif")
 dist_urb <- raster("D:/dinamica/processed_layers/final/bol_dist_urb.tif")
-bol_protectedarea <- raster("D:/dinamica/processed_layers/final/ambcar_buff_final.tif")
+bol_protectedarea <- raster("D:/dinamica/processed_layers/final/bol_protection_dinamica.tif")
 
 ### Make brick
 ac_brick <- raster::brick(crop_suit, 
@@ -902,7 +908,8 @@ precip <- raster("D:/dinamica/processed_layers/final/bra_precip.tif")
 bra_elev <- raster("D:/dinamica/processed_layers/final/bra_elev_proj.tif")
 bra_slope <- raster("D:/dinamica/processed_layers/final/bra_slope_proj.tif")
 bra_aspect <- raster("D:/dinamica/processed_layers/final/bra_aspect_proj.tif")
-bra_protectedarea <- raster("D:/dinamica/processed_layers/final/jaman_buff_final.tif")
+bra_protectedarea <- raster("D:/dinamica/processed_layers/final/bra_protection_dinamica.tif")
+bra_protectedarea_ers <- raster("D:/dinamica/processed_layers/final/bra_protection_dinamica.ers")
 
 ### Make brick
 jm_brick <- raster::brick(crop_suit, 
@@ -915,7 +922,7 @@ jm_brick <- raster::brick(crop_suit,
                           bra_elev,
                           bra_slope,
                           bra_aspect,
-                          bra_protectedarea)
+                          bra_protectedarea_ers)
 
 ### Write out brick
 writeRaster(jm_brick, 
