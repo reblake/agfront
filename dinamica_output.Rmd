@@ -1,0 +1,89 @@
+---
+title: "dinamica_output"
+author: "Katherine Siegel"
+date: "August 24, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Packages
+library(tidyverse)
+library(raster)
+library(rasterVis)
+library(animation)
+library(diffeR)
+library(rgdal)
+# library(sf)
+```
+
+## LUC Maps
+### Bolivia
+#### Open rasters
+Open rasters of LUC from DINAMICA simulation
+LC classes:  
+* 0: no data  
+* 1: forest (mountain)  
+* 2: ag  
+* 3: desert    
+* 4: forest (lowland)  
+```{r}
+### Get list of files
+bol_files <- list.files(path = "D:/dinamica/bolivia_simple/5_run_lucc",
+                        pattern = "^Landscape", full.names = TRUE)
+
+### Filter out non-.ers files
+bol_files <- Filter(function(x) grepl("\\.ers$", x),
+                    bol_files)
+
+### Open maps as brick
+brk <- do.call(brick, lapply(bol_files, raster))
+
+### Open maps as stack
+stk <- do.call(stack, lapply(bol_files, raster))
+
+### Convert all layers in brick to factor
+brk <- lapply(brk, as.factor)
+```
+
+#### Visualize change
+```{r}
+### Extract 2008 and 2018 layers
+bol_08 <- brk[[1]]
+bol_18 <- brk[[10]]
+
+### Convert to factors
+bol_08 <- as.factor(bol_08)
+bol_18 <- as.factor(bol_18)
+
+# ### Map pixels that changed from 2008 vs 2018
+# anychange <- brk[[10]] - brk[[1]]
+# 
+# ### Conver to factor
+# anychange <- as.factor(anychange)
+# rat <- levels(r)[[1]]
+# rat[["landcover"]] <- c("land","ocean/lake", "rivers","water bodies")
+# levels(r) <- rat
+# 
+# ## Plot
+# levelplot(r, col.regions=rev(terrain.colors(4)), xlab="", ylab="")
+```
+
+#### Summarize changes
+```{r}
+categoryComponentsPlot(bol_18, bol_08)
+categorySourcesPlot(bol_18, bol_08)
+```
+
+## Reprojections
+Reproject simulation maps from DINAMICA step 5 (for step 6)
+```{r}
+### Reproject BOL Landscape10
+crs(bol_18) <- "+proj=aea +lat_1=-5 +lat_2=-42 +lat_0=-32 +lon_0=-60 +x_0=0 +y_0=0 +ellps=aust_SA +units=m +no_defs"
+
+### Write output
+writeRaster(bol_18, filename = "D:/dinamica/bolivia_simple/5_run_lucc/Landscape10_prj.tif",
+            format = "GTiff")
+```
+
