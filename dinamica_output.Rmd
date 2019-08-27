@@ -15,7 +15,30 @@ library(rasterVis)
 library(animation)
 library(diffeR)
 library(rgdal)
+library(lme4)
 # library(sf)
+
+### Functions
+### Functions
+#### Function to check correlation
+cor.prob <- function (X, dfr = nrow(X) - 2) {
+  R <- cor(X, use="pairwise.complete.obs")
+  above <- row(R) < col(R)
+  r2 <- R[above]^2
+  Fstat <- r2 * dfr/(1 - r2)
+  R[above] <- 1 - pf(Fstat, 1, dfr)
+  R[row(R) == col(R)] <- NA
+  R
+}
+flattenSquareMatrix <- function(m) {
+  if( (class(m) != "matrix") | (nrow(m) != ncol(m))) stop("Must be a square matrix.") 
+  if(!identical(rownames(m), colnames(m))) stop("Row and column names must be equal.")
+  ut <- upper.tri(m)
+  data.frame(i = rownames(m)[row(m)[ut]],
+             j = rownames(m)[col(m)[ut]],
+             cor=t(m)[ut],
+             p=m[ut])
+}
 ```
 
 ## LUC Maps
@@ -80,8 +103,131 @@ writeRaster(brk_recl, filename = "D:/dinamica/bol_simulated_landscapes_recl.tif"
             format = "GTiff")
 ```
 
+### Reclassify actual LUC maps
+```{r}
+### Open files
+bol_08_luc <- raster("D:/dinamica/bolivia_simple/data/unsuper_bol_2008_dry_102033.tif")
+bol_18_luc <- raster("D:/dinamica/bolivia_simple/data/unsuper_bol_2018_dry_102033.tif")
 
-#### Visualize change
+### Reclassification matrix
+reclass_df <- c(0, 0.9, NA, ## change NoData to NA
+                0.9, 1.1, 1, ## mt forest = 1
+                1.9, 2.1, 2, ## ag = 2
+                2.9, 3.1, NA, ## desert to NA
+                3.9, 4.1, 1) ## ll forest = 1
+reclass_m <- matrix(reclass_df,
+                ncol = 3,
+                byrow = TRUE)
+
+### Reclassify so all forest = 1, ag = 2, non-forest/non-ag = NA
+bol_08_luc_recl <- reclassify(bol_08_luc, reclass_m)
+bol_18_luc_recl <- reclassify(bol_18_luc, reclass_m)
+```
+
+#### Get random sample points
+```{r}
+### Open ambcar sf
+ambcar <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/ambcarbuf_pr.shp")
+
+### Get sample of points
+ambcar_grid <- st_sample(ambcar, size = 10000, 
+                         type = "random")
+
+### Convert to spatial points
+ambcar_pts <- as(ambcar_grid, "Spatial")
+
+# ### Open bolivia raster brick
+# bol_static <- brick("D:/dinamica/bolivia_simple/data/bolivia_static_vars_2.tif")
+
+### Extract values
+static_vals <- raster::extract(bol_static,
+                               ambcar_pts,
+                               df = TRUE)
+
+### Rename layers
+names(static_vals) <- c("ID", "crop_suit",
+                        "dist_rds", "dist_rios",
+                        "pop_dens", "precip",
+                        "poverty", "bol_elev",
+                        "bol_slope", "bol_aspect",
+                        "dist_urb", "bol_protectedarea")
+
+### Get LUC for t1 and t2
+bol08_vals <- raster::extract(bol_08_luc_recl,
+                               ambcar_pts,
+                               df = TRUE)
+bol18_vals <- raster::extract(bol_18_luc_recl,
+                               ambcar_pts,
+                               df = TRUE)
+names(bol08_vals) <- c("ID", "luc_2008")
+names(bol18_vals) <- c("ID", "luc_2018")
+
+### Merge dfs
+bol_data <- merge(bol08_vals, bol18_vals, by = "ID")
+bol_data <- merge(bol_data, static_vals, by = "ID")
+```
+
+#### Subset to forest/ag transitions
+```{r}
+### Subset to forest in 2008
+bol_data_ss <- subset(bol_data, luc_2008 == 1)
+
+### Drop pts that turned to 0 in 2018
+bol_data_ss <- subset(bol_data_ss, luc_2018 == 1 |
+                        luc_2018 == 2)
+```
+forest = 1
+ag = 2
+#### Prep for regression
+```{r}
+### Want points that stayed forest to have "0" in 2018, deforested points to have "1"
+bol_data_ss$luc_2018[bol_data_ss$luc_2018 == 1] <- "forest"
+bol_data_ss$luc_2018[bol_data_ss$luc_2018 == 2] <- "ag"
+bol_data_ss$luc_2018[bol_data_ss$luc_2018 == "forest"] <- 0
+bol_data_ss$luc_2018[bol_data_ss$luc_2018 == "ag"] <- 1
+
+### Set factor layers to factor
+bol_data_ss$luc_2018 <- as.factor(bol_data_ss$luc_2018)
+bol_data_ss$bol_protectedarea <- as.factor(bol_data_ss$bol_protectedarea)
+bol_data_ss$ID <- as.factor(bol_data_ss$ID)
+```
+
+#### Regression
+```{r}
+luc_re <- glmer(luc_2018 ~ crop_suit + dist_rds + dist_rios +
+                  pop_dens + poverty + precip +
+                  bol_elev + bol_slope + bol_aspect +
+                  dist_urb + bol_protectedarea + (1|ID),
+                  data = bol_data_ss,
+                  family = binomial(link = "logit"),
+                  nAGQ = 0,
+                  control = glmerControl(optimizer = "nloptwrap"))
+
+### View summary
+summary(luc_re)
+```
+
+#### Check correlations
+```{r}
+#### Forest subset
+### Get cor table for continuous variables
+cor_table_forest <- flattenSquareMatrix(cor.prob(bol_data_ss[, 4:13]))
+
+### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
+cor_table_forest <- subset(cor_table_forest, abs(cor) > 0.66 & p <= 0.05)
+cor_table_forest
+
+#### Full dataset
+### Get cor table for continuous variables
+cor_table <- flattenSquareMatrix(cor.prob(bol_data[, 4:13]))
+
+### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
+cor_table <- subset(cor_table, abs(cor) > 0.5 & p <= 0.05)
+cor_table
+```
+
+
+## Visualize change
 ```{r}
 ### Extract 2008 and 2018 layers
 bol_08 <- brk[[1]]
@@ -104,7 +250,7 @@ bol_18 <- as.factor(bol_18)
 # levelplot(r, col.regions=rev(terrain.colors(4)), xlab="", ylab="")
 ```
 
-#### Summarize changes
+### Summarize changes
 ```{r}
 categoryComponentsPlot(bol_18, bol_08)
 categorySourcesPlot(bol_18, bol_08)
