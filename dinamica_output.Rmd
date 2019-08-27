@@ -40,12 +40,46 @@ bol_files <- Filter(function(x) grepl("\\.ers$", x),
 ### Open maps as brick
 brk <- do.call(brick, lapply(bol_files, raster))
 
-### Open maps as stack
-stk <- do.call(stack, lapply(bol_files, raster))
+# ### Open maps as stack
+# stk <- do.call(stack, lapply(bol_files, raster))
 
-### Convert all layers in brick to factor
-brk <- lapply(brk, as.factor)
+# ### Convert all layers in brick to factor
+# brk <- lapply(brk, as.factor)
 ```
+
+#### Forest to ag conversions
+* 0: no data  
+* 1: forest (mountain)  
+* 2: ag  
+* 3: desert    
+* 4: forest (lowland)
+```{r}
+### Extract 2008 layer
+bol_08 <- brk[[1]]
+
+### Reclassification matrix
+reclass_df <- c(0, 0.9, NA, ## change NoData to NA
+                0.9, 1.1, 1, ## mt forest = 1
+                1.9, 2.1, 2, ## ag = 2
+                2.9, 3.1, NA, ## desert to NA
+                3.9, 4.1, 1) ## ll forest = 1
+reclass_m <- matrix(reclass_df,
+                ncol = 3,
+                byrow = TRUE)
+
+### Reclassify so all forest = 1, ag = 2, non-forest/non-ag = NA
+bol_08_recl <- reclassify(bol_08, reclass_m)
+# writeRaster(bol_08_recl, filename = "D:/dinamica/bolivia_simple/bol_2008_simulated.tif",
+#             format = "GTiff")
+
+### Reclassify entire brick
+brk_recl <- reclassify(brk, reclass_m)
+
+### Save rasterbrick
+writeRaster(brk_recl, filename = "D:/dinamica/bol_simulated_landscapes_recl.tif",
+            format = "GTiff")
+```
+
 
 #### Visualize change
 ```{r}
