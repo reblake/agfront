@@ -1,0 +1,64 @@
+---
+title: "peru_dinamica"
+author: "Katherine Siegel"
+date: "August 26, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Packages
+library(tidyverse)
+library(raster)
+library(sf)
+```
+
+Make rasterbrick for Peru static layers
+
+### Open raster layers
+```{r}
+aspect <- raster("D:/Peru/p_aspect1.tif")
+slope <- raster("D:/Peru/p_slope1.tif")
+elev <- raster("D:/Peru/p_dem.tif")
+cropsuit <- raster("D:/Peru/p_cropsuit.tif")
+dist_mine <- raster("D:/Peru/p_dist_mine.tif")
+dist_riv <- raster("D:/Peru/p_dist_riv.tif")
+dist_rd <- raster("D:/Peru/p_roads.tif")
+dist_towns <- raster("D:/Peru/p_dist_towns.tif")
+pop <- raster("D:/Peru/p_popd2.tif")
+pov <- raster("D:/Peru/p_pov2.tif")
+```
+
+### Make brick
+```{r}
+### Resample crop suitability
+p_cs_resample <- raster::resample(cropsuit, pop, "bilinear")
+p_rd_resample <- raster::resample(dist_rd, pop, "bilinear")
+p_mines_resample <- raster::resample(dist_mine, pop, "bilinear")
+p_riv_resample <- raster::resample(dist_riv, pop, "bilinear")
+p_town_resample <- raster::resample(dist_towns, pop, "bilinear")
+p_pov_resample <- raster::resample(pov, pop, "bilinear")
+p_elev_resample <- raster::resample(elev, pop, "bilinear")
+p_slope_resample <- raster::resample(slope, pop, "bilinear")
+p_aspect_resample <- raster::resample(aspect, pop, "bilinear")
+
+### Make brick
+peru_brick <- raster::brick(p_cs_resample, 
+                            p_rd_resample, 
+                            p_riv_resample,
+                            p_town_resample,
+                            p_mines_resample,
+                            pop,
+                            p_pov_resample,
+                            p_elev_resample,
+                            p_slope_resample,
+                            p_aspect_resample)
+### Write out brick
+writeRaster(peru_brick, 
+            filename = "D:/Peru/peru_static_vars.tif", 
+            format = "GTiff",
+            overwrite = TRUE, 
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
