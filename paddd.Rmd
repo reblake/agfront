@@ -1,0 +1,32 @@
+---
+title: "paddd"
+author: "Katherine Siegel"
+date: "August 28, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(sf)
+```
+
+### Filter to PADDD for case study sites
+```{r}
+### Open PADDDTracker file
+paddd <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/Meeting2_data/PADDDtracker_DataReleaseV2_May2019/PADDDtracker_DataReleaseV2_May2019_Poly.shp")
+
+### List of PADDD IDs for places of interest
+paddd_id <- c("BOLA5F14478", "BRA989173F7",
+              "BRA3566F1B3", "BRA273EA114",
+              "PER9E5F0494")
+
+### Filter to case study parks
+paddd_aoi <- paddd %>% filter(., PADDD_ID %in% paddd_id)
+
+### Write output
+st_write(paddd_aoi, "C:/Users/Katherine Siegel/Documents/SESYNC/Meeting2_data/PADDDtracker_DataReleaseV2_May2019/paddd_events.shp")
+```
+
+
