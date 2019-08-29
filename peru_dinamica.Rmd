@@ -18,42 +18,68 @@ Make rasterbrick for Peru static layers
 
 ### Open raster layers
 ```{r}
-aspect <- raster("D:/Peru/p_aspect1.tif")
-slope <- raster("D:/Peru/p_slope1.tif")
-elev <- raster("D:/Peru/p_dem.tif")
-cropsuit <- raster("D:/Peru/p_cropsuit.tif")
-dist_mine <- raster("D:/Peru/p_dist_mine.tif")
-dist_riv <- raster("D:/Peru/p_dist_riv.tif")
-dist_rd <- raster("D:/Peru/p_roads.tif")
-dist_towns <- raster("D:/Peru/p_dist_towns.tif")
-pop <- raster("D:/Peru/p_popd2.tif")
-pov <- raster("D:/Peru/p_pov2.tif")
+### Get names of all files in folder
+peru_layers <- list.files(path = "D:/Peru/TIffs/",
+                          pattern = "*\\.tif$",
+                          full.names = TRUE)
+### Open all rasters
+aspect <- raster(peru_layers[[1]])
+cropsuit <- raster(peru_layers[[2]])
+elev <- raster(peru_layers[[3]])
+mines <- raster(peru_layers[[4]])
+natparks <- raster(peru_layers[[5]])
+popden <- raster(peru_layers[[6]])
+pov <- raster(peru_layers[[7]])
+rain <- raster(peru_layers[[8]])
+rivers <- raster(peru_layers[[9]])
+roads <- raster(peru_layers[[10]])
+slope <- raster(peru_layers[[11]])
+urban <- raster(peru_layers[[12]])
 ```
 
-### Make brick
+### Clip base layer to exclude BOL
+Use elevation as base layer of rasters
+```{r}
+### Open new buffer shapefile
+tam_bah <- st_read("D:/Peru/Buffer/Buffer.shp")
+# plot(tam_bah[1])
+
+### Crop elevation raster to new shp extent
+elev_tambah <- raster::crop(elev, as.vector(st_bbox((tam_bah))))
+plot(elev_tambah)
+```
+
+
+### Resample all rasters to match elev_tambah
 ```{r}
 ### Resample crop suitability
-p_cs_resample <- raster::resample(cropsuit, pop, "bilinear")
-p_rd_resample <- raster::resample(dist_rd, pop, "bilinear")
-p_mines_resample <- raster::resample(dist_mine, pop, "bilinear")
-p_riv_resample <- raster::resample(dist_riv, pop, "bilinear")
-p_town_resample <- raster::resample(dist_towns, pop, "bilinear")
-p_pov_resample <- raster::resample(pov, pop, "bilinear")
-p_elev_resample <- raster::resample(elev, pop, "bilinear")
-p_slope_resample <- raster::resample(slope, pop, "bilinear")
-p_aspect_resample <- raster::resample(aspect, pop, "bilinear")
+aspect_resample <- raster::resample(aspect, elev_tambah, "bilinear")
+cs_resample <- raster::resample(cropsuit, elev_tambah, "bilinear")
+mines_resample <- raster::resample(mines, elev_tambah, "bilinear")
+natparks_resample <- raster::resample(natparks, 
+                                      elev_tambah, "bilinear")
+popden_resample <- raster::resample(popden, elev_tambah, "bilinear")
+pov_resample <- raster::resample(pov, elev_tambah, "bilinear")
+precip_resample <- raster::resample(rain, elev_tambah, "bilinear")
+riv_resample <- raster::resample(rivers, elev_tambah, "bilinear")
+rd_resample <- raster::resample(roads, elev_tambah, "bilinear")
+slope_resample <- raster::resample(slope, elev_tambah, "bilinear")
+urban_resample <- raster::resample(urban, elev_tambah, "bilinear")
 
 ### Make brick
-peru_brick <- raster::brick(p_cs_resample, 
-                            p_rd_resample, 
-                            p_riv_resample,
-                            p_town_resample,
-                            p_mines_resample,
-                            pop,
-                            p_pov_resample,
-                            p_elev_resample,
-                            p_slope_resample,
-                            p_aspect_resample)
+peru_brick <- raster::brick(aspect_resample,
+                            cs_resample, 
+                            rd_resample, 
+                            riv_resample,
+                            urban_resample,
+                            mines_resample,
+                            popden_resample,
+                            pov_resample,
+                            natparks_resample,
+                            precip_resample,
+                            slope_resample,
+                            elev_tambah)
+
 ### Write out brick
 writeRaster(peru_brick, 
             filename = "D:/Peru/peru_static_vars.tif", 
