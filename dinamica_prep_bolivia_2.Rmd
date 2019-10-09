@@ -1,0 +1,49 @@
+---
+title: "bolivia_dinamica_prep_2"
+author: "Katherine Siegel"
+date: "October 9, 2019"
+output: html_document
+---
+
+## Description
+Need to re-do clipping of Bolivia files to reflect new shapefile (Eva noticed error in original shp 9/27/2019). The new shapefile is larger than the old one, so will need to go back to larger data layers and clip them, rather than clipping the ones I already processed.
+
+Store these files in new folder in external hard drive: bolivia_dinamica_data_9_27
+
+## Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Packages
+library(tidyverse)
+library(raster)
+library(sf)
+# library(stars)
+```
+
+## New case study polygon
+```{r}
+### Open shp of new buffer
+ambcar <- st_read("D:/dinamica/bolivia_dinamica_data/AmbCar_Buffer_9_27/Bol_buffer.shp") %>%
+  st_transform(., crs = 102033)
+
+### Save reprojected buffer
+st_write(ambcar,
+         "D:/dinamica/bolivia_dinamica_data_9_27/bol_buff_pr.shp")
+```
+
+## New layers
+### Population density
+```{r}
+### Open shp of municipios (reprojected in dinamica_prep.Rmd)
+municip <- st_read("D:/dinamica/bolivia_dinamica_data/pop_dens/municipios_339_pob2012_projected.shp")
+
+### intersect pop density and PA polygon
+ambcar_pd <- st_intersection(ambcar, municip)
+st_write(ambcar_pd, 
+         "D:/dinamica/bolivia_dinamica_data_9_27/bol_popdens.shp")
+```
+
+Converted this to raster using gdal in gitbash: 
+gdal_rasterize -a densidad12 -tr 30 30 bol_popdens.shp bol_popdens.tiff
+
