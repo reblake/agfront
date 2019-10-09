@@ -47,3 +47,5 @@ st_write(ambcar_pd,
 Converted this to raster using gdal in gitbash: 
 gdal_rasterize -a densidad12 -tr 30 30 bol_popdens.shp bol_popdens.tiff
 
+### NEED RASTER OF AMBCAR BUFFER SO CAN RESAMPLE TO MATCH
+
