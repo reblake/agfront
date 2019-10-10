@@ -67,35 +67,87 @@ writeRaster(bpd_resample,
 ### Rivers
 Use rios menores file processed in dinamica_prep.Rmd
 ```{r}
-### Open rios raster
-ambcar_rios <- raster("D:/dinamica/processed_layers/bol_dist_rios_menores.tif")
+### Make buffer around ambcar shp to use to clip rios menores shp
+ambcar_buff <- st_buffer(ambcar, dist = 30000)
+
+### Open rios menores shp
+rios <- st_read("D:/dinamica/bolivia_dinamica_data/rios/rios_menores/rios_menores_projected.shp")
+
+### Drop rivers outside buffered shp
+rios_ambcar <- st_intersection(rios, ambcar_buff)
+
+### Write out rios_ambcar so can calculate distance raster in Arc
+st_write(rios_ambcar, 
+         "D:/dinamica/bolivia_dinamica_data_9_27/ambcar_rios.shp")
+
+### Calculate distance to rivers in Arc (set max distance to 12600 meters to capture variation)
+### Then export as tif: riv_dist.tif
+
+### Open tif
+riv_dist <- raster("D:/dinamica/bolivia_dinamica_data_9_27/riv_dist.tif")
 
 ### Resample to match AC raster
-ambcar_rios_resample <- raster::resample(ambcar_rios, 
+ambcar_rios_resample <- raster::resample(riv_dist, 
                                          ambcar_rast,
                                          "bilinear")
 
 ### Save output raster
 writeRaster(ambcar_rios_resample,
             filename = "D:/dinamica/bolivia_dinamica_data_9_27/final/bol_dist_rios_menores_927.tiff",
-            format = "GTiff")
+            format = "GTiff",
+            overwrite = TRUE)
 ```
 
 ### Roads
 Use OSM layer from dinamica_prep.Rmd
 ```{r}
-### Open roads raster
-ambcar_rds <- raster("D:/dinamica/processed_layers/bol_osm_dist.tif")
+### Open and reproject
+boli_rds <- st_read("D:/dinamica/bolivia_dinamica_data/roads_diva_gis/BOL_roads.shp") %>%
+  st_transform(., crs = 102033)
 
-### Resample to match ac_2008
-ambcar_rds_resample <- raster::resample(ambcar_rds, 
+### Make larger intersection buffer for roads (fewer roads than rivers)
+ambcar_buff_large <- st_buffer(ambcar, dist = 50000)
+
+### Intersect roads and ambcar buff
+ambcar_rds <- st_intersection(boli_rds, 
+                              ambcar_buff_large)
+
+### Write out rios_ambcar so can calculate distance raster in Arc
+st_write(ambcar_rds, 
+         "D:/dinamica/bolivia_dinamica_data_9_27/ambcar_rds.shp")
+
+### Calculate distance to rivers in Arc (set max distance to 50000 meters to capture variation)
+### Then export as tif: rd_dist.tif
+
+### Open tif
+rd_dist <- raster("D:/dinamica/bolivia_dinamica_data_9_27/rd_dist.tif")
+
+### Resample to match AC raster
+ambcar_rds_resample <- raster::resample(rd_dist, 
                                          ambcar_rast,
-                                        "bilinear")
+                                         "bilinear")
 
 ### Save output raster
 writeRaster(ambcar_rds_resample,
             filename = "D:/dinamica/bolivia_dinamica_data_9_27/final/bol_dist_rds_927.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+### Poverty rate
+```{r}
+### Open pov rate raster
+ambcar_pov <- raster("D:/dinamica/processed_layers/boli_pobr_clip.tif")
+
+### Resample to match ac_2008
+ambcar_pov_resample <- raster::resample(ambcar_pov, 
+                                         ac_2008, "bilinear")
+
+### Save output raster
+writeRaster(ambcar_pov_resample,
+            filename = "~/Documents/SESYNC/dinamica/processed_layers/final/bol_pobreza.tiff",
             format = "GTiff")
 ```
-```
+
+
 
