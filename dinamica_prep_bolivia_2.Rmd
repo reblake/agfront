@@ -30,6 +30,10 @@ ambcar <- st_read("D:/dinamica/bolivia_dinamica_data/AmbCar_Buffer_9_27/Bol_buff
 ### Save reprojected buffer
 st_write(ambcar,
          "D:/dinamica/bolivia_dinamica_data_9_27/bol_buff_pr.shp")
+
+### New case study raster
+### Reprojected to 102033 in QGIS
+ambcar_rast <- raster("D:/dinamica/bolivia_dinamica_data_9_27/bol_2018_class.tif")
 ```
 
 ## New layers
@@ -38,14 +42,60 @@ st_write(ambcar,
 ### Open shp of municipios (reprojected in dinamica_prep.Rmd)
 municip <- st_read("D:/dinamica/bolivia_dinamica_data/pop_dens/municipios_339_pob2012_projected.shp")
 
-### intersect pop density and PA polygon
+### Intersect pop density and PA polygon
 ambcar_pd <- st_intersection(ambcar, municip)
-st_write(ambcar_pd, 
+st_write(ambcar_pd,
          "D:/dinamica/bolivia_dinamica_data_9_27/bol_popdens.shp")
+
+### Converted this to raster using gdal in gitbash: 
+# gdal_rasterize -a densidad12 -tr 30 30 bol_popdens.shp bol_popdens.tiff
+
+### Open raster to resample to match LUC map
+ambcar_pd_r <- raster("D:/dinamica/bolivia_dinamica_data_9_27/bol_popdens.tiff")
+
+### Resample
+bpd_resample <- raster::resample(ambcar_pd_r, 
+                                 ambcar_rast, 
+                                 "bilinear")
+
+### Save resampled output
+writeRaster(bpd_resample,
+            filename = "D:/dinamica/bolivia_dinamica_data_9_27/final/bol_popdens_927.tiff",
+            format = "GTiff")
 ```
 
-Converted this to raster using gdal in gitbash: 
-gdal_rasterize -a densidad12 -tr 30 30 bol_popdens.shp bol_popdens.tiff
+### Rivers
+Use rios menores file processed in dinamica_prep.Rmd
+```{r}
+### Open rios raster
+ambcar_rios <- raster("D:/dinamica/processed_layers/bol_dist_rios_menores.tif")
 
-### NEED RASTER OF AMBCAR BUFFER SO CAN RESAMPLE TO MATCH
+### Resample to match AC raster
+ambcar_rios_resample <- raster::resample(ambcar_rios, 
+                                         ambcar_rast,
+                                         "bilinear")
+
+### Save output raster
+writeRaster(ambcar_rios_resample,
+            filename = "D:/dinamica/bolivia_dinamica_data_9_27/final/bol_dist_rios_menores_927.tiff",
+            format = "GTiff")
+```
+
+### Roads
+Use OSM layer from dinamica_prep.Rmd
+```{r}
+### Open roads raster
+ambcar_rds <- raster("D:/dinamica/processed_layers/bol_osm_dist.tif")
+
+### Resample to match ac_2008
+ambcar_rds_resample <- raster::resample(ambcar_rds, 
+                                         ambcar_rast,
+                                        "bilinear")
+
+### Save output raster
+writeRaster(ambcar_rds_resample,
+            filename = "D:/dinamica/bolivia_dinamica_data_9_27/final/bol_dist_rds_927.tiff",
+            format = "GTiff")
+```
+```
 
