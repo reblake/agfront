@@ -18,6 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(raster)
 library(sf)
+library(lwgeom)
 # library(stars)
 ```
 
@@ -32,6 +33,7 @@ st_write(ambcar,
          "D:/dinamica/bolivia_dinamica_data_9_27/bol_buff_pr.shp")
 
 ### New case study raster
+### Used file from NextCloud: Remote sensing --> Semi-final classifications
 ### Reprojected to 102033 in QGIS
 ambcar_rast <- raster("D:/dinamica/bolivia_dinamica_data_9_27/bol_2018_class.tif")
 ```
@@ -136,18 +138,150 @@ writeRaster(ambcar_rds_resample,
 
 ### Poverty rate
 ```{r}
-### Open pov rate raster
-ambcar_pov <- raster("D:/dinamica/processed_layers/boli_pobr_clip.tif")
+### Open pov rate shp (reprojected in dinamica_prep.Rmd)
+boli_pobr <- st_read("D:/dinamica/processed_layers/boli_pobr_projected.shp")
+
+### Intersect with new shapefile
+ambcar_pobr <- st_intersection(ambcar, boli_pobr)
+
+### Save shp
+st_write(ambcar_pobr,
+         "D:/dinamica/bolivia_dinamica_data_9_27/bol_pov_rate.shp")
+
+### Converted this to raster using gdal in gitbash: 
+# gdal_rasterize -a p_pob_pobr -tr 30 30 bol_pov_rate.shp bol_pov_rate.tiff
+
+### Open raster
+ambcar_pov <- raster("D:/dinamica/bolivia_dinamica_data_9_27/bol_pov_rate.tiff")
 
 ### Resample to match ac_2008
 ambcar_pov_resample <- raster::resample(ambcar_pov, 
-                                         ac_2008, "bilinear")
+                                        ambcar_rast,
+                                        "bilinear")
 
 ### Save output raster
 writeRaster(ambcar_pov_resample,
-            filename = "~/Documents/SESYNC/dinamica/processed_layers/final/bol_pobreza.tiff",
+            filename = "D:/dinamica/bolivia_dinamica_data_9_27/final/bol_verty_927.tiff",
             format = "GTiff")
 ```
 
+### Crop suitability
+```{r}
+### Project AmbCar to match crs of crop_suit
+ambcar_rpj <- st_transform(ambcar, 
+                           crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
 
+### Make AmbCar a sp object (raster doesn't work with sf)
+ambcar_sp <- as(ambcar_rpj, 'Spatial')
+
+### Open crop suitability raster 
+crop_suit <- raster("D:/dinamica/global_dinamica_data/overall_cropsuit_i_1981-2010.tif")
+
+### Crop crops to AmbCar
+crop_ac <- crop(crop_suit, ambcar_sp)
+
+### Drop full raster
+rm(crop_suit)
+
+### Project crop_ac to EPSG 102033
+crop_ac_102033 <- projectRaster(crop_ac, 
+                                 crs = "+proj=aea +lat_1=-5 +lat_2=-42 +lat_0=-32 +lon_0=-60 +x_0=0 +y_0=0 +ellps=aust_SA +units=m +no_defs")
+
+### Resample raster to match ambcar_raster
+crop_ac_3030 <- resample(x = crop_ac_102033, 
+                         y = ambcar_rast,
+                         method = "bilinear")
+
+### Write output
+writeRaster(crop_ac_3030,
+            filename = "D:/dinamica/bolivia_dinamica_data_9_27/final/crop_suit_ambcar_927",
+            format = "GTiff")
+```
+
+### Distance to cities
+See methods in dinamica_prep.Rmd
+```{r}
+### Open raster of BOL dist to cities
+bol_urb <- raster("D:/dinamica/processed_layers/bol_dist_urb_clip.tif")
+
+### Resample to match ac_2008
+bol_urb_resample <- raster::resample(bol_urb, 
+                                     ambcar_rast, 
+                                     "bilinear")
+
+### Save output raster
+writeRaster(bol_urb_resample,
+            filename = "D:/dinamica/bolivia_dinamica_data_9_27/final/bol_dist_urb_927.tiff",
+            format = "GTiff")
+```
+
+### Protected area status
+Need original shapefiles from Eva to make this.
+
+### Distance to mines
+```{r}
+### Open mining concession file
+mines <- st_read("D:/dinamica/bolivia_dinamica_data/mining_concessions/Concesiones_mineras_2005.shp") %>%
+  st_transform(., crs = 102033)
+
+### Drop empty geoms
+mines <- mines[!st_is_empty(mines), , drop = FALSE]
+
+# ### Look at geometry types in the file
+# mines_path <- "D:/dinamica/bolivia_dinamica_data/mining_concessions/Concesiones_mineras_2005.shp"
+# class(st_geometry(st_read(mines_path, quiet = TRUE)))
+# ## "sfc_POLYGON" "sfc"
+# class(st_geometry(st_read(mines_path, quiet = TRUE, type = 3)))
+# ## "sfc_POLYGON" "sfc"
+# class(st_geometry(st_read(mines_path, quiet = TRUE, type = 1)))
+# ## "sfc_GEOMETRY" "sfc"
+
+### Make mines geometry valid
+mines <- st_make_valid(mines)
+
+### Make large buffer around ambcar shp to clip mines
+ambcar_buff <- st_buffer(ambcar, dist = 60000)
+
+### Drop mines outside buffered shp
+mines_ambcar <- st_intersection(mines, ambcar_buff)
+
+# plot(mines_ambcar[1])
+
+### Write out mines_ambcar so can calculate distance raster in Arc
+# st_write(mines_ambcar,
+#          "D:/dinamica/bolivia_dinamica_data_9_27/mines_ambcar.shp")
+### Issue with feature 392 (linestring)
+
+### Add column for st_length (where length > 0, these should be the linestrings)
+mines_ambcar <- mines_ambcar %>%
+  mutate(mine_length = st_length(mines_ambcar))
+
+### Look at linestring mine
+mine_line <- subset(mines_ambcar, 
+                    gml_id == "Concesiones_mineras_2005.6941")
+plot(mine_line[1])
+
+### Save file w/o mine_line
+mines_subset <- subset(mines_ambcar, 
+                       !gml_id == "Concesiones_mineras_2005.6941")
+st_write(mines_subset,
+         "D:/dinamica/bolivia_dinamica_data_9_27/mines_ambcar.shp")
+
+### Get distance to mines in ArcGIS (max dist 52000)
+### Export as tiff
+
+### Open distance to mines tiff
+mine_dist <- raster("D:/dinamica/bolivia_dinamica_data_9_27/mine_dist.tif")
+
+### Resample to match AC raster
+ambcar_mines_resample <- raster::resample(mine_dist, 
+                                          ambcar_rast,
+                                          "bilinear")
+
+### Save output raster
+writeRaster(ambcar_mines_resample,
+            filename = "D:/dinamica/bolivia_dinamica_data_9_27/final/bol_dist_mines_927.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
 
