@@ -1,0 +1,117 @@
+---
+title: "brazil_da_layers"
+author: "Katherine Siegel"
+date: "October 14, 2019"
+output: html_document
+---
+
+## Description
+New layers for Brazil DINAMICA, as identified by discourse analysis
+
+## Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Packages
+library(tidyverse)
+library(raster)
+library(sf)
+library(lwgeom)
+library(sp)
+# library(stars)
+```
+
+## Jamanxim
+```{r}
+### Open Jamanxim shp
+jambuf <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/JamanBuffer.shp") %>%
+  st_transform(., crs = 102033)
+
+### Open raster
+jm_2008 <- raster("D:/dinamica/brazil_simple/data/unsuper_bra_2008_dry_102033.tif")
+```
+
+## Proposed Infrastructure
+Coordinates of proposed dams and railroads from Stefano Wrobleski 
+
+### Railroad
+Data from http://infraestrutura.gov.br/images/BIT_TESTE/kmz/ferrovias.kmz. Converted kmz to shp in ArcMap (KML to Layer function)
+```{r}
+### Open shapefile of railroads
+rr <- st_read("D:/dinamica/brazil_dinamica_data/proposed_infrastr/ferrovias.shp") %>%
+  st_transform(., crs = 102033)
+
+### Make larger Jaman buffer for clipping
+jam_big <- st_buffer(jambuf, dist = 50000)
+
+### Intersect roads and ambcar buff
+rr <- st_intersection(rr, jam_big)
+
+### Write out so can calculate distance raster in Arc
+st_write(rr, 
+         "D:/dinamica/brazil_dinamica_data/proposed_infrastr/railroads.shp")
+st_write(jam_big, "D:/dinamica/brazil_dinamica_data/jaman_bigbuff.shp")
+
+### Set max dist to 138000, export as tif: dist_rr.tif
+
+### Open tif
+rr_dist <- raster("D:/dinamica/brazil_dinamica_data/proposed_infrastr/dist_rr.tif")
+
+### Resample to match Jaman raster
+rr_resample <- raster::resample(rr_dist, jm_2008, "bilinear")
+
+### Save output raster
+writeRaster(rr_resample,
+            filename = "D:/dinamica/brazil_dinamica_data/discourse_analysis_final_layers/bra_dist_proposed_rr.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+### Dams
+Data from Agência Nacional de Energia Elétrica:  
+* Cachoeira dos Patos: 5d54m59sS 55d45m36sW  
+* Jardim de Ouro:  6d15m49sS 55d45m53sW  
+* Jamanxim: 5d38m48sS 55d52m38sW
+```{r}
+### Dam vectors
+dam_names <- c("Cachoeira dos Patos", "Jardim de Ouro", "Jamanxim")
+dam_coords <- c("5d54m59r S", "55d45m36r W", "6d15m49r S", "55d45m53r W",
+                "5d38m48r S", "55d52m38r W")
+
+### Convert dam_coords to DMS
+dam_coords_dd <- as.numeric(char2dms(from = dam_coords, chd = "d", 
+                                     chm = "m", chs = "r"))
+
+### Make sf for each dam
+cdp_sf <- st_point()
+
+### Make vectors for df
+lat_dams <- c(dam_coords_dd[1], dam_coords_dd[3], dam_coords_dd[5])
+lon_dams <- c(dam_coords_dd[2], dam_coords_dd[4], dam_coords_dd[6])
+
+### Make df
+dams <- data.frame(cbind(dam_names, lat_dams, lon_dams))
+dams$lat_dams <- as.numeric(as.character(dams$lat_dams))
+dams$lon_dams <- as.numeric(as.character(dams$lon_dams))
+
+### Convert to sf
+dams_sf <- st_as_sf(x = dams, 
+                    coords = c("lat_dams", "lon_dams"),
+                    crs = 102033)
+
+dam_names <- c("Cachoeira dos Patos", "Jardim de Ouro", "Jamanxim")
+
+### CDP
+cdp_sf <- data.frame(place = "Cachoeira dos Patos", 
+       lat = dam_coords_dd[1], lon = dam_coords_dd[2])
+cdp_sf <- st_as_sf(x = cdp_sf, coords = c("lon", "lat"), crs = 102033)
+
+
+# ### Convert crs
+# st_crs(dams_sf) <- 102033
+
+### Write out to inspect
+st_write(cdp_sf, "D:/dinamica/brazil_dinamica_data/proposed_infrastr/cdp_dam.shp")
+```
+
+
