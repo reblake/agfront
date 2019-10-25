@@ -201,7 +201,7 @@ fr_resample <- raster::resample(fr_dist, jm_2008, "bilinear")
 
 ### Save output raster to folder on ext hard drive
 writeRaster(fr_resample,
-            filename = "D:/dinamica/brazil_dinamica_data/discourse_analysis_final_layers/jam_dist_fr.tiff",
+            filename = "D:/dinamica/brazil_dinamica_data/discourse_analysis_final_layers/jam_dist_fr.tif",
             format = "GTiff",
             overwrite = TRUE)
 ```
