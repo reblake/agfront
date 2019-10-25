@@ -191,6 +191,18 @@ f_r <- st_intersection(f_r, jam_big)
 st_write(f_r, 
          "D:/dinamica/brazil_dinamica_data/field_research_sites/jam_field_research.shp")
 
-### Make distance raster in ArcGIS. Set max dist to 164400, export as tif: dist_rr.tif
+### Make distance raster in ArcGIS. Set max dist to 164400, export as tif: jam_dist_fr.tif
+
+### Open tif
+fr_dist <- raster("D:/dinamica/brazil_dinamica_data/field_research_sites/jam_dist_fr.tif")
+
+### Resample to match Jaman raster
+fr_resample <- raster::resample(fr_dist, jm_2008, "bilinear")
+
+### Save output raster to folder on ext hard drive
+writeRaster(fr_resample,
+            filename = "D:/dinamica/brazil_dinamica_data/discourse_analysis_final_layers/jam_dist_fr.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
 ```
 
