@@ -25,10 +25,20 @@ library(sp)
 ```{r}
 ### Open Jamanxim shp
 jambuf <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/JamanBuffer.shp") %>%
-  st_transform(., crs = 102033)
+  st_transform(., crs = 102033) %>%
+  st_write(., "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/JamanBuffer_reproj.shp")
 
 ### Open raster
 jm_2008 <- raster("D:/dinamica/brazil_simple/data/unsuper_bra_2008_dry_102033.tif")
+
+### Municipios
+braz <- getData("GADM", country = "BRA", level = 2) %>%
+  st_as_sf() %>%
+  st_transform(., crs = 102033) %>%
+  subset(., NAME_1 == "Pará") %>%
+  dplyr::select(., state = NAME_1, 
+                municipio = NAME_2,
+                geometry)
 ```
 
 ## Proposed Infrastructure
@@ -44,7 +54,7 @@ rr <- st_read("D:/dinamica/brazil_dinamica_data/proposed_infrastr/ferrovias.shp"
 ### Make larger Jaman buffer for clipping
 jam_big <- st_buffer(jambuf, dist = 50000)
 
-### Intersect roads and ambcar buff
+### Intersect roads and jaman buff
 rr <- st_intersection(rr, jam_big)
 
 ### Write out so can calculate distance raster in Arc
@@ -60,7 +70,7 @@ rr_dist <- raster("D:/dinamica/brazil_dinamica_data/proposed_infrastr/dist_rr.ti
 ### Resample to match Jaman raster
 rr_resample <- raster::resample(rr_dist, jm_2008, "bilinear")
 
-### Save output raster
+### Save output raster to folder on ext hard drive
 writeRaster(rr_resample,
             filename = "D:/dinamica/brazil_dinamica_data/discourse_analysis_final_layers/bra_dist_proposed_rr.tiff",
             format = "GTiff",
@@ -114,4 +124,73 @@ cdp_sf <- st_as_sf(x = cdp_sf, coords = c("lon", "lat"), crs = 102033)
 st_write(cdp_sf, "D:/dinamica/brazil_dinamica_data/proposed_infrastr/cdp_dam.shp")
 ```
 
+## Head of cattle
+Municipality-level data from 2017 Censo Agropecuario (https://censos.ibge.gov.br/agro/2017/templates/censo_agro/resultadosagro/pecuaria.html?localidade=15&tema=75652)
+```{r}
+### Open data
+cattle <- read_csv("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/cattle.csv")
+
+### Merge cattle with municipio geometries
+cattle <- merge(cattle, braz, 
+                by = "municipio",
+                all.x = TRUE)
+st_geometry(cattle) <- cattle$geometry
+
+### Calculate municipio area (m2)
+cattle$municipio_area_m2 <- st_area(cattle)
+
+### Convert to numeric
+cattle$municipio_area_m2 <- as.numeric(cattle$municipio_area_m2)
+
+### Convert to municipality in km2
+cattle$municipio_area_km2 <- cattle$municipio_area_m2/1000000
+
+### Calculate cattle per km2
+cattle <- cattle %>%
+  mutate(cattle_km2 = cattle_head/municipio_area_km2)
+
+### Drop excess columns
+cattle <- cattle %>%
+  dplyr::select(., municipio, cattle_km2, geometry) %>%
+  st_write("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/cattle.shp")
+
+### Convert to raster in gdal
+### gdal_rasterize -a cattle_km2 -tr 30 30 cattle.shp cattle.tiff
+
+### Open raster
+cattle_rast <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/cattle.tiff")
+
+### Resample to match LUC raster (bilinear)
+cattle_resample <- raster::resample(cattle_rast, 
+                                    jm_2008, "bilinear")
+
+### Save output raster to folder on ext hard drive
+writeRaster(cattle_resample,
+            filename = "D:/dinamica/brazil_dinamica_data/discourse_analysis_final_layers/bra_cattle.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+
+```
+
+## Field research
+Locations of field research sites from published lit in Web of Science (searched "Jamanxim," pulled out lat/long of research sites, made kmz in Google Earth, then converted to shp in ArcGIS)
+```{r}
+### Open shp and reproject
+f_r <- st_read("D:/dinamica/brazil_dinamica_data/field_research_sites/jaman_research.shp") %>%
+  st_transform(., 102033) 
+
+### Add column for field research site ID
+f_r <- f_r %>%
+  mutate(., fr_site = 1:nrow(f_r)) %>%
+  dplyr::select(., fr_site, geometry)
+
+### Intersect field research sites and jaman buff
+f_r <- st_intersection(f_r, jam_big)
+
+### Write out so can calculate distance raster in Arc
+st_write(f_r, 
+         "D:/dinamica/brazil_dinamica_data/field_research_sites/jam_field_research.shp")
+
+### Make distance raster in ArcGIS. Set max dist to 164400, export as tif: dist_rr.tif
+```
 
