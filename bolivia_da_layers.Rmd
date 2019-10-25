@@ -1,0 +1,70 @@
+---
+title: "bolivia_da_layers"
+author: "Katherine Siegel"
+date: "October 24, 2019"
+output: html_document
+---
+
+## Description
+New layers for Bolivia DINAMICA, as identified by discourse analysis
+
+## Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Packages
+library(tidyverse)
+library(raster)
+library(sf)
+library(lwgeom)
+library(sp)
+# library(stars)
+```
+
+## Carrasco & Amboro
+```{r}
+### Open shp
+ambcar <- st_read("D:/dinamica/bolivia_dinamica_data/AmbCar_Buffer_9_27/Bol_buffer.shp") %>%
+  st_transform(., crs = 102033)
+
+### Open raster
+ambcar_rast <- raster("D:/dinamica/bolivia_dinamica_data_9_27/bol_2018_class.tif")
+
+### Make big shp buffer for intersections
+ambcar_big <- st_buffer(ambcar, dist = 50000)
+
+```
+
+## Field research
+Locations of field research sites from published lit in Web of Science (searched "Amboro" and "Carrasco" [2 separate searches], pulled out lat/long of research sites, made kmz in Google Earth, then converted to shp in ArcGIS)
+```{r}
+### Open shp and reproject
+f_r <- st_read("D:/dinamica/bolivia_dinamica_data/field_research_site/ambcar_research.shp") %>%
+  st_transform(., 102033) 
+
+### Add column for field research site ID
+f_r <- f_r %>%
+  mutate(., fr_site = 1:nrow(f_r)) %>%
+  dplyr::select(., fr_site, geometry)
+
+### Intersect field research sites and ambcar_big
+f_r <- st_intersection(f_r, ambcar_big)
+
+### Write out so can calculate distance raster in Arc
+st_write(f_r, 
+         "D:/dinamica/bolivia_dinamica_data/field_research_site/ambcar_field_research.shp")
+
+### Make distance raster in ArcGIS. Set max dist to 79000, export as tif: jam_dist_fr.tif
+
+### Open tif
+fr_dist <- raster("D:/dinamica/bolivia_dinamica_data/field_research_site/ac_dist_fr.tif")
+
+### Resample to match Jaman raster
+fr_resample <- raster::resample(fr_dist, ambcar_rast, "bilinear")
+
+### Save output raster to folder on ext hard drive
+writeRaster(fr_resample,
+            filename = "D:/dinamica/bolivia_dinamica_data/discourse_analysis_final_layers/ac_dist_fr.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
