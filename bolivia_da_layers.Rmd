@@ -68,3 +68,22 @@ writeRaster(fr_resample,
             format = "GTiff",
             overwrite = TRUE)
 ```
+
+## REDD Projects
+Global Comparative Study on REDD+; Department of Forestry and Environmental Resources, 2017, "Global Database of REDD+ and Other Forest Carbon Projects", https://doi.org/10.17528/CIFOR/DATA.00059, Center for International Forestry Research (CIFOR), V1
+https://data.cifor.org/dataset.xhtml?persistentId=doi:10.17528/CIFOR/DATA.00059
+* data through 2011
+```{r}
+### Open CIFOR database
+redd <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/redd/GCS_Project_Count.shp")
+
+### Subset to Bolivia
+redd_bol <- subset(redd, CNTRY_NAME == "Bolivia")
+
+### Accompanying excel file lists several more Bolivia REDD projects.
+redd_excel <- read_csv("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/redd/GCSProjectInfo.csv") %>%
+  subset(., Country == "Bolivia")
+
+redd_excel$Project
+```
+
