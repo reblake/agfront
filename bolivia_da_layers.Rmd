@@ -70,20 +70,65 @@ writeRaster(fr_resample,
 ```
 
 ## REDD Projects
-Global Comparative Study on REDD+; Department of Forestry and Environmental Resources, 2017, "Global Database of REDD+ and Other Forest Carbon Projects", https://doi.org/10.17528/CIFOR/DATA.00059, Center for International Forestry Research (CIFOR), V1
+Data sources: 
+1. Global Comparative Study on REDD+; Department of Forestry and Environmental Resources, 2017, "Global Database of REDD+ and Other Forest Carbon Projects", https://doi.org/10.17528/CIFOR/DATA.00059, Center for International Forestry Research (CIFOR), V1
 https://data.cifor.org/dataset.xhtml?persistentId=doi:10.17528/CIFOR/DATA.00059
-* data through 2011
+* data through 2011  
+2. International Database on REDD+ projects and programs. CIFOR 2015. http://www.reddprojectsdatabase.org/.  
+3. Institute for Global Environmental Strategies. 2013. REDD+ Online Database. http://redd-database.iges.or.jp/redd/.
+
+Assemble list of REDD projects:  
+* Cochabamba (CIFOR 2017)-- not in study area (according to map from Forest Trends)  
+* Sub-national REDD in the Bolivian Amazon (CIFOR 2017)  
+* Biodiversity Conservation at the Landscape Scale: Greater Madidi Landscape Conservation Area (CIFOR 2017)-- not in study area  
+* Carbon Sequestration Through Reforestation In The Bolivian Tropics By Smallholders (CIFOR 2017)-- part of AR Bolivia  
+* CI-Pillon (CIFOR 2017)-- no info on this  
+* Project by the Centro de Investigacion y Desarrollo Regional (CIDRE) (CIFOR 2017)  
+* Rio Comarapa forestation and reforestation with the Fundacion Amigos de la Naturaleza (FAN) (CIFOR 2017)  
+* Noel Kempff Mercado Climate Action Project (CIFOR 2015)-- not close to AmbCar
+* Protection of the Bolivian Amazon Forest (CIFOR 2015)-- not close to AmbCar
+
+Projects potentially in study area:  
+* Sub-national REDD in the Bolivian Amazon (CIFOR 2017)  
+* Carbon Sequestration Through Reforestation In The Bolivian Tropics By Smallholders (CIFOR 2017)-- part of AR Bolivia  
+* Project by the Centro de Investigacion y Desarrollo Regional (CIDRE) (CIFOR 2017) * Rio Comarapa forestation and reforestation with the Fundacion Amigos de la Naturaleza (FAN) (CIFOR 2017)   
+
+
+### CIFOR 2017
 ```{r}
-### Open CIFOR database
-redd <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/redd/GCS_Project_Count.shp")
+# ### Open CIFOR database
+# redd <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/redd/GCS_Project_Count.shp")
+# 
+# ### Subset to Bolivia
+# redd_bol <- subset(redd, CNTRY_NAME == "Bolivia")
+### Doesn't actually have shapefile for the individual projects
 
-### Subset to Bolivia
-redd_bol <- subset(redd, CNTRY_NAME == "Bolivia")
-
-### Accompanying excel file lists several more Bolivia REDD projects.
+### Accompanying excel file lists Bolivia REDD projects.
 redd_excel <- read_csv("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/redd/GCSProjectInfo.csv") %>%
   subset(., Country == "Bolivia")
-
-redd_excel$Project
 ```
+
+## Other PES 
+Sources 
+* Forest Trends. Forest Carbon Portal. https://www.forest-trends.org/project-list/#project-action
+
+### Forest Trends  
+* Comarapa-- in study area, Fundacion Natura Bolivia    
+* El Chape, Mairana-- in study area, Fundacion Natura Bolivia, nigelasquith@naturabolivia.org  
+* Santa Cruz (Fonacruz)-- in study area, Fundacion Natura Bolivia, nigelasquith@naturabolivia.org    
+* Vallegrande-- in study area, Fundacion Natura Bolivia, nigelasquith@naturabolivia.org    
+* Santa Rosa de Lima, Los Negros  -- in study area, Fundacion Natura Bolivia, nigelasquith@naturabolivia.org    
+* ArBolivia Phase 1-- Cochabamba  
+* ArBolivia Phase 2-- not in study area  
+
+### Verra Project Database  
+* Protection of the Bolivian Amazon Forest (not in study area)
+
+### Projects in study area
+* Comarapa-- in study area, Fundacion Natura Bolivia    
+* El Chape, Mairana-- in study area, Fundacion Natura Bolivia, nigelasquith@naturabolivia.org  
+* Santa Cruz (Fonacruz)-- in study area, Fundacion Natura Bolivia, nigelasquith@naturabolivia.org    
+* Vallegrande-- in study area, Fundacion Natura Bolivia, nigelasquith@naturabolivia.org    
+* Santa Rosa de Lima, Los Negros  -- in study area, Fundacion Natura Bolivia, nigelasquith@naturabolivia.org    
+* ArBolivia Phase 1-- Cochabamba  
 
