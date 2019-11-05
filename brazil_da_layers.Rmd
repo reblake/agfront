@@ -206,3 +206,19 @@ writeRaster(fr_resample,
             overwrite = TRUE)
 ```
 
+## Land tenure
+### INCRA files
+```{r}
+### Parcela Regularização
+regular_parc <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Parcela Regularização_PA.shp")
+
+### Immovel certificado SIGEF Total
+immovel_sigef <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Sigef Brasil_PA.shp")
+
+### Immovel certificado SNCI Total  
+immovel_snci <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Imóvel certificado SNCI Brasil_PA.shp")
+
+### Projectos de assentamento total
+assentamento <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Assentamento Brasil_PA.shp")
+```
+
