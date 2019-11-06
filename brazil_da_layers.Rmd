@@ -226,5 +226,8 @@ immovel_snci <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov
 
 ### Projectos de assentamento total
 assentamento <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Assentamento Brasil_PA.shp")
+
+# ### Projectos de Assentamento Federal-- overlaps with previous assentamento file
+# assentamento_fed <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Assentamento Federal_PA.shp")
 ```
 
