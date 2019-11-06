@@ -39,6 +39,13 @@ braz <- getData("GADM", country = "BRA", level = 2) %>%
   dplyr::select(., state = NAME_1, 
                 municipio = NAME_2,
                 geometry)
+
+### Muncipios in Jamanxim
+munic_jam <- st_intersection(jambuf, braz)
+
+### Make sf of muncipios in Jamanxim
+municipios <- braz %>%
+  filter(., municipio %in% munic_jam$municipio)
 ```
 
 ## Proposed Infrastructure
@@ -216,16 +223,36 @@ Background notes (Ezzine-de-Blas et al. 2011):
 ### INCRA files
 ```{r}
 ### Parcela Regularização
-regular_parc <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Parcela Regularização_PA.shp")
+regular_parc <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Parcela Regularização_PA.shp") %>%
+  st_transform(., crs = 102033)
 
 ### Immovel certificado SIGEF Total
-immovel_sigef <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Sigef Brasil_PA.shp")
+immovel_sigef <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Sigef Brasil_PA.shp") %>%
+  st_transform(., crs = 102033)
 
 ### Immovel certificado SNCI Total  
-immovel_snci <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Imóvel certificado SNCI Brasil_PA.shp")
+immovel_snci <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Imóvel certificado SNCI Brasil_PA.shp") %>%
+  st_transform(., crs = 102033)
 
 ### Projectos de assentamento total
-assentamento <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Assentamento Brasil_PA.shp")
+assentamento <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Assentamento Brasil_PA.shp") %>%
+  st_transform(., crs = 102033)
+
+### Crop land tenure files to Jamanxim buffer
+regular_parc_jaman <- st_intersection(regular_parc, jambuf) %>%
+  st_write(., "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/parcela_regularizacao_jam.shp")
+immovel_snci_jaman <- st_intersection(immovel_snci, 
+                                      jambuf) %>%
+  st_write(., "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/immovel_snci_jam.shp")
+immovel_sigef_jaman <- st_intersection(immovel_sigef, 
+                                       jambuf) %>%
+  st_write(., "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/immovel_sigef_jam.shp")
+assentamento_jaman <- st_intersection(assentamento, 
+                                       jambuf) %>%
+  st_write(., "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/assentamento_jam.shp")  
+
+## can use municipios sf to get % of each municipio in agrarian reform settlements/registered in cadaster
+
 
 # ### Projectos de Assentamento Federal-- overlaps with previous assentamento file
 # assentamento_fed <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Assentamento Federal_PA.shp")
