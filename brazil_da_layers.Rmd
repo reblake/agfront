@@ -206,7 +206,13 @@ writeRaster(fr_resample,
             overwrite = TRUE)
 ```
 
-## Land tenure
+## Land tenure  
+Background notes (Ezzine-de-Blas et al. 2011):  
+* Brazilian Federal Land Reform began in 1964, National Institute for Agrarian Reform (INCRA)  
+* projectos fundiarios: > 8500 settlements for landless peasants, mostly in Legal Amazon  
+
+
+
 ### INCRA files
 ```{r}
 ### Parcela Regularização
