@@ -223,14 +223,20 @@ Background notes (Ezzine-de-Blas et al. 2011):
 ### Parcela Regularização
 regular_parc <- st_read("D:/dinamica/brazil_dinamica_data/incra_land_tenure/Parcela Regularização_PA.shp") %>%
   st_transform(., crs = 102033)
+### Modality: Electronic auction, Competition, Invitation
+### Situacao: Non-titled, Registered, Titled but not registered, <NA>
+### Status: Titling, Tax approval
 
 ### Immovel certificado SIGEF Total
 immovel_sigef <- st_read("D:/dinamica/brazil_dinamica_data/incra_land_tenure/Sigef Brasil_PA.shp") %>%
   st_transform(., crs = 102033)
+### Situacao: Non-titled, Registered, Titled but not registered, <NA>
+### Status: Certified, Registered
 
 ### Immovel certificado SNCI Total  
 immovel_snci <- st_read("D:/dinamica/brazil_dinamica_data/incra_land_tenure/Imóvel certificado SNCI Brasil_PA.shp") %>%
   st_transform(., crs = 102033)
+### Certified
 
 ### Projectos de assentamento total
 assentamento <- st_read("D:/dinamica/brazil_dinamica_data/incra_land_tenure/Assentamento Brasil_PA.shp") %>%
@@ -275,6 +281,88 @@ writeRaster(jaman_resample_lg,
             filename = "D:/dinamica/brazil_dinamica_data/discourse_analysis_final_layers/bra_agreform_settlements.tiff",
             format = "GTiff",
             overwrite = TRUE)
+
+### Clear old files
+rm(jaman_resample, jaman_resample_lg, 
+   assentamento, assentamento_jaman)
 ```
 
+#### Land titling
+```{r}
+### Is there overlap between regular_parc and immovel_sigef?
+### Crop both to Jamanxim municipios
+parc_municipios <- st_intersection(regular_parc,
+                              municipios) %>%
+  dplyr::select(., parcela_co, situacao_i, status, 
+                municipio, geometry)
+sigef_municipios <- st_intersection(immovel_sigef,
+                               municipios) %>%
+  dplyr::select(., parcela_co, situacao_i, status, 
+                municipio, geometry)
+# ### Check overlap
+# parc_sigef <- st_intersection(parc_municipios,
+#                               sigef_municipios)
+# ### There is some overlap in the areas
+
+### Combine sf objects
+parc_municipios$data <- "parc_municipios"
+sigef_municipios$data <- "parc_sigef"
+parc_sigef <- rbind(parc_municipios,
+                    sigef_municipios)
+
+### Subset to non-titled and nonregistered
+nontitled <- subset(parc_sigef, 
+                    situacao_i == "NAOTITULADA")
+
+### Add area for geometries
+nontitled$area <- st_area(nontitled$geometry)
+
+### Sum area by municipio
+area_per_mun <- nontitled %>%
+  group_by(municipio) %>%
+  summarise(total_area = sum(area)) %>%
+  ungroup()
+
+### Get area of total municipio
+municipios$area <- st_area(municipios$geometry)
+
+### Reduce columns
+municipios <- municipios %>% 
+  dplyr::select(., municipio, area)
+st_geometry(area_per_mun) <- NULL
+area_per_mun <- area_per_mun %>%
+  dplyr::select(., municipio, total_area)
+
+### Combine
+area_per_mun <- merge(area_per_mun, municipios, 
+                      by = "municipio")
+
+### Calculate nontitled area per municipio
+area_per_mun$proportion_nontitled <- area_per_mun$total_area/area_per_mun$area
+area_per_mun$proportion_nontitled <- as.numeric(area_per_mun$proportion_nontitled)
+
+### Resort columns
+area_per_mun <- area_per_mun %>%
+  dplyr::select(., proportion_nontitled, geometry)
+st_geometry(area_per_mun) <- area_per_mun$geometry
+st_write(area_per_mun, 
+         "D:/dinamica/brazil_dinamica_data/incra_land_tenure/nontitled_para.shp")
+
+### Use gdal to rasterize: 
+### gdal_rasterize -a burn_in -tr 30 30 assent_jam.shp assent_jam.tif
+
+# ### Intersect with Jamanxim
+# area_per_mun_jam <- st_intersection(area_per_mun, jambuf)
+# 
+# ### Drop excess columns, then write out the shp to rasterize in gdal
+# area_per_mun_jam <- area_per_mun_jam %>%
+#   dplyr::select(., -area, -Type, -Area, -tp_uso,
+#                 -nome, -Date, -Source) %>%
+#   st_write(., "D:/dinamica/brazil_dinamica_data/incra_land_tenure/nontitled_jam.shp")
+
+### Use gdal to rasterize: 
+### gdal_rasterize -a burn_in -tr 30 30 assent_jam.shp assent_jam.tif
+
+
+```
 
