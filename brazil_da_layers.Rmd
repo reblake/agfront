@@ -25,8 +25,8 @@ library(sp)
 ```{r}
 ### Open Jamanxim shp
 jambuf <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/JamanBuffer.shp") %>%
-  st_transform(., crs = 102033) %>%
-  st_write(., "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/JamanBuffer_reproj.shp")
+  st_transform(., crs = 102033) # %>%
+  # st_write(., "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/JamanBuffer_reproj.shp")
 
 ### Open raster
 jm_2008 <- raster("D:/dinamica/brazil_simple/data/unsuper_bra_2008_dry_102033.tif")
@@ -218,43 +218,63 @@ Background notes (Ezzine-de-Blas et al. 2011):
 * Brazilian Federal Land Reform began in 1964, National Institute for Agrarian Reform (INCRA)  
 * projectos fundiarios: > 8500 settlements for landless peasants, mostly in Legal Amazon  
 
-
-
 ### INCRA files
 ```{r}
 ### Parcela Regularização
-regular_parc <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Parcela Regularização_PA.shp") %>%
+regular_parc <- st_read("D:/dinamica/brazil_dinamica_data/incra_land_tenure/Parcela Regularização_PA.shp") %>%
   st_transform(., crs = 102033)
 
 ### Immovel certificado SIGEF Total
-immovel_sigef <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Sigef Brasil_PA.shp") %>%
+immovel_sigef <- st_read("D:/dinamica/brazil_dinamica_data/incra_land_tenure/Sigef Brasil_PA.shp") %>%
   st_transform(., crs = 102033)
 
 ### Immovel certificado SNCI Total  
-immovel_snci <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Imóvel certificado SNCI Brasil_PA.shp") %>%
+immovel_snci <- st_read("D:/dinamica/brazil_dinamica_data/incra_land_tenure/Imóvel certificado SNCI Brasil_PA.shp") %>%
   st_transform(., crs = 102033)
 
 ### Projectos de assentamento total
-assentamento <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Assentamento Brasil_PA.shp") %>%
+assentamento <- st_read("D:/dinamica/brazil_dinamica_data/incra_land_tenure/Assentamento Brasil_PA.shp") %>%
   st_transform(., crs = 102033)
-
-### Crop land tenure files to Jamanxim buffer
-regular_parc_jaman <- st_intersection(regular_parc, jambuf) %>%
-  st_write(., "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/parcela_regularizacao_jam.shp")
-immovel_snci_jaman <- st_intersection(immovel_snci, 
-                                      jambuf) %>%
-  st_write(., "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/immovel_snci_jam.shp")
-immovel_sigef_jaman <- st_intersection(immovel_sigef, 
-                                       jambuf) %>%
-  st_write(., "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/immovel_sigef_jam.shp")
-assentamento_jaman <- st_intersection(assentamento, 
-                                       jambuf) %>%
-  st_write(., "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/assentamento_jam.shp")  
-
-## can use municipios sf to get % of each municipio in agrarian reform settlements/registered in cadaster
-
-
-# ### Projectos de Assentamento Federal-- overlaps with previous assentamento file
-# assentamento_fed <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica_nov2/incra_land_tenure/Assentamento Federal_PA.shp")
 ```
+
+#### Ag Reform Settlements
+Locations of ag reform settlements within Jamanxim and buffer
+```{r}
+### Intersect ag reform settlements with jaman
+assentamento_jaman <- st_intersection(assentamento,
+                                       jambuf)
+
+### There are 4 ag reform settlements that overlap with Jamanxim. All are classified as "assentamento criado."
+
+assentamento_jaman$burn_in <- 1
+
+### Write out the shp and then rasterize in gdal
+assentamento_jaman %>% 
+  dplyr::select(., burn_in, geometry) %>%
+  st_write(., 
+           "D:/dinamica/brazil_dinamica_data/incra_land_tenure/assent_jam.shp")
+
+### Use gdal to rasterize: 
+### gdal_rasterize -a burn_in -tr 30 30 assent_jam.shp assent_jam.tif
+
+### Open tif from gdal
+jaman_tif <- raster("D:/dinamica/brazil_dinamica_data/incra_land_tenure/assent_jam.tif")
+
+### Resample to match Jamanxim raster (use "ngb" since binary settlement/nonsettlement)
+jaman_resample <- raster::resample(jaman_tif, 
+                                   jm_2008, 
+                                   "ngb")
+
+### Extend raster to match extent of Jamanxim
+jaman_resample_lg <- raster::extend(jaman_resample,
+                                    jm_2008,
+                                    value = 0)
+
+### Save output raster to folder on ext hard drive
+writeRaster(jaman_resample_lg,
+            filename = "D:/dinamica/brazil_dinamica_data/discourse_analysis_final_layers/bra_agreform_settlements.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
 
