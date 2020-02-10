@@ -16,6 +16,18 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(sf)
 library(raster)
+
+### Function to sample non-NA cells
+### r: raster, n: number of points
+### source: https://gis.stackexchange.com/questions/207119/sampling-random-points-from-large-raster-file-with-replacement-using-r
+fastRandomPoints <- function(r, n) {
+  if(raster::nlayers(r) > 1) r <- r[[1]]
+  v <- raster::getValues(r)
+  v.notNA <- which(!is.na(v))
+  x <- sample(v.notNA, n)
+  pts <- raster::xyFromCell(r, x)
+  return(pts)
+}
 ```
 
 ## Sample points
@@ -56,18 +68,6 @@ hist(bra_2008_recl,
      xlab = "Land cover class", ylab = "Frequency",
      col = "springgreen")
 
-### Make function to sample non-NA cells
-### r: raster, n: number of points
-### source: https://gis.stackexchange.com/questions/207119/sampling-random-points-from-large-raster-file-with-replacement-using-r
-fastRandomPoints <- function(r, n) {
-  if(raster::nlayers(r) > 1) r <- r[[1]]
-  v <- raster::getValues(r)
-  v.notNA <- which(!is.na(v))
-  x <- sample(v.notNA, n)
-  pts <- raster::xyFromCell(r, x)
-  return(pts)
-}
-
 ### Get sample of points that are forest (1) in 2008
 ### Tried with sample of 1000 pts but didn't get enough points with a transition (59 turned to ag, 8 to bare soil, 1 to wetland)
 forest_pts <- fastRandomPoints(r = bra_2008_recl,
@@ -102,7 +102,137 @@ hist(luc_2018$classi_BRA_dry_2018)
 luc_2018_summ <- luc_2018 %>% 
   group_by(classi_BRA_dry_2018) %>% 
   summarise(pts_per_class = n())
-
-### 1000 points doesn't give enough transition points
 ```
 
+### Bolivia
+```{r}
+### Open Bolivia 2008 raster
+bol_2008 <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/classi_BOL_dry_2008.tif")
+
+hist(bol_2008,
+     main = "Distribution of land cover classes",
+     xlab = "Land cover class", ylab = "Frequency",
+     col = "springgreen")
+
+### Reclassification matrix (want forests + NA only)
+reclass_df <- c(-1, 1.1, NA, ## change NoData, ag to NA
+                1.9, 2.1, 1, ## forest = 1
+                2.9, 10, NA) ## all other classes = NA
+reclass_m <- matrix(reclass_df,
+                ncol = 3,
+                byrow = TRUE)
+
+### Reclassify raster
+bol_2008_recl <- reclassify(bol_2008, reclass_m)
+hist(bol_2008_recl,
+     main = "Distribution of land cover classes",
+     xlab = "Land cover class", ylab = "Frequency",
+     col = "springgreen")
+
+### Get sample of points that are forest (1) in 2008
+forest_pts_bol <- fastRandomPoints(r = bol_2008_recl,
+                                   n = 10000)
+
+### Make it a df
+forest_pts_bol <- as_data_frame(forest_pts_bol) %>%
+  rownames_to_column(., "sample_pt")
+
+### Convert to sf
+forest_pts_bol_sf <- st_as_sf(x = forest_pts_bol,
+                          coords = c("x", "y"),
+                          crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+
+### Save sf df
+st_write(forest_pts_bol_sf, "bol_pts_for_regression.shp")
+```
+
+#### See LUC in 2018 for pts
+```{r}
+### Convert to sp
+forest_pts_bol_sp <- as(forest_pts_bol_sf, "Spatial")
+
+### Open 2018 raster
+bol_2018 <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/classi_BOL_dry_2018.tif")
+
+### Extract raster values to sample pts
+luc_2018_bol <- raster::extract(bol_2018, 
+                                forest_pts_bol_sp, 
+                                df = TRUE)
+
+### Histogram and summary
+hist(luc_2018_bol$classi_BOL_dry_2018)
+luc_2018_bol_summ <- luc_2018_bol %>% 
+  group_by(classi_BOL_dry_2018) %>% 
+  summarise(pts_per_class = n())
+```
+
+### Peru
+```{r}
+### Open Peru 2008 raster
+per_2008 <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/classi_PER_dry_2008.tif")
+
+hist(per_2008,
+     main = "Distribution of land cover classes",
+     xlab = "Land cover class", ylab = "Frequency",
+     col = "springgreen")
+
+### Reclassification matrix (want forests + NA only)
+reclass_df <- c(-1, 1.1, NA, ## change NoData, ag to NA
+                1.9, 2.1, 1, ## forest = 1
+                2.9, 10, NA) ## all other classes = NA
+reclass_m <- matrix(reclass_df,
+                ncol = 3,
+                byrow = TRUE)
+
+### Reclassify raster
+per_2008_recl <- reclassify(per_2008, reclass_m)
+hist(per_2008_recl,
+     main = "Distribution of land cover classes",
+     xlab = "Land cover class", ylab = "Frequency",
+     col = "springgreen")
+
+### Get sample of points that are forest (1) in 2008
+### 10,000 pts is not enough for Peru-- only had 27 points that transitioned
+## 30,000 pts --> 92 transitioned
+forest_pts_per <- fastRandomPoints(r = per_2008_recl,
+                                   n = 100000)
+
+### Make it a df
+forest_pts_per <- as_data_frame(forest_pts_per) %>%
+  rownames_to_column(., "sample_pt")
+
+### Convert to sf
+forest_pts_per_sf <- st_as_sf(x = forest_pts_per,
+                          coords = c("x", "y"),
+                          crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+
+### Save sf df
+st_write(forest_pts_per_sf, "per_pts_for_regression.shp")
+```
+
+#### See LUC in 2018 for pts
+```{r}
+### Convert to sp
+forest_pts_per_sp <- as(forest_pts_per_sf, "Spatial")
+
+### Open 2018 raster
+per_2018 <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/classi_PER_dry_2018.tif")
+
+### Extract raster values to sample pts
+luc_2018_per <- raster::extract(per_2018, 
+                                forest_pts_per_sp, 
+                                df = TRUE)
+
+### Summary
+luc_2018_per_summ <- luc_2018_per %>% 
+  group_by(classi_PER_dry_2018) %>% 
+  summarise(pts_per_class = n())
+
+# ### Double check that all pts are forest in 2008
+# lc_2008 <- raster::extract(per_2008,
+#                            forest_pts_per_sp, 
+#                            df = TRUE)
+# lc_2008_per_summ <- lc_2008 %>% 
+#   group_by(classi_PER_dry_2008) %>% 
+#   summarise(pts_per_class = n())
+```
