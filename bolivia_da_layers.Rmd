@@ -69,6 +69,62 @@ writeRaster(fr_resample,
             overwrite = TRUE)
 ```
 
+## Fires
+```{r}
+### Open fire dataset
+fires <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/fires98_18/Fuegos98_18.shp")
+
+### Make column for year
+fires <- fires %>%
+  mutate(year = year(DataHora))
+
+### Keep fires from 5 years before time series through end of time series (2003-2018)
+fires <- filter(fires, year > 2002)
+
+### Transform crs
+fires <- st_transform(fires, crs = 102033)
+
+### Intersect fires and ambcar_big
+fires_ac <- st_intersection(fires, ambcar_big)
+
+### Save sf for making 1) distance and 2) density map in Arc
+st_write(fires_ac, 
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/fires98_18/fires_2003_2018_ac.shp")
+
+### For distance to fire, set max dist to 13500
+### Save raster: bol_dist_fires.tif
+
+### For fire density, use radius = 1000 (unit = map) --> fire_dens
+### Map unit = square meter, set output to sq km units
+### Save raster: bol_fire_density.tif
+```
+
+### Resample rasters
+```{r}
+### Open rasters
+dist_fires <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_dist_fire.tif")
+dens_fires <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_fire_density.tif")
+
+### Resample to match ambcar raster
+fire_dist_resample <- raster::resample(dist_fires, 
+                                       ambcar_rast, 
+                                       "bilinear")
+fire_dens_resample <- raster::resample(dens_fires,
+                                       ambcar_rast,
+                                       "bilinear")
+
+### Save output rasters to folder
+writeRaster(fire_dist_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_fire_dist_re.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+writeRaster(fire_dens_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_fire_dens_re.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+
 ## REDD Projects
 Data sources: 
 1. Global Comparative Study on REDD+; Department of Forestry and Environmental Resources, 2017, "Global Database of REDD+ and Other Forest Carbon Projects", https://doi.org/10.17528/CIFOR/DATA.00059, Center for International Forestry Research (CIFOR), V1
