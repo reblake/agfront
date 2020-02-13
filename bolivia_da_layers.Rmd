@@ -94,7 +94,8 @@ st_write(fires_ac,
 ### For distance to fire, set max dist to 13500
 ### Save raster: bol_dist_fires.tif
 
-### For fire density, use radius = 1000 (unit = map) --> fire_dens
+### For fire density, used Point Density tool
+### Use radius = 1000 (unit = map) --> fire_dens
 ### Map unit = square meter, set output to sq km units
 ### Save raster: bol_fire_density.tif
 ```
