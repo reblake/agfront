@@ -35,6 +35,9 @@ ambcar_big <- st_buffer(ambcar, dist = 50000)
 
 ```
 
+### Classified rasters
+Reprojected all classified rasters to 102033 in QGIS
+
 ## Field research
 Locations of field research sites from published lit in Web of Science (searched "Amboro" and "Carrasco" [2 separate searches], pulled out lat/long of research sites, made kmz in Google Earth, then converted to shp in ArcGIS)
 ```{r}
@@ -125,6 +128,48 @@ writeRaster(fire_dens_resample,
             overwrite = TRUE)
 ```
 
+## Distance to urban areas
+Reclassify classified raster in ArcGIS to have a raster with urban areas (every other class = NoData)--> bol_08_urb_r.tif; bol_18_urb_r.tif
+
+Then calculate distance to 2008 urban areas using Euclidean distance tool, set max distance to 11500 --> bol_d_urb.tif
+
+Then resample to match ambcar
+```{r}
+### Open rasters
+dist_urb <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_d_urb.tif")
+
+### Resample to match ambcar raster
+dist_urb_resample <- raster::resample(dist_urb, 
+                                      ambcar_rast, 
+                                      "bilinear")
+
+### Save output rasters to folder
+writeRaster(dist_urb_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_urban_dist_re.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+## Distance to ag
+Reclassify classified raster in ArcGIS to have a raster with ag areas (every other class = NoData)--> bol_08_ag_r.tif; bol_18_ag_r.tif
+
+Then calculate distance to 2008 ag areas using Euclidean distance tool, set max distance to 8000 --> bol_dist_ag.tif
+Then resample to match ambcar
+```{r}
+### Open rasters
+dist_ag <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_dist_ag.tif")
+
+### Resample to match ambcar raster
+dist_ag_resample <- raster::resample(dist_ag, 
+                                     ambcar_rast, 
+                                     "bilinear")
+
+### Save output rasters to folder
+writeRaster(dist_ag_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_ag_dist_re.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
 
 ## REDD Projects
 Data sources: 
