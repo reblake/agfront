@@ -18,6 +18,8 @@ library(raster)
 library(sf)
 library(lwgeom)
 library(sp)
+library(lubridate)
+library(rgdal)
 # library(stars)
 ```
 
@@ -27,6 +29,9 @@ library(sp)
 jambuf <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/JamanBuffer.shp") %>%
   st_transform(., crs = 102033) # %>%
   # st_write(., "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/JamanBuffer_reproj.shp")
+
+### Make big shp buffer for intersections
+jambuf_big <- st_buffer(jambuf, dist = 50000)
 
 ### Open raster
 jm_2008 <- raster("D:/dinamica/brazil_simple/data/unsuper_bra_2008_dry_102033.tif")
@@ -244,6 +249,68 @@ fr_resample <- raster::resample(fr_dist, jm_2008, "bilinear")
 ### Save output raster to folder on ext hard drive
 writeRaster(fr_resample,
             filename = "D:/dinamica/brazil_dinamica_data/discourse_analysis_final_layers/jam_dist_fr.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+## Fires
+```{r}
+### Open fire dataset
+# fires_bra <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/fires/Fires98_18.shp")
+fires_bra <- readOGR(dsn = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/fires", 
+                     layer = "Fires98_18")
+
+### Convert to sf
+fires_bra <- st_as_sf(fires_bra)
+
+### Make column for year
+fires_bra <- fires_bra %>%
+  mutate(year = year(DataHora))
+
+### Only includes fires from 2007 onward, so keep all years of data
+
+### Transform crs
+fires_bra <- st_transform(fires_bra, 
+                          crs = 102033)
+
+### Intersect fires and jambuf_big
+fires_jam <- st_intersection(fires_bra, jambuf_big)
+
+### Remove excess columns
+fires_jam <- fires_jam %>% 
+  dplyr::select(., -area, -Area)
+
+### Save sf for making 1) distance and 2) density map in Arc
+st_write(fires_jam, 
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/fires/fires_jaman.shp")
+
+### For distance to fire, set max dist to 17,300
+### bra_dist_fire.tif
+### For density, use 1000 map unit radius again
+### bra_dens_fire.tif
+```
+
+### Resample rasters
+```{r}
+### Open rasters
+dist_fires <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_dist_fire.tif")
+dens_fires <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_dens_fire.tif")
+
+### Resample to match ambcar raster
+fire_dist_resample <- raster::resample(dist_fires, 
+                                       jm_2008, 
+                                       "bilinear")
+fire_dens_resample <- raster::resample(dens_fires,
+                                       jm_2008,
+                                       "bilinear")
+
+### Save output rasters to folder
+writeRaster(fire_dist_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_fire_dist_re.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+writeRaster(fire_dens_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_fire_dens_re.tiff",
             format = "GTiff",
             overwrite = TRUE)
 ```
