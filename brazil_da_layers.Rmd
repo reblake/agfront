@@ -362,6 +362,43 @@ writeRaster(dist_ag_resample,
             overwrite = TRUE)
 ```
 
+## Illegal mining
+Illegal mining across Amazon, from https://www.amazoniasocioambiental.org/es/mapas/#descargas. Three files: points, lines, polygons. Open here and combine into single shp, except leave out lines because lines are never the closest location to study areas and cause gdal issues.
+```{r}
+### Open points
+min_pt <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/MineriaIlegal/MineriaIlegal_pt.shp") %>%
+  st_transform(., crs = 102033) %>%
+  filter(., país %in% c("Brasil", "Perú", "Bolivia"))
+
+# ### Open lines
+# min_li <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/MineriaIlegal/MineriaIlegal_ln.shp")
+
+### Open polys
+min_po <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/MineriaIlegal/MineriaIlegal_pol.shp") %>%
+  st_transform(., crs = 102033) %>%
+  filter(., país %in% c("Brasil", "Perú", "Bolivia"))
+
+### Drop cols that are diff
+# min_li <- min_li %>%
+#   dplyr::select(., -shape_Leng, -metodoexpl)
+min_po <- min_po %>%
+  dplyr::select(., -shape_Leng,
+                -shape_Area, -hectares)
+
+### Combine
+all_min <- rbind(min_pt, min_po)
+# min_comb <- st_combine(min_pt, min_po)
+
+### Write out shp to make distance raster in Arc
+st_write(all_min,
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/mineria_ilegal.shp")
+
+### Bolivia only needs polygons, so write that out separately
+st_write(min_po,
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/mineria_ilegal.shp")
+```
+
+
 ## Land tenure  
 Background notes (Ezzine-de-Blas et al. 2011):  
 * Brazilian Federal Land Reform began in 1964, National Institute for Agrarian Reform (INCRA)  
