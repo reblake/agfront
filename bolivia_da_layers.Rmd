@@ -193,6 +193,37 @@ writeRaster(dist_illegal_min_resample,
             overwrite = TRUE)
 ```
 
+## Distance to tourism sites
+Eva's methods for hotels kml included: tourism=hotel, hostel, motel, guest house, apartment, chalet 
+Hotels kml: Bolivia_hotels_etc.kml. Open in Arc and convert to shapefile --> bol_hotels.shp
+```{r}
+### Open bol_hotels and change crs
+bol_hotels <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_hotels.shp") %>%
+  st_transform(., crs = 102033)
+
+### Drop z dimension
+bol_hotels <- st_zm(bol_hotels)
+
+### Write out for Euclidean distance layer
+st_write(bol_hotels, 
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_hotels_102033.shp")
+
+### Set max distance to 50,000 --> bol_dist_hotel.tif
+
+### Open distance raster
+dist_hotel <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_dist_hotel.tif")
+
+### Resample to match ambcar raster
+dist_hotel_resample <- raster::resample(dist_hotel, 
+                                        ambcar_rast, 
+                                        "bilinear")
+
+### Save output rasters to folder
+writeRaster(dist_hotel_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_dist_hotels.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
 
 
 ## REDD Projects
