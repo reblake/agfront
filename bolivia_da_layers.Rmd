@@ -33,6 +33,10 @@ ambcar_rast <- raster("D:/dinamica/bolivia_dinamica_data_9_27/bol_2018_class.tif
 ### Make big shp buffer for intersections
 ambcar_big <- st_buffer(ambcar, dist = 50000)
 
+### Save big ambcar
+st_write(ambcar_big,
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/ambcar_large_buff.shp")
+
 ```
 
 ### Classified rasters
@@ -170,6 +174,26 @@ writeRaster(dist_ag_resample,
             format = "GTiff",
             overwrite = TRUE)
 ```
+
+## Distance to illegal mines
+mineria_ilegal.shp from Brazil rmd. Make distance raster in ArcGIS using larger buffer as processing extent --> bol_dist_illegal_min.tif
+```{r}
+### Open distance raster
+bol_illegal_min <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_dist_illegal_min.tif")
+
+### Resample to match ambcar raster
+dist_illegal_min_resample <- raster::resample(bol_illegal_min, 
+                                              ambcar_rast, 
+                                              "bilinear")
+
+### Save output rasters to folder
+writeRaster(dist_illegal_min_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_dist_illegal_mining.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+
 
 ## REDD Projects
 Data sources: 
