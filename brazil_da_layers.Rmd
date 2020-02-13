@@ -53,6 +53,9 @@ municipios <- braz %>%
   filter(., municipio %in% munic_jam$municipio)
 ```
 
+### Classified rasters
+Reprojected all classified rasters to 102033 in QGIS
+
 ## Proposed Infrastructure
 Coordinates of proposed dams and railroads from Stefano Wrobleski 
 
@@ -311,6 +314,50 @@ writeRaster(fire_dist_resample,
             overwrite = TRUE)
 writeRaster(fire_dens_resample,
             filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_fire_dens_re.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+## Distance to urban areas
+Reclassify classified raster in ArcGIS to have a raster with urban areas (every other class = NoData)--> bra_08_urb_r.tif; bra_18_urb_r.tif
+
+Then calculate distance to 2008 urban areas using Euclidean distance tool, set max distance to 39000 --> bra_d_urb.tif
+
+Then resample to match jaman
+```{r}
+### Open rasters
+dist_urb <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/bra_d_urb.tif")
+
+### Resample to match ambcar raster
+dist_urb_resample <- raster::resample(dist_urb, 
+                                      jm_2008, 
+                                      "bilinear")
+
+### Save output rasters to folder
+writeRaster(dist_urb_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_urban_dist_re.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+## Distance to ag
+Reclassify classified raster in ArcGIS to have a raster with ag areas (every other class = NoData)--> bra_08_ag_r.tif; bra_18_ag_r.tif
+
+Then calculate distance to 2008 ag areas using Euclidean distance tool, set max distance to 15000 --> bra_d_ag.tif
+
+Then resample to match jaman
+```{r}
+### Open rasters
+dist_ag <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/bra_d_ag.tif")
+
+### Resample to match ambcar raster
+dist_ag_resample <- raster::resample(dist_ag, 
+                                     jm_2008, 
+                                     "bilinear")
+
+### Save output rasters to folder
+writeRaster(dist_ag_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_ag_dist_re.tiff",
             format = "GTiff",
             overwrite = TRUE)
 ```
