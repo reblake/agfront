@@ -32,6 +32,8 @@ jambuf <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_stud
 
 ### Make big shp buffer for intersections
 jambuf_big <- st_buffer(jambuf, dist = 50000)
+st_write(jambuf_big,
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/jaman_buff_big.shp")
 
 ### Open raster
 jm_2008 <- raster("D:/dinamica/brazil_simple/data/unsuper_bra_2008_dry_102033.tif")
@@ -368,7 +370,7 @@ Illegal mining across Amazon, from https://www.amazoniasocioambiental.org/es/map
 ### Open points
 min_pt <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/MineriaIlegal/MineriaIlegal_pt.shp") %>%
   st_transform(., crs = 102033) %>%
-  filter(., país %in% c("Brasil", "Perú", "Bolivia"))
+  filter(., país %in% c("Brasil"))
 
 # ### Open lines
 # min_li <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/MineriaIlegal/MineriaIlegal_ln.shp")
@@ -376,26 +378,77 @@ min_pt <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinam
 ### Open polys
 min_po <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/MineriaIlegal/MineriaIlegal_pol.shp") %>%
   st_transform(., crs = 102033) %>%
-  filter(., país %in% c("Brasil", "Perú", "Bolivia"))
+  filter(., país %in% c("Brasil"))
 
-### Drop cols that are diff
-# min_li <- min_li %>%
-#   dplyr::select(., -shape_Leng, -metodoexpl)
+### Make geoms valid
+min_po <- st_make_valid(min_po)
+
+### Get intersection with municipios in Jamanxim
+min_po <- st_intersection(min_po, municipios)
+
+### Drop excess col names
 min_po <- min_po %>%
   dplyr::select(., -shape_Leng,
-                -shape_Area, -hectares)
+                -shape_Area, -hectares,
+                -state, -municipio)
+
+# ### Convert min_po to points
+# min_po_pt <- st_cast(min_po, "POINT")
+
+### Make points along perimeter of polygons
+### Get minimum distance between any two points
+# min_po %>% 
+#   st_simplify(TRUE, dTolerance = 5000) %>% 
+#   st_cast("MULTIPOLYGON") %>% 
+#   st_coordinates() %>% 
+#   as.data.frame() %>% 
+#   st_as_sf(coords = c("X", "Y")) %>% 
+#   st_distance() %>%  c() %>% 
+#   unique() %>% 
+#   sort
+### min dist = 0.3404727
+
+poly_points <- st_segmentize(min_po, dfMaxLength = 0.34) %>%
+  st_simplify(TRUE, dTolerance = 5000) %>% 
+  st_cast("MULTIPOLYGON") %>% st_coordinates() %>%
+  as.data.frame() %>% 
+  dplyr::select(X, Y) %>% 
+  st_as_sf(coords = c("X", "Y"))
+# st_write(poly_points, 
+#          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/illegal_mining_perims.shp")
+
+### Update crs
+poly_points_crs <- poly_points %>%
+  st_set_crs(st_crs(min_pt))
+
+### Remove excess cols from pts 
+min_pt <- min_pt %>%
+  dplyr::select(., geometry)
 
 ### Combine
-all_min <- rbind(min_pt, min_po)
-# min_comb <- st_combine(min_pt, min_po)
+all_min <- rbind(min_pt, poly_points_crs)
 
 ### Write out shp to make distance raster in Arc
 st_write(all_min,
          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/mineria_ilegal.shp")
 
-### Bolivia only needs polygons, so write that out separately
-st_write(min_po,
-         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/mineria_ilegal.shp")
+### Make distance raster in Arc --> bra_dist_ill_mines.tif
+
+### Resample
+### Open rasters
+dist_ill_min <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/bra_dist_ill_mines.tif")
+
+### Resample to match ambcar raster
+dist_ill_min_resample <- raster::resample(dist_ill_min, 
+                                          jm_2008, 
+                                          "bilinear")
+
+### Save output rasters to folder
+writeRaster(dist_ill_min_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_dist_illegal_mines.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+
 ```
 
 
