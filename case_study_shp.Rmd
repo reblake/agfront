@@ -39,68 +39,108 @@ buff_20_diff <- st_difference(buff_20, st_union(buff_10))
 buff_10_diff <- st_difference(buff_10, st_union(jaman))
 
 ### Add column to each file with what it is
-jaman$category <- as.integer(1)
-buff_10_diff$category <- as.integer(10)
-buff_20_diff$category <- as.integer(20)
-
-as.factor("protected")
-buff_10_diff$category <- as.factor("buffer_10k")
-buff_20_diff$category <- as.factor("buffer_20k")
+buff_10_diff <- buff_10_diff %>%
+  mutate(NAME = "ten_k_buff",
+         category = as.integer(10)) %>%
+  dplyr::select(., NAME, category, geometry)
+buff_20_diff <- buff_20_diff %>%
+  mutate(NAME = "twenty_k_buff",
+         category = as.integer(20)) %>%
+  dplyr::select(., NAME, category, geometry)
+jaman <- jaman %>%
+  mutate(category = as.integer(1)) %>%
+  dplyr::select(., NAME, category, geometry)
 
 ### Combine into single file
-jaman_buffers <- rbind(jaman, buff_10_diff, buff_20_diff)
+jaman_buffers <- rbind(jaman, buff_10_diff,
+                       buff_20_diff)
+
+jaman_buffers$category <- as.factor(jaman_buffers$category)
 
 ### Write feature
 st_write(jaman_buffers, 
-         "~/Documents/SESYNC/dinamica/processed_layers/jaman_proj_buffers.shp")
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/jaman_w_buffer.shp")
 ```
 Convert to raster in gdal
-gdal_rasterize -a category -tr 30 30 jaman_proj_buffers.shp jaman_proj_buffers.tiff
+gdal_rasterize -a category -tr 30 30 jaman_w_buffer.shp jaman_w_buffer.tiff
 
 ## Amboro-Carrasco
 ```{r}
 ### Open Amboro and Carrasco shp (from protectedplanet)
-amb <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/WDPA_Aug2019_protected_area_9779-shapefile-polygons.shp")
-car <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/WDPA_Aug2019_protected_area_20037-shapefile-polygons.shp")
+amb <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/WDPA_Aug2019_protected_area_9779-shapefile-polygons.shp") %>%
+  mutate(management = "amboro",
+         management_type = "np",
+         category = "1")
+amb_imna <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/WDPA_Feb2020_protected_area_303887-shapefile-polygons.shp") %>%
+  mutate(management = "amboro_imna",
+         management_type = "imna",
+         category = "2")
+car <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/WDPA_Aug2019_protected_area_20037-shapefile-polygons.shp") %>%
+  mutate(management = "carrasco",
+         management_type = "np",
+         category = "3")
 
-### Union to single sf
-ambcar <- st_union(amb, car)
+### Combine to single sf
+ambcar <- rbind(amb, amb_imna, car)
 
 ### Transform to equal area projection (ESRI South America Equidistant Conic)
 ambcar <- st_transform(ambcar, crs = 102033)
 
+### Make unioned version for buffers
+ambcar_union <- st_union(ambcar)
+
 ### Make 10km and 20km buffers
-buff_10 <- st_buffer(ambcar, 10000)
-buff_20 <- st_buffer(ambcar, 20000)
+buff_10 <- st_buffer(ambcar_union, 10000)
+buff_20 <- st_buffer(ambcar_union, 20000)
 
 ### Drop overlap between buff_20 and buff_10 (want buff_20 as ring)
 buff_20_diff <- st_difference(buff_20, st_union(buff_10))
 
-### Drop overlap between buff_10 and jaman (want buff_10 as ring)
-buff_10_diff <- st_difference(buff_10, st_union(ambcar))
+### Drop overlap between buff_10 and ambcar (want buff_10 as ring)
+buff_10_diff <- st_difference(buff_10, st_union(ambcar_union))
 
-### Add column to each file with what it is
-ambcar$category <- as.integer(1)
-buff_10_diff$category <- as.integer(10)
-buff_20_diff$category <- as.integer(20)
+### Make dfs for buffer sfs
+buff_10_df <- data.frame(NAME = "ten_k_buff",
+                         category = as.integer(10))
+buff_20_df <- data.frame(NAME = "twenty_k_buff",
+                         category = as.integer(20))
+
+### Add column to buffer files with what they are
+buff_10_diff <- merge(buff_10_diff, buff_10_df)
+buff_20_diff <- merge(buff_20_diff, buff_20_df)
+
+### Combine buffers and reorder columns
+buffer_sf <- rbind(buff_10_diff,
+                   buff_20_diff)
+buffer_sf <- buffer_sf %>%
+  dplyr::select(., NAME, category, geometry)
+st_geometry(buffer_sf) <- buffer_sf$geometry
+
+### Drop excess cols for ambcar
+ambcar <- ambcar %>%
+  dplyr::select(., NAME, category, geometry)
 
 ### Combine into single file
-ambcar_buffers <- rbind(ambcar, buff_10_diff,
-                        buff_20_diff)
+ambcar_buffers <- rbind(ambcar, buffer_sf)
 
-### Drop excess columns
-ambcar_buffers <- dplyr::select(ambcar_buffers,
-                                NAME = NAME, 
-                                category = category,
-                                geometry = geometry)
+# ### Drop excess columns
+# ambcar_buffers <- dplyr::select(ambcar_buffers,
+#                                 NAME = NAME, 
+#                                 category = category,
+#                                 geometry = geometry)
+
+### Convert character to factor
+ambcar_buffers$category <- as.factor(ambcar_buffers$category)
 
 ### Write feature
 st_write(ambcar_buffers, 
          "D:/dinamica/processed_layers/ambcar_proj_buffers.shp")
+st_write(ambcar_buffers,
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/ambcar_w_buffer.shp")
 ```
 
 Convert to raster in gdal
-gdal_rasterize -a category -tr 30 30 ambcar_proj_buffers.shp ambcar_proj_buffers.tiff 
+gdal_rasterize -a category -tr 30 30 ambcar_w_buffers.shp ambcar_w_buffers.tiff 
 (copy output to "final" and "bolivia_simple/data")
 
 ## old misc
