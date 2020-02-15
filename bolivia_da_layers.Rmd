@@ -33,9 +33,24 @@ ambcar_rast <- raster("D:/dinamica/bolivia_dinamica_data_9_27/bol_2018_class.tif
 ### Make big shp buffer for intersections
 ambcar_big <- st_buffer(ambcar, dist = 50000)
 
-### Save big ambcar
-st_write(ambcar_big,
-         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/ambcar_large_buff.shp")
+# ### Save big ambcar
+# st_write(ambcar_big,
+#          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/ambcar_large_buff.shp")
+
+### Get municipios
+### Municipios
+bolivia <- getData("GADM", country = "BOL", level = 3) %>%
+  st_as_sf() %>%
+  st_transform(., crs = 102033) %>%
+  filter(., NAME_1 %in% c("Cochabamba", 
+                          "Santa Cruz")) %>%
+  dplyr::select(., department = NAME_1, 
+                province = NAME_2,
+                municipio = NAME_3,
+                geometry)
+# st_write(bolivia,
+#          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_provinces.shp")
+
 
 ```
 
@@ -207,7 +222,7 @@ writeRaster(dist_illegal_min_resample,
             overwrite = TRUE)
 ```
 
-## Distance to tourism sites
+## Distance to hotels
 Eva's methods for hotels kml included: tourism=hotel, hostel, motel, guest house, apartment, chalet 
 Hotels kml: Bolivia_hotels_etc.kml. Open in Arc and convert to shapefile --> bol_hotels.shp
 ```{r}
@@ -235,6 +250,43 @@ dist_hotel_resample <- raster::resample(dist_hotel,
 ### Save output rasters to folder
 writeRaster(dist_hotel_resample,
             filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_dist_hotels.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+## Distance to tourism attractions and hotels
+List of tourism attractions from management plan (Amboro only) and from SERNAP website (http://sernap.gob.bo/amboro/; http://sernap.gob.bo/carrasco/atractivos-turisticos/). Find points in Google Earth, export as kml ("Amboro tourism"). Open in ArcGIS and save as .shp. --> ambcar_tourism.shp
+```{r}
+### Open tourist attractions file and convert to 102033
+tour <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/ambcar_tourism.shp") %>%
+  st_transform(., crs = 102033)
+
+### Open bol_hotels and change crs
+bol_hotels <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_hotels.shp") %>%
+  st_transform(., crs = 102033)
+
+### Drop z dimension from both
+tour <- st_zm(tour)
+bol_hotels <- st_zm(bol_hotels)
+
+### rbind
+bol_tourism <- rbind(tour, bol_hotels)
+
+### Write out for Euclidean distance layer
+st_write(bol_tourism, 
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bolivia_tourism.shp")
+
+### bol_dist_tourism.tif in ArcMap
+bol_tourism_dist <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_dist_tourism.tif")
+
+### Resample to match ambcar raster
+dist_tour_resample <- raster::resample(bol_tourism_dist, 
+                                       ambcar_rast, 
+                                       "bilinear")
+
+### Save output rasters to folder
+writeRaster(dist_tour_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_dist_tourism.tiff",
             format = "GTiff",
             overwrite = TRUE)
 ```
