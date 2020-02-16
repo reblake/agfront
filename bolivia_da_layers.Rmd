@@ -327,6 +327,41 @@ writeRaster(soil_resample,
             overwrite = TRUE)
 ```
 
+## DEM layers
+Resample DEM layers to match new Bolivia raster/shp
+```{r}
+### Open rasters
+bol_elev <- raster("D:/dinamica/processed_layers/dem_ambcar_102033.tif")
+bol_slope <- raster("D:/dinamica/processed_layers/slope_ambcar.tif")
+bol_aspect <- raster("D:/dinamica/processed_layers/aspect_ambcar.tif")
+
+### Resample to match new PA extent
+elev_resample <- raster::resample(bol_elev, 
+                                  ambcar_rast, 
+                                  "bilinear")
+slope_resample <- raster::resample(bol_slope, 
+                                   ambcar_rast, 
+                                   "bilinear")
+aspect_resample <- raster::resample(bol_aspect, 
+                                    ambcar_rast, 
+                                    "bilinear")
+
+### Save output rasters to folder
+writeRaster(elev_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_elev.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+writeRaster(slope_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_slope.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+writeRaster(aspect_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_aspect.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+
 ## REDD Projects
 Data sources: 
 1. Global Comparative Study on REDD+; Department of Forestry and Environmental Resources, 2017, "Global Database of REDD+ and Other Forest Carbon Projects", https://doi.org/10.17528/CIFOR/DATA.00059, Center for International Forestry Research (CIFOR), V1
