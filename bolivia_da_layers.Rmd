@@ -480,11 +480,39 @@ raster_list <- list.files("D:/dinamica/bolivia_simple/data",
                           # pattern="*.csv",
                           full.names=TRUE)
 
-### Drop LUC maps
-raster_list <- raster_list[c(1:12, 15)]
-raster_list <- raster_list[c(2:12,15)]
+### Stack
+all_layers <- raster::stack(raster_list[c(1:12, 15)])
 
-### Open rasters
-allrasters <- stack(raster_list)
+### Brick
+#### Open layers
+aspect <- raster(raster_list[1])
+mines <- raster(raster_list[2])
+roads <- raster(raster_list[3])
+rivers <- raster(raster_list[4])
+cities <- raster(raster_list[5])
+elev <- raster(raster_list[6])
+popdens <- raster(raster_list[7])
+poverty <- raster(raster_list[8])
+ppt <- raster(raster_list[9])
+prot_status <- raster(raster_list[10])
+slope <- raster(raster_list[11])
+soil <- raster(raster_list[12])
+crop_suit <- raster(raster_list[15])
+
+#### Brick them
+brick_layers <- raster::brick(aspect, mines, 
+                              roads, rivers, 
+                              cities, elev, 
+                              popdens, poverty, 
+                              ppt, prot_status, 
+                              slope, soil, 
+                              crop_suit)
+
+### Write out brick
+writeRaster(brick_layers, 
+            filename = "D:/dinamica/bolivia_simple/data/bolivia_static_vars.tif", 
+            format = "GTiff",
+            overwrite = TRUE, 
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
 ```
 
