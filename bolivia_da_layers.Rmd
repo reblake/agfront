@@ -147,6 +147,37 @@ writeRaster(fire_dens_resample,
             overwrite = TRUE)
 ```
 
+### Distance to population centers
+Map from GeoBolivia
+"Mapa de centros poblados según número de habitantes, Bolivia 2002"
+https://geo.gob.bo/geonetwork/srv/spa/catalog.search#/metadata/bb8675b5-7deb-4bd8-bbf6-7df9a2a5855e
+2017
+```{r}
+### Open shp
+cities <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/ciudades/CentrosPobladosNroHabitantes.shp") %>%
+  st_transform(., crs = 102033)
+
+### Write out for distance layer in Arc
+st_write(cities, 
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/ciudades/cities_geobolivia.shp")
+
+### Make distance raster in Arc
+### Open
+d_cities <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_d_cities.tif")
+
+### Resample
+d_cities_resample <- raster::resample(d_cities, 
+                                      ambcar_rast, 
+                                      "bilinear")
+
+### Save output rasters to folder
+writeRaster(d_cities_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_distance_cities_geobol.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+
 ## Distance to urban areas
 Reclassify classified raster in ArcGIS to have a raster with urban areas (every other class = NoData)--> bol_08_urb_r.tif; bol_18_urb_r.tif
 
@@ -361,6 +392,22 @@ writeRaster(aspect_resample,
             overwrite = TRUE)
 ```
 
+## Protection status
+```{r}
+### Open file
+prot_stat <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/ambcar_w_buffers.tiff")
+
+### Resample
+prot_resample <- raster::resample(prot_stat, 
+                                  ambcar_rast, 
+                                  "ngb")
+
+### Write out
+writeRaster(prot_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_prot_status.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
 
 ## REDD Projects
 Data sources: 
@@ -424,4 +471,20 @@ Sources
 * Vallegrande-- in study area, Fundacion Natura Bolivia, nigelasquith@naturabolivia.org    
 * Santa Rosa de Lima, Los Negros  -- in study area, Fundacion Natura Bolivia, nigelasquith@naturabolivia.org    
 * ArBolivia Phase 1-- Cochabamba  
+
+## Raster stacks
+### Bolivia simple
+```{r}
+### File pattern
+raster_list <- list.files("D:/dinamica/bolivia_simple/data", 
+                          # pattern="*.csv",
+                          full.names=TRUE)
+
+### Drop LUC maps
+raster_list <- raster_list[c(1:12, 15)]
+raster_list <- raster_list[c(2:12,15)]
+
+### Open rasters
+allrasters <- stack(raster_list)
+```
 
