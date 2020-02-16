@@ -451,6 +451,41 @@ writeRaster(dist_ill_min_resample,
 
 ```
 
+## Precip
+File from Eva (GEE), reprojected to 102033 in gdal
+```{r}
+### Open raster
+precip <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/ppt_jaman_102033.tif")
+
+### Resample to match ambcar raster
+precip_resample <- raster::resample(precip, 
+                                    jm_2008, 
+                                    "bilinear")
+
+### Save output rasters to folder
+writeRaster(precip_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_ppt.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+## Soil moisture
+```{r}
+### Open raster
+soil <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/sm_jaman_102033.tif")
+
+### Resample to match ambcar raster
+soil_resample <- raster::resample(soil, 
+                                  jm_2008, 
+                                  "bilinear")
+
+### Save output rasters to folder
+writeRaster(soil_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_soil.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
 
 ## Land tenure  
 Background notes (Ezzine-de-Blas et al. 2011):  

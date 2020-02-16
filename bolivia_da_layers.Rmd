@@ -291,6 +291,41 @@ writeRaster(dist_tour_resample,
             overwrite = TRUE)
 ```
 
+## Precip
+File from Eva (GEE), reprojected to 102033 in gdal
+gdalwarp -t_srs EPSG:102033 -r bilinear PPTAmbCar.tif ppt_ambcar_102033.tif
+```{r}
+### Open raster
+precip <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/ppt_ambcar_102033.tif")
+
+### Resample to match ambcar raster
+precip_resample <- raster::resample(precip, 
+                                    ambcar_rast, 
+                                    "bilinear")
+
+### Save output rasters to folder
+writeRaster(precip_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_ppt.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+## Soil moisture
+```{r}
+### Open raster
+soil <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/sm_ambcar_102033.tif")
+
+### Resample to match ambcar raster
+soil_resample <- raster::resample(soil, 
+                                  ambcar_rast, 
+                                  "bilinear")
+
+### Save output rasters to folder
+writeRaster(soil_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_soil.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
 
 ## REDD Projects
 Data sources: 
