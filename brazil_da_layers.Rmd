@@ -32,11 +32,11 @@ jambuf <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_stud
 
 ### Make big shp buffer for intersections
 jambuf_big <- st_buffer(jambuf, dist = 50000)
-st_write(jambuf_big,
-         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/jaman_buff_big.shp")
+# st_write(jambuf_big,
+#          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/jaman_buff_big.shp")
 
 ### Open raster
-jm_2008 <- raster("D:/dinamica/brazil_simple/data/unsuper_bra_2008_dry_102033.tif")
+jm_2008 <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/classi_bra_dry_2008_102033.tif")
 
 ### Municipios
 braz <- getData("GADM", country = "BRA", level = 2) %>%
@@ -491,6 +491,177 @@ writeRaster(soil_resample,
 Background notes (Ezzine-de-Blas et al. 2011):  
 * Brazilian Federal Land Reform began in 1964, National Institute for Agrarian Reform (INCRA)  
 * projectos fundiarios: > 8500 settlements for landless peasants, mostly in Legal Amazon  
+
+### Atlas of Braz Ag
+http://atlasagropecuario.imaflora.org/
+"BD_CategoriasFundiarias_DB_LandTenureCategories" files have land tenure type as raster: a11_LTcategories_v170321.tif
+```{r}
+### Open file
+tenure <- raster("D:/dinamica/brazil_dinamica_data/atlas_da_agropecuaria/BD_CategoriasFundiarias_DB_LandTenureCategories/a11_LTcategories_v170321.tif")
+
+### Get projection of raster
+tenure
+
+### Convert municipios to same crs as raster
+municipios_rpj <- st_transform(municipios, 
+                               crs = "+proj=aea +lat_1=-2 +lat_2=-22 +lat_0=-12 +lon_0=-54 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs")
+# st_write(municipios_rpj,
+#          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/municipios_rpj.shp")
+
+### Convert municipios to sp
+municipios_sp <- as(municipios_rpj, 'Spatial')
+
+### Crop tenure map to municipios
+tenure_jmx <- raster::crop(tenure, municipios_sp,
+                           method = "ngb")
+
+### Mask out values outside of municipios
+tenure_jmx_mask <- raster::mask(tenure_jmx, municipios_sp)
+# plot(tenure_jmx_mask, axes = FALSE)
+# plot(municipios_sp, add = TRUE)
+writeRaster(tenure_jmx_mask,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/land_tenure_cropped.tiff",
+            format = "GTiff")
+
+### Project raster to 102033
+tenure_rpj <- projectRaster(tenure_jmx_mask, 
+                            crs=crs(municipios),
+                            method = "ngb")
+
+# hist(tenure_rpj)
+
+### Write out both for zonal stats in Arc
+writeRaster(tenure_rpj,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/land_tenure.tiff",
+            format = "GTiff")
+st_write(municipios, "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/municipios.shp")
+
+# ### Extract raster data to polygons
+# ten_ext <- extract(tenure_rpj, municipios)
+```
+
+#### Area per class
+By municipio
+```{r}
+################# Altamira ##############3
+### Make raster just for Altamira
+alta <- municipios %>%
+  filter(., municipio == "Altamira")
+
+### Crop tenure map to alta
+tenure_alta <- raster::crop(tenure_rpj, alta,
+                            method = "ngb")
+
+### Mask out values outside of municipios
+tenure_alta_mask <- raster::mask(tenure_alta, alta)
+
+### Calculate area per class
+area_per_class <- as.data.frame(tenure_alta_mask) %>%
+  group_by(a11_LTcategories_v170321) %>%
+  tally() %>%
+  mutate(area = n * res(tenure_alta_mask)[1] * res(tenure_alta_mask)[2])
+
+### Add column for area of municipio
+area_per_class <- area_per_class %>%
+  mutate(municip_area = st_area(alta)) %>%
+  mutate(m_area = 159687117267) %>%
+  mutate(porportion_class = area/m_area)
+
+### Add col for municipio name
+area_per_class <- area_per_class %>%
+  mutate(municip = "Altamira")
+
+################# Itaituba ##############
+### Make raster just for Itaituba
+itai <- municipios %>%
+  filter(., municipio == "Itaituba")
+
+### Crop tenure map to itai
+tenure_itai <- raster::crop(tenure_rpj, itai,
+                            method = "ngb")
+
+### Mask out values outside of municipios
+tenure_itai_mask <- raster::mask(tenure_itai, itai)
+
+### Calculate area per class
+area_per_class_itai <- as.data.frame(tenure_itai_mask) %>%
+  group_by(a11_LTcategories_v170321) %>%
+  tally() %>%
+  mutate(area = n * res(tenure_itai_mask)[1] * res(tenure_itai_mask)[2])
+
+### Add column for area of municipio
+area_per_class_itai <- area_per_class_itai %>%
+  mutate(municip_area = st_area(itai)) %>%
+  mutate(m_area = 62036244622) %>%
+  mutate(porportion_class = area/m_area)
+
+### Add col for municipio name
+area_per_class_itai <- area_per_class_itai %>%
+  mutate(municip = "Itaituba")
+
+################# Novo Progresso ##############
+### Make raster just for Itaituba
+novo <- municipios %>%
+  filter(., municipio == "Novo Progresso")
+
+### Crop tenure map to novo
+tenure_novo <- raster::crop(tenure_rpj, novo,
+                            method = "ngb")
+
+### Mask out values outside of municipios
+tenure_novo_mask <- raster::mask(tenure_novo, novo)
+
+### Calculate area per class
+area_per_class_novo <- as.data.frame(tenure_novo_mask) %>%
+  group_by(a11_LTcategories_v170321) %>%
+  tally() %>%
+  mutate(area = n * res(tenure_novo_mask)[1] * res(tenure_novo_mask)[2])
+
+### Add column for area of municipio
+area_per_class_novo <- area_per_class_novo %>%
+  mutate(municip_area = st_area(novo)) %>%
+  mutate(m_area = 38171888133) %>%
+  mutate(porportion_class = area/m_area)
+
+### Add col for municipio name
+area_per_class_novo <- area_per_class_novo %>%
+  mutate(municip = "Novo Progresso")
+
+################################3
+### Combine dfs
+area_per <- rbind(area_per_class,
+                  area_per_class_itai, 
+                  area_per_class_novo)
+
+### Category 5 = non-designated land
+area_nondes <- area_per %>%
+  filter(., a11_LTcategories_v170321 == "5") %>%
+  dplyr::select(., municipio = municip, 
+                proportion_class = porportion_class)
+
+### Merge with sf
+municipio_area_nondes <- merge(municipios, area_nondes,
+                               by = "municipio")
+
+### Save sf to rasterize in gdal
+st_write(municipio_area_nondes,
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/nonalloc_by_municip.shp")
+
+### Open raster
+tenure_rast <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/nonalloc_by_municip.tiff")
+
+### Resample to match jaman
+tenure_resample <- raster::resample(tenure_rast, 
+                                    jm_2008, 
+                                    "bilinear")
+
+### Save output rasters to folder
+writeRaster(tenure_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_nonalloc_land.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
 
 ### INCRA files
 ```{r}
