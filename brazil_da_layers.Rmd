@@ -35,6 +35,12 @@ jambuf_big <- st_buffer(jambuf, dist = 50000)
 # st_write(jambuf_big,
 #          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/jaman_buff_big.shp")
 
+### Make buffer for pepe
+jambuf_pepe <- st_buffer(jambuf, dist = 3000)
+st_write(jambuf_pepe,
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/jaman_buff_pepe.shp")
+
+
 ### Open raster
 jm_2008 <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/classi_bra_dry_2008_102033.tif")
 
