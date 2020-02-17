@@ -442,7 +442,8 @@ Assemble list of REDD projects:
 Projects potentially in study area:  
 * Sub-national REDD in the Bolivian Amazon (CIFOR 2017)  
 * Carbon Sequestration Through Reforestation In The Bolivian Tropics By Smallholders (CIFOR 2017)-- part of AR Bolivia  
-* Project by the Centro de Investigacion y Desarrollo Regional (CIDRE) (CIFOR 2017) * Rio Comarapa forestation and reforestation with the Fundacion Amigos de la Naturaleza (FAN) (CIFOR 2017)   
+* Project by the Centro de Investigacion y Desarrollo Regional (CIDRE) (CIFOR 2017) 
+* Rio Comarapa forestation and reforestation with the Fundacion Amigos de la Naturaleza (FAN) (CIFOR 2017)   
 
 
 ### CIFOR 2017
