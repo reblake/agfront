@@ -430,9 +430,9 @@ https://data.cifor.org/dataset.xhtml?persistentId=doi:10.17528/CIFOR/DATA.00059
 
 Assemble list of REDD projects:  
 * Cochabamba (CIFOR 2017)-- not in study area (according to map from Forest Trends)  
-* Sub-national REDD in the Bolivian Amazon (CIFOR 2017)  
+* Sub-national REDD in the Bolivian Amazon (CIFOR 2017)-- Beni province    
 * Biodiversity Conservation at the Landscape Scale: Greater Madidi Landscape Conservation Area (CIFOR 2017)-- not in study area  
-* Carbon Sequestration Through Reforestation In The Bolivian Tropics By Smallholders (CIFOR 2017)-- part of AR Bolivia  
+* Carbon Sequestration Through Reforestation In The Bolivian Tropics By Smallholders (CIFOR 2017)-- part of AR Bolivia, not in AmbCar (Beni province)  
 * CI-Pillon (CIFOR 2017)-- no info on this  
 * Project by the Centro de Investigacion y Desarrollo Regional (CIDRE) (CIFOR 2017)  
 * Rio Comarapa forestation and reforestation with the Fundacion Amigos de la Naturaleza (FAN) (CIFOR 2017)  
@@ -440,8 +440,6 @@ Assemble list of REDD projects:
 * Protection of the Bolivian Amazon Forest (CIFOR 2015)-- not close to AmbCar
 
 Projects potentially in study area:  
-* Sub-national REDD in the Bolivian Amazon (CIFOR 2017)  
-* Carbon Sequestration Through Reforestation In The Bolivian Tropics By Smallholders (CIFOR 2017)-- part of AR Bolivia  
 * Project by the Centro de Investigacion y Desarrollo Regional (CIDRE) (CIFOR 2017) 
 * Rio Comarapa forestation and reforestation with the Fundacion Amigos de la Naturaleza (FAN) (CIFOR 2017)   
 
@@ -465,7 +463,7 @@ Sources
 * Forest Trends. Forest Carbon Portal. https://www.forest-trends.org/project-list/#project-action
 
 ### Forest Trends  
-* Comarapa-- in study area, Fundacion Natura Bolivia    
+* Comarapa-- in study area, Fundacion Natura Bolivia (nigelasquith@naturabolivia.org)      
 * El Chape, Mairana-- in study area, Fundacion Natura Bolivia, nigelasquith@naturabolivia.org  
 * Santa Cruz (Fonacruz)-- in study area, Fundacion Natura Bolivia, nigelasquith@naturabolivia.org    
 * Vallegrande-- in study area, Fundacion Natura Bolivia, nigelasquith@naturabolivia.org    
