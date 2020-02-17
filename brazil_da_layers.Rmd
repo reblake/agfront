@@ -486,6 +486,55 @@ writeRaster(soil_resample,
             overwrite = TRUE)
 ```
 
+## PADDD
+There were proposals to de-gazette the entire FLONA in 2006 and again in 2008 (reversed in 2012 and 2016, respectively). So layers for that wouldn't have any spatial differentiation. But there was also a proposal in 2016 to downgrade portions of the park because of rural settlements. This was reversed in 2017 but still might have an effect on deforestation patterns. PADDD_ID = BRA989173F7
+```{r}
+### Open PADDD events in Brazil
+paddd <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/Meeting2_data/PADDDtracker_DataReleaseV2_May2019/paddd_events.shp") %>%
+  st_transform(., crs = 102033) %>%
+  filter(., ISO3166 == "BRA")
+
+### Subset to 2016 downgrading proposal
+paddd <- paddd %>%
+  filter(., PADDD_ID == "BRA989173F7") %>%
+  dplyr::select(., status = EnactedPro, geometry)
+
+### Get rest of jaman shp
+no_paddd <- st_difference(jambuf, st_union(paddd))
+
+### Make same cols for no_paddd
+no_paddd <- no_paddd %>%
+  dplyr::select(., status = Type, geometry)
+
+### Combine SFs
+paddd_jam <- rbind(paddd, no_paddd)
+
+### Add column for paddd
+paddd_jam$paddd <- ifelse(paddd_jam$status == "Proposed",
+                          1, 0)
+paddd_jam$paddd <- as.factor(paddd_jam$paddd)
+paddd_jam <- dplyr::select(paddd_jam, paddd, geometry)
+
+### Write out shp to rasterize in gdal
+st_write(paddd_jam, 
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/paddd_proposal.shp")
+
+### gdal_rasterize -a paddd -tr 30 30 paddd_proposal.shp paddd_proposal.tif
+
+### Open raster
+paddd_ras <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/paddd_proposal.tif")
+
+### Resample raster
+paddd_ras_resample <- raster::resample(paddd_ras,
+                                       jm_2008,
+                                       "ngb")
+
+### Save output rasters to folder
+writeRaster(paddd_ras_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_paddd.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
 
 ## Land tenure  
 Background notes (Ezzine-de-Blas et al. 2011):  

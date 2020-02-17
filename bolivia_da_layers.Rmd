@@ -409,6 +409,17 @@ writeRaster(prot_resample,
             overwrite = TRUE)
 ```
 
+## PADDD
+```{r}
+### Open PADDD events in case study sites
+paddd <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/Meeting2_data/PADDDtracker_DataReleaseV2_May2019/paddd_events.shp") %>%
+  st_transform(., crs = 102033) %>%
+  filter(., ISO3166 == "BOL")
+```
+
+The managed use area of Amb-Car is the area that was downgraded from a protected area, so we are already capturing this change in zoning in the protection status layer-- don't need additional PADDD layer.
+
+
 ## REDD Projects
 Data sources: 
 1. Global Comparative Study on REDD+; Department of Forestry and Environmental Resources, 2017, "Global Database of REDD+ and Other Forest Carbon Projects", https://doi.org/10.17528/CIFOR/DATA.00059, Center for International Forestry Research (CIFOR), V1
