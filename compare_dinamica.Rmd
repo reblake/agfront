@@ -1,0 +1,268 @@
+---
+title: "dinamica_comparison"
+author: "Katherine Siegel"
+date: "February 19, 2020"
+output: html_document
+---
+
+## Description
+Compare transitions from actual 2018 map vs DINAMICA's simulation.
+
+## Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Packages
+library(tidyverse)
+library(raster)
+library(sf)
+library(lwgeom)
+library(sp)
+library(lubridate)
+library(rgdal)
+
+### File paths
+#### DINAMICA maps
+bol_din <- "D:/dinamica/bolivia_simple/5_run_lucc/"
+bra_din <- "D:/dinamica/brazil_simple/5_run_lucc/"
+
+### Remote sensing maps
+bol_dat <- "D:/dinamica/bolivia_simple/data/"
+bra_dat <- "D:/dinamica/brazil_simple/data/"
+
+### Save visuals here
+vis_save <- "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/visuals_feb/"
+```
+
+## Brazil
+Open .ers files in ArcMap and export as .tif, then reproject using gdal
+probabilities10_bra.tif, landscape10_bra.tif [_rpj for reprojected files]
+
+gdalwarp -t_srs EPSG:102033 -r near landscape10_bra.tif landscape10_bra_rpj.tif
+
+### Landscape
+#### Compare forested pts
+```{r}
+### Open observed 2018 landscape
+obs_bra <- raster(paste0(bra_dat,
+                         "classi_bra_dry_2018_102033.tif"))
+
+### Open simulated 2018 landscape
+sim_bra <- raster(paste0(bra_din,
+                         "landscape10_bra_rpj.tif"))
+
+### Get number of forest points in each
+obs_bra_count <- data.frame(freq(obs_bra))
+sim_bra_count <- data.frame(freq(sim_bra))  
+
+### Add col for source
+obs_bra_count <- obs_bra_count %>%
+  mutate(Source = "Observed map")
+sim_bra_count <- sim_bra_count %>%
+  mutate(Source = "Simulated map") 
+
+### Combine
+bra_counts <- rbind(obs_bra_count, sim_bra_count)
+
+### Drop 0 and NA
+bra_counts <- bra_counts %>%
+  filter(., value > 0)
+
+### Column for land cover class
+bra_counts <- bra_counts %>%
+  mutate(landcover = ifelse(value == "1",
+                            "Ag",
+                            ifelse(value == "2",
+                                   "Forest",
+                                   ifelse(value == "3",
+                                          "Bare",
+                                          ifelse(value == "4",
+                                                 "Urban",
+                                                 ifelse(value == "5", "Wetland", "Water"))))))
+
+### Divide count by 1,000,000
+bra_counts <- bra_counts %>%
+  mutate(count_mil = count/1000000)
+
+### Visualize
+bra_counts %>%
+  ggplot(aes(x = landcover, y = count_mil, fill = Source)) +
+  geom_bar(stat = "identity", position=position_dodge()) +
+  xlab("Land cover type") + ylab("Millions of pixels") +
+  theme_bw() +
+  theme(text = element_text(size = 15))
+ggsave(paste0(vis_save, "bra_count_comparison.png"))
+```
+
+#### Compare forest to ag transitions
+```{r}
+### Open 2008 map
+bra_2008 <- raster(paste0(bra_dat,
+                          "classi_bra_dry_2008_102033.tif"))
+
+### Reclassify rasters so ag = 1, forest = 10, all others = 0
+### Reclassification matrix
+reclass_df <- c(0, 0.9, NA,   ## change NoData to NA
+                0.9, 1.1, 1,  ## ag = 1
+                1.9, 2.1, 10, ## forest = 2
+                2.9, 8, 0)    ## all other classes = 0
+reclass_m <- matrix(reclass_df,
+                ncol = 3,
+                byrow = TRUE)
+
+### Reclassify all maps
+bra_2008_recl <- reclassify(bra_2008, reclass_m)
+bra_2018_obs <- reclassify(obs_bra, reclass_m)
+bra_2018_sim <- reclassify(sim_bra, reclass_m)
+
+### Get transitions in observed maps
+obs_trans <- bra_2018_obs - bra_2008_recl
+obs_trans_count <- data.frame(freq(obs_trans))
+obs_trans_count <- obs_trans_count %>%
+  mutate(Source = "Observed map") 
+
+### Get transitions in simulated map
+sim_trans <- bra_2018_sim - bra_2008_recl
+sim_trans_count <- data.frame(freq(sim_trans))
+sim_trans_count <- sim_trans_count %>%
+  mutate(Source = "Simulated map") 
+
+### Combine
+transition_counts <- rbind(obs_trans_count,
+                           sim_trans_count)
+
+### Add column for transition type
+transition_counts <- transition_counts %>%
+  mutate(Transition = ifelse(value == "0",
+                             "No change",
+                             ifelse(value == "-10",
+                                    "Forest -> Other",
+                                    ifelse(value == "-9",
+                                           "Forest -> Ag",
+                                           ifelse(value == "-1",
+                                                  "Ag -> Other",
+                                                  ifelse(value == "1", "Other -> Ag", ifelse(value == "9", "Ag -> Forest", "Other -> Forest")))))))
+
+### Write out tifs with transitions
+writeRaster(obs_trans, 
+            filename = paste0(vis_save, 
+                              "bra_obs_transitions.tif"),
+            format = "GTiff")
+writeRaster(sim_trans, 
+            filename = paste0(vis_save, 
+                              "bra_sim_transitions.tif"),
+            format = "GTiff")
+```
+
+##### Compare btw methods
+```{r}
+### Reclassify transition maps: want 10 = forest to ag transition (-9 in previous map), all other transitions = 1 in sim and 2 in obs, no change = 5 in both
+
+### Reclassification df for obs
+reclass_df_obs <- c(-10.1, -9.9, 2, # Forest -> Other = 2
+                    -9.5, -8.9, 10,   # Forest -> Ag = 10
+                    -2, -0.9, 2,      # Ag -> Other = 2
+                    -0.5, 0.5, 5,     # No Change = 5
+                    0.6, 11, 2)       # All other changes = 2 ### Convert to matrix                
+reclass_m_obs <- matrix(reclass_df_obs,
+                      ncol = 3,
+                      byrow = TRUE)
+
+### Reclassification df for sim
+reclass_df_sim <- c(-9.5, -8.9, 10,   # Forest -> Ag = 10
+                    -0.5, 0.5, 6)     # No Change = 6
+
+ ### Convert to matrix                
+reclass_m_sim <- matrix(reclass_df_sim,
+                      ncol = 3,
+                      byrow = TRUE)
+
+### Reclassify rasters
+obs_trans_recl <- reclassify(obs_trans, reclass_m_obs)
+sim_trans_recl <- reclassify(sim_trans, reclass_m_sim)
+
+### Subtract observed from simulated
+diff_trans <- sim_trans_recl + obs_trans_recl
+
+### Get counts
+diff_trans_count <- data.frame(freq(diff_trans))
+
+### Percent of pixels
+diff_trans_count <- diff_trans_count %>%
+  mutate(total_pixels = 52644231,
+         percent_pix = count/total_pixels*100)
+
+### If value = __, difference is: 
+### 8: Sim = no change, Obs = other change
+### 11: both = no change
+### 12: Sim = forest to ag, Obs = other change
+### 15: Sim = forest to ag, Obs = no change
+### 16: Sim = no change, Obs = forest to ag
+### 20: both = forest to ag
+
+### Write out raster
+writeRaster(diff_trans, 
+            filename = paste0(vis_save, 
+                              "bra_transiti_diffs.tif"),
+            format = "GTiff")
+```
+
+
+## Bolivia
+Open .ers files in ArcMap and export as .tif, then reproject using gdal
+probabilities10_bol.tif, landscape10_bol.tif
+
+### Landscape
+#### Compare forested pts
+```{r}
+### Open observed 2018 landscape
+obs_bol <- raster(paste0(bol_dat,
+                         "classi_bol_dry_2018_102033.tif"))
+
+### Open simulated 2018 landscape
+sim_bol <- raster(paste0(bol_din,
+                         "landscape10_reproj.tif"))
+
+### Get number of forest points in each
+obs_bol_count <- data.frame(freq(obs_bol))
+sim_bol_count <- data.frame(freq(sim_bol))  
+
+### Add col for source
+obs_bol_count <- obs_bol_count %>%
+  mutate(Source = "Observed map")
+sim_bol_count <- sim_bol_count %>%
+  mutate(Source = "Simulated map") 
+
+### Combine
+bol_counts <- rbind(obs_bol_count, sim_bol_count)
+
+### Drop 0 and NA
+bol_counts <- bol_counts %>%
+  filter(., value > 0)
+
+### Column for land cover class
+bol_counts <- bol_counts %>%
+  mutate(landcover = ifelse(value == "1",
+                            "Ag",
+                            ifelse(value == "2",
+                                   "Forest",
+                                   ifelse(value == "3",
+                                          "Bare",
+                                          ifelse(value == "4",
+                                                 "Urban",
+                                                 ifelse(value == "5", "Wetland", ifelse(value == "6", "Desert", "Water")))))))
+                                                        
+
+### Divide count by 1,000,000
+bol_counts <- bol_counts %>%
+  mutate(count_mil = count/1000000)
+
+### Visualize
+bol_counts %>%
+  ggplot(aes(x = landcover, y = count_mil, fill = Source)) +
+  geom_bar(stat = "identity", position=position_dodge()) +
+  xlab("Land cover type") + ylab("Millions of pixels") +
+  theme_bw() +
+  theme(text = element_text(size = 15))
+ggsave(paste0(vis_save, "bol_count_comparison.png"))
+```
