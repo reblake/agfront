@@ -137,6 +137,10 @@ st_write(ambcar_buffers,
          "D:/dinamica/processed_layers/ambcar_proj_buffers.shp")
 st_write(ambcar_buffers,
          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/ambcar_w_buffer.shp")
+
+### Write out buff_20 to get outline of study area 
+st_write(buff_20,
+        "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/ambcar_buffer_updated.shp")
 ```
 
 Convert to raster in gdal
