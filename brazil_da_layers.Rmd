@@ -37,9 +37,8 @@ jambuf_big <- st_buffer(jambuf, dist = 50000)
 
 ### Make buffer for pepe
 jambuf_pepe <- st_buffer(jambuf, dist = 3000)
-st_write(jambuf_pepe,
-         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/jaman_buff_pepe.shp")
-
+# st_write(jambuf_pepe,
+#          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/jaman_buff_pepe.shp")
 
 ### Open raster
 jm_2008 <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/classi_bra_dry_2008_102033.tif")
@@ -59,6 +58,40 @@ munic_jam <- st_intersection(jambuf, braz)
 ### Make sf of muncipios in Jamanxim
 municipios <- braz %>%
   filter(., municipio %in% munic_jam$municipio)
+
+### Municipios for cities raster
+municip_cities <- braz <- getData("GADM", country = "BRA", 
+                                  level = 2) %>%
+  st_as_sf() %>%
+  st_transform(., crs = 102033) %>%
+  filter(., NAME_1 %in% c("Pará", "Amazonas", "Mato Grosso")) %>%
+  dplyr::select(., state = NAME_1, 
+                municipio = NAME_2,
+                geometry) %>%
+  # st_write(., 
+  #          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/municip_three_states.shp")
+  filter(., municipio %in% 
+           c("Altamira", "Itaituba", "Novo Progresso",
+             "Trairão", "Jacareacanga", "Rurópolis",
+             "Pacajá", "Uruará", "Medicilândia",
+             "Brazil Novo", "Vitória do Xingu",
+             "Senador José Porfírio", "São Félix do Xingu",
+             "Anapu", "Apuí", "Maués", "Parintins",
+             "Barreirinha", "Boa Vista do Ramos",
+             "Nhamundá", "Urucará", "Urucurituba",
+             "Aripuanã", "Cotriguaçu", "Nova Bandeirantes",
+             "Cotriguaçu", "Apiacás", "Nova Monte Verde",
+             "Paranatinga", "Alta Floresta", "Apiacás",
+             "Carlinda", "Novo Mundo", "Nova Canaã do Norte",
+             "Colíder", "Tabaporã", "Guarantã do Norte",
+             "Jauru", "Novo Horizonte do Norte", 
+             "Porto dos Gaúchos", "Tapurah", "Sinop", "Borba",
+             "Nova Olinda do Norte", "Itaúba",
+             "Terra Nova do Norte", "Peixoto de Azevedo",
+             "Cláudia", "Marcelândia", "Matupá",
+             "Nova Guarita")) %>%
+  st_write(., 
+           "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/municip_region.shp")
 ```
 
 ### Classified rasters
@@ -542,6 +575,90 @@ writeRaster(paddd_ras_resample,
             overwrite = TRUE)
 ```
 
+## Protection status
+```{r}
+### Open file
+prot_stat <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/jaman_w_buffer.tiff")
+
+### Resample
+prot_resample <- raster::resample(prot_stat, 
+                                  jm_2008, 
+                                  "ngb")
+
+### Write out
+writeRaster(prot_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_prot_status.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+## Poverty rate
+Data per municipio from IBGE (2003 data). 
+cidades.ibge.gov.br, then select metric, then municipio. 
+https://cidades.ibge.gov.br/brasil/pa/novo-progresso/pesquisa/36/30246?localidade1=150060&localidade2=150360
+```{r}
+### Open poverty csv
+pov <- read_csv("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/poverty_rate.csv")
+
+### Combine with sfs
+municip_pov <- merge(municipios, pov,
+                     by = "municipio")
+
+### Select cols to keep
+municip_pov <- municip_pov %>%
+  dplyr::select(., pov_rate, geometry)
+
+### Write out to rasterize in gdal
+st_write(municip_pov,
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/poverty_rate.shp")
+
+### Open raster to resample
+pov_ras <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/poverty_rate.tif")
+
+### Resample
+pov_resample <- raster::resample(pov_ras, 
+                                 jm_2008, 
+                                 "ngb")
+
+### Write out
+writeRaster(pov_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_pov_rate.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+## Distance to cities
+List of cities from Mongabay, https://population.mongabay.com/population/brazil
+"Largest cities in Brazi," 2019. Located cities in Google Earth, converted to shp in ArcMap.
+```{r}
+### Open city shp
+cities <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/brasil_cidades.shp") %>%
+  st_transform(., crs = 102033)
+
+### Drop z dimension
+cities <- st_zm(cities)
+
+### Write out to make distance raster
+st_write(cities, 
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/brasil_cidades_102033.shp")
+
+### Make distance raster --> jam_d_city.tif (used municip_region as processing extent, then clipped down)
+
+### Read in distance raster
+d_cities <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/jam_d_city.tif")
+
+### Resample to match Jamanxim
+cities_resample <- raster::resample(d_cities, 
+                                    jm_2008, 
+                                    "bilinear")
+
+### Write out
+writeRaster(cities_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_dist_cities.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
 ## Land tenure  
 Background notes (Ezzine-de-Blas et al. 2011):  
 * Brazilian Federal Land Reform began in 1964, National Institute for Agrarian Reform (INCRA)  
@@ -866,3 +983,41 @@ st_write(area_per_mun,
 
 ```
 
+## Raster brick
+### Brazil simple
+```{r}
+### File pattern
+raster_list <- list.files("D:/dinamica/brazil_simple/data", 
+                          full.names=TRUE)
+
+#### Open layers
+aspect <- raster(raster_list[1])
+crop_suit <- raster(raster_list[2])
+cities <- raster(raster_list[3])
+mines <- raster(raster_list[4])
+rivers <- raster(raster_list[6])
+roads <- raster(raster_list[7])
+popdens <- raster(raster_list[8])
+poverty <- raster(raster_list[10])
+ppt <- raster(raster_list[11])
+prot_status <- raster(raster_list[12])
+soil <- raster(raster_list[13])
+elev <- raster(raster_list[16])
+slope <- raster(raster_list[17])
+
+#### Brick them
+brick_layers <- raster::brick(aspect, mines, 
+                              roads, rivers, 
+                              cities, elev, 
+                              popdens, poverty, 
+                              ppt, prot_status, 
+                              slope, soil, 
+                              crop_suit)
+
+### Write out brick
+writeRaster(brick_layers, 
+            filename = "D:/dinamica/brazil_simple/data/brazil_static_vars.tif", 
+            format = "GTiff",
+            overwrite = TRUE, 
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```

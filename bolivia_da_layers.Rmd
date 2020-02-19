@@ -51,6 +51,12 @@ bolivia <- getData("GADM", country = "BOL", level = 3) %>%
 # st_write(bolivia,
 #          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_provinces.shp")
 
+### Municipios in buffer zone
+buff_municipios <- st_intersection(bolivia, ambcar)
+st_geometry(buff_municipios) <- NULL
+write.csv(buff_municipios, "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/municipios_buffer.csv",
+          row.names = FALSE)
+
 
 ```
 
