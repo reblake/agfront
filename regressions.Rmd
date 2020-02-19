@@ -352,4 +352,99 @@ write.csv(fit_bra_coeff,
           file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/visuals_feb/fit_bra_simple_summary.csv")
 ```
 
+### Bolivia
+#### Assemble datasets
+Extract values from rasterbricks to sample points
+```{r}
+### Open Bolivia sample pts, reproject to 102033
+bol_pts <- st_read("bol_pts_for_regression.shp") %>%
+  st_transform(., crs = 102033)
 
+### Open Bolivia rasterbrick
+bol_layers <- brick("D:/dinamica/bolivia_simple/data/bolivia_static_vars.tif")
+
+### Convert pts to sp
+bol_pts_sp <- as(bol_pts, "Spatial")
+
+### Extract values to pts
+bol_dat <- extract(bol_layers, 
+                   bol_pts_sp,
+                   df = TRUE)
+
+### Rename columns
+colnames(bol_dat) <- c("id", "aspect", "mines", 
+                       "roads", "rivers", 
+                       "cities", "elev", 
+                       "popdens", "poverty", 
+                       "ppt", "prot_status", 
+                       "slope", "soil", 
+                       'crop_suit')
+
+### Open 2018 land cover map
+bol_2018_lc <- raster("D:/dinamica/bolivia_simple/data/classi_bol_dry_2018_102033.tif")
+
+### Extract 2018 land cover class to points
+pts_2018 <- extract(bol_2018_lc, 
+                    bol_pts_sp,
+                    df = TRUE)
+colnames(pts_2018) <- c("id", "lc_2018")
+
+### Combine dfs
+bol_dat <- merge(bol_dat, pts_2018, by = "id")
+
+### Make column for transition/none
+bol_dat <- bol_dat %>%
+  mutate(transition = ifelse(lc_2018 == "2",
+                             "no_change",
+                             "change"),
+         trans_rc = ifelse(transition == "no_change",
+                           "0", "1"))
+
+### Make columns factor
+fact_cols <- c("id", "prot_status", "lc_2018", "trans_rc")
+bol_dat <- bol_dat %>%
+  mutate_each_(funs(factor(.)), fact_cols)
+```
+
+#### Check correlations
+```{r}
+### Make corr table
+cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat[, c(2:10, 12:14)]))
+
+### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
+cor_table_bol <- subset(cor_table_bol, 
+                        abs(cor) > 0.66 & p <= 0.05)
+
+### Distance to roads and distance to cities highly correlated (coeff = 0.7297491)
+### Poverty and soil moisture are highly correlated (coeff = 0.7979029)
+
+### Drop poverty (because also dropped that for DINAMICA), drop distance to cities
+
+### Make updated dataset
+bol_dat_red <- bol_dat %>%
+  dplyr::select(-poverty, -cities)
+
+### Drop incomplete rows
+bol_dat_comp <- bol_dat_red[complete.cases(bol_dat_red), ]
+
+### Drop rows where prot_status = 0 (??)
+bol_dat_comp <- bol_dat_comp %>%
+  filter(., !prot_status == "0")
+```
+
+#### Regression
+```{r}
+### Run regression
+fit_bol <- glm(trans_rc ~ aspect + slope + elev +
+                 roads + rivers + mines +
+                 ppt + soil + crop_suit +
+                 popdens + prot_status,
+               data = bol_dat_comp,
+               family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_bol_summ <- summary(fit_bol)
+fit_bol_coeff <- as.data.frame(fit_bol_summ$coefficients)
+write.csv(fit_bol_coeff, 
+          file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/visuals_feb/fit_bol_simple_summary.csv")
+```
