@@ -28,9 +28,29 @@ fastRandomPoints <- function(r, n) {
   pts <- raster::xyFromCell(r, x)
   return(pts)
 }
+
+#### Function to check correlation
+cor.prob <- function (X, dfr = nrow(X) - 2) {
+  R <- cor(X, use="pairwise.complete.obs")
+  above <- row(R) < col(R)
+  r2 <- R[above]^2
+  Fstat <- r2 * dfr/(1 - r2)
+  R[above] <- 1 - pf(Fstat, 1, dfr)
+  R[row(R) == col(R)] <- NA
+  R
+}
+flattenSquareMatrix <- function(m) {
+  if( (class(m) != "matrix") | (nrow(m) != ncol(m))) stop("Must be a square matrix.") 
+  if(!identical(rownames(m), colnames(m))) stop("Row and column names must be equal.")
+  ut <- upper.tri(m)
+  data.frame(i = rownames(m)[row(m)[ut]],
+             j = rownames(m)[col(m)[ut]],
+             cor=t(m)[ut],
+             p=m[ut])
+}
 ```
 
-## Sample points
+## Get sample points
 Sample points that are ag in 2008.
 forest, agriculture, urban, water, desert, wetlands, and bare soil
 Based on looking at rasters, I assume these are the value/land cover class combinations:  
@@ -236,3 +256,100 @@ luc_2018_per_summ <- luc_2018_per %>%
 #   group_by(classi_PER_dry_2008) %>% 
 #   summarise(pts_per_class = n())
 ```
+
+## Simple Models
+### Brazil
+#### Assemble datasets
+Extract values from rasterbricks to sample points
+```{r}
+### Open Brazil sample pts, reproject to 102033
+bra_pts <- st_read("bra_pts_for_regression.shp") %>%
+  st_transform(., crs = 102033)
+
+### Open Brazil rasterbrick
+bra_layers <- brick("D:/dinamica/brazil_simple/data/brazil_static_vars.tif")
+
+### Convert pts to sp
+bra_pts_sp <- as(bra_pts, "Spatial")
+
+### Extract values to pts
+bra_dat <- extract(bra_layers, 
+                   bra_pts_sp,
+                   df = TRUE)
+
+### Rename columns
+colnames(bra_dat) <- c("id", "aspect", "mines", 
+                       "roads", "rivers", 
+                       "cities", "elev", 
+                       "popdens", "poverty", 
+                       "ppt", "prot_status", 
+                       "slope", "soil", 
+                       'crop_suit')
+
+### Open 2018 land cover map
+bra_2018_lc <- raster("D:/dinamica/brazil_simple/data/classi_bra_dry_2018_102033.tif")
+
+### Extract 2018 land cover class to points
+pts_2018 <- extract(bra_2018_lc, 
+                    bra_pts_sp,
+                    df = TRUE)
+colnames(pts_2018) <- c("id", "lc_2018")
+
+### Combine dfs
+bra_dat <- merge(bra_dat, pts_2018, by = "id")
+
+### Make column for transition/none
+bra_dat <- bra_dat %>%
+  mutate(transition = ifelse(lc_2018 == "2",
+                             "no_change",
+                             "change"),
+         trans_rc = ifelse(transition == "no_change",
+                           "0", "1"))
+
+### Make columns factor
+fact_cols <- c("id", "prot_status", "lc_2018", "trans_rc")
+bra_dat <- bra_dat %>%
+  mutate_each_(funs(factor(.)), fact_cols)
+```
+
+#### Check correlations
+```{r}
+### Make corr table
+cor_table_bra <- flattenSquareMatrix(cor.prob(bra_dat[, c(2:10, 12:14)]))
+
+### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
+cor_table_bra <- subset(cor_table_bra, 
+                        abs(cor) > 0.66 & p <= 0.05)
+
+### Population density and poverty rate are highly correlated (correlation coefficient = 0.92)
+
+### Make updated dataset
+bra_dat_red <- bra_dat %>%
+  dplyr::select(-poverty)
+
+### Drop incomplete rows
+bra_dat_comp <- bra_dat_red[complete.cases(bra_dat_red), ]
+
+### Drop rows where prot_status = 0 (??)
+bra_dat_comp <- bra_dat_comp %>%
+  filter(., !prot_status == "0")
+```
+
+#### Regression
+```{r}
+### Run regression
+fit_bra <- glm(trans_rc ~ aspect + slope + elev +
+                 roads + rivers + cities + mines +
+                 ppt + soil + crop_suit +
+                 popdens + prot_status,
+               data = bra_dat_comp,
+               family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_bra_summ <- summary(fit_bra)
+fit_bra_coeff <- as.data.frame(fit_bra_summ$coefficients)
+write.csv(fit_bra_coeff, 
+          file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/visuals_feb/fit_bra_simple_summary.csv")
+```
+
+
