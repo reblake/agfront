@@ -59,39 +59,39 @@ munic_jam <- st_intersection(jambuf, braz)
 municipios <- braz %>%
   filter(., municipio %in% munic_jam$municipio)
 
-### Municipios for cities raster
-municip_cities <- braz <- getData("GADM", country = "BRA", 
-                                  level = 2) %>%
-  st_as_sf() %>%
-  st_transform(., crs = 102033) %>%
-  filter(., NAME_1 %in% c("Pará", "Amazonas", "Mato Grosso")) %>%
-  dplyr::select(., state = NAME_1, 
-                municipio = NAME_2,
-                geometry) %>%
-  # st_write(., 
-  #          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/municip_three_states.shp")
-  filter(., municipio %in% 
-           c("Altamira", "Itaituba", "Novo Progresso",
-             "Trairão", "Jacareacanga", "Rurópolis",
-             "Pacajá", "Uruará", "Medicilândia",
-             "Brazil Novo", "Vitória do Xingu",
-             "Senador José Porfírio", "São Félix do Xingu",
-             "Anapu", "Apuí", "Maués", "Parintins",
-             "Barreirinha", "Boa Vista do Ramos",
-             "Nhamundá", "Urucará", "Urucurituba",
-             "Aripuanã", "Cotriguaçu", "Nova Bandeirantes",
-             "Cotriguaçu", "Apiacás", "Nova Monte Verde",
-             "Paranatinga", "Alta Floresta", "Apiacás",
-             "Carlinda", "Novo Mundo", "Nova Canaã do Norte",
-             "Colíder", "Tabaporã", "Guarantã do Norte",
-             "Jauru", "Novo Horizonte do Norte", 
-             "Porto dos Gaúchos", "Tapurah", "Sinop", "Borba",
-             "Nova Olinda do Norte", "Itaúba",
-             "Terra Nova do Norte", "Peixoto de Azevedo",
-             "Cláudia", "Marcelândia", "Matupá",
-             "Nova Guarita")) %>%
-  st_write(., 
-           "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/municip_region.shp")
+# ### Municipios for cities raster
+# municip_cities <- braz <- getData("GADM", country = "BRA", 
+#                                   level = 2) %>%
+#   st_as_sf() %>%
+#   st_transform(., crs = 102033) %>%
+#   filter(., NAME_1 %in% c("Pará", "Amazonas", "Mato Grosso")) %>%
+#   dplyr::select(., state = NAME_1, 
+#                 municipio = NAME_2,
+#                 geometry) %>%
+#   # st_write(., 
+#   #          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/municip_three_states.shp")
+#   filter(., municipio %in% 
+#            c("Altamira", "Itaituba", "Novo Progresso",
+#              "Trairão", "Jacareacanga", "Rurópolis",
+#              "Pacajá", "Uruará", "Medicilândia",
+#              "Brazil Novo", "Vitória do Xingu",
+#              "Senador José Porfírio", "São Félix do Xingu",
+#              "Anapu", "Apuí", "Maués", "Parintins",
+#              "Barreirinha", "Boa Vista do Ramos",
+#              "Nhamundá", "Urucará", "Urucurituba",
+#              "Aripuanã", "Cotriguaçu", "Nova Bandeirantes",
+#              "Cotriguaçu", "Apiacás", "Nova Monte Verde",
+#              "Paranatinga", "Alta Floresta", "Apiacás",
+#              "Carlinda", "Novo Mundo", "Nova Canaã do Norte",
+#              "Colíder", "Tabaporã", "Guarantã do Norte",
+#              "Jauru", "Novo Horizonte do Norte", 
+#              "Porto dos Gaúchos", "Tapurah", "Sinop", "Borba",
+#              "Nova Olinda do Norte", "Itaúba",
+#              "Terra Nova do Norte", "Peixoto de Azevedo",
+#              "Cláudia", "Marcelândia", "Matupá",
+#              "Nova Guarita")) %>%
+#   st_write(., 
+#            "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/municip_region.shp")
 ```
 
 ### Classified rasters
@@ -991,19 +991,19 @@ raster_list <- list.files("D:/dinamica/brazil_simple/data",
                           full.names=TRUE)
 
 #### Open layers
-aspect <- raster(raster_list[1])
-crop_suit <- raster(raster_list[2])
-cities <- raster(raster_list[3])
-mines <- raster(raster_list[4])
-rivers <- raster(raster_list[6])
-roads <- raster(raster_list[7])
-popdens <- raster(raster_list[8])
-poverty <- raster(raster_list[10])
-ppt <- raster(raster_list[11])
-prot_status <- raster(raster_list[12])
-soil <- raster(raster_list[13])
-elev <- raster(raster_list[16])
-slope <- raster(raster_list[17])
+aspect <- raster("D:/dinamica/brazil_simple/data/aspect_jaman.tif")
+crop_suit <- raster("D:/dinamica/brazil_simple/data/bra_cropsuit_resample.tif")
+cities <- raster("D:/dinamica/brazil_simple/data/bra_dist_cities.tif")
+mines <- raster("D:/dinamica/brazil_simple/data/bra_dist_mines_resample.tif")
+rivers <- raster("D:/dinamica/brazil_simple/data/bra_dist_rios_resample.tif")
+roads <- raster("D:/dinamica/brazil_simple/data/bra_osm_dist_resample.tif")
+popdens <- raster("D:/dinamica/brazil_simple/data/bra_pd_resample.tif")
+poverty <- raster("D:/dinamica/brazil_simple/data/bra_pov_rate.tif")
+ppt <- raster("D:/dinamica/brazil_simple/data/bra_ppt.tif")
+prot_status <- raster("D:/dinamica/brazil_simple/data/bra_prot_status.tif")
+soil <- raster("D:/dinamica/brazil_simple/data/bra_soil.tif")
+elev <- raster("D:/dinamica/brazil_simple/data/dem_jaman_102033.tif")
+slope <- raster("D:/dinamica/brazil_simple/data/slope_jaman.tif")
 
 #### Brick them
 brick_layers <- raster::brick(aspect, mines, 
@@ -1017,6 +1017,89 @@ brick_layers <- raster::brick(aspect, mines,
 ### Write out brick
 writeRaster(brick_layers, 
             filename = "D:/dinamica/brazil_simple/data/brazil_static_vars.tif", 
+            format = "GTiff",
+            overwrite = TRUE, 
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+### Brazil DA
+Discourse analysis variables:  
+* field research  
+* PADDD  
+* non-allocated land  
+* distance to illegal mining  
+* distance to ag  
+* distance to fires  
+* fire density  
+* distance to proposed railroads  
+* distance to proposed dams  
+* ag reform settlements  
+* head of cattle  
+```{r}
+### Location of discourse analysis variables
+bra_da_var_loc <- "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/"
+
+### List files in folder
+bra_da_var_list <- list.files(path = bra_da_var_loc, 
+                              pattern="*.tif",
+                              full.names=TRUE)
+
+### Open layers
+field_research <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/jam_dist_fr.tif")  
+paddd <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_paddd.tif")  
+non_all_land <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_nonalloc_land.tif")  
+dist_ill_mines <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_dist_illegal_mines.tif")  
+dist_ag <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_ag_dist_re.tif")  
+dist_fires <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_fire_dist_re.tif")  
+fire_dens <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_fire_dens_re.tif")  
+dist_proposed_rr <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_dist_proposed_rr.tif")  
+dist_proposed_dams <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_dist_proposed_dams.tif")  
+agreform_sett <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_agreform_settlements.tif") 
+cattle <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_cattle.tif")  
+
+### Brick layers
+da_brick <- raster::brick(aspect, mines, 
+                          roads, rivers, 
+                          cities, elev, 
+                          popdens, poverty, 
+                          ppt, prot_status, 
+                          slope, soil, 
+                          crop_suit,
+                          field_research, 
+                          paddd,
+                          non_all_land,
+                          dist_ill_mines,
+                          dist_ag,
+                          dist_fires,
+                          fire_dens,
+                          dist_proposed_rr,
+                          dist_proposed_dams,
+                          agreform_sett,
+                          cattle)
+
+### Write out brick
+writeRaster(da_brick, 
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/brazil_all_layers.tif", 
+            format = "GTiff",
+            overwrite = TRUE, 
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Brick with DA layers only
+da_only <- raster::brick(field_research, 
+                          paddd,
+                          non_all_land,
+                          dist_ill_mines,
+                          dist_ag,
+                          dist_fires,
+                          fire_dens,
+                          dist_proposed_rr,
+                          dist_proposed_dams,
+                          agreform_sett,
+                          cattle)
+
+### Write out brick
+writeRaster(da_only, 
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/brazil_da_vars.tif", 
             format = "GTiff",
             overwrite = TRUE, 
             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
