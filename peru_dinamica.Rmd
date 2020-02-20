@@ -5,6 +5,7 @@ date: "August 26, 2019"
 output: html_document
 ---
 
+## Set up
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
@@ -13,6 +14,116 @@ library(tidyverse)
 library(raster)
 library(sf)
 ```
+
+## Protection status
+Made shp of PAs and buffer in case_study_shp.Rmd.
+
+Convert to raster in gdal
+gdal_rasterize -a category -tr 30 30 peru_buffers.shp peru_buffers.tif
+```{r}
+### Open Peru LUC raster
+peru_luc <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/classi_per_dry_2008_102033.tif")
+
+### Open file
+prot_stat <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/peru/peru_buffers.tif")
+
+### Resample
+prot_resample <- raster::resample(prot_stat, 
+                                  peru_luc, 
+                                  "ngb")
+
+### Write out
+writeRaster(prot_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_prot_status.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+## Categorical layers
+Shapefiles from Aldo for locations of forest concessions, reforestation plots, nut production, PADDD, and protected forests.
+```{r}
+### Open shapefiles, convert to 102033 and write out
+nuts <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/PermProd.shp") %>%
+  st_transform(., crs = 102033)
+nuts$category <- "1"
+st_write(nuts, 
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/nut_prod.shp")
+
+paddd <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/NP_changes.shp") %>%
+  st_transform(., crs = 102033) 
+paddd$category <- "1"
+st_write(paddd, 
+           "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/paddd.shp")
+
+prot_for <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/ProtectedForest.shp") %>%
+  st_transform(., crs = 102033)
+prot_for$category <- "1"
+st_write(prot_for, 
+           "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/prot_forest.shp")
+
+reforest <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/Reforestation.shp") %>%
+  st_transform(., crs = 102033) 
+reforest$category <- "1"
+st_write(reforest, 
+           "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/reforest.shp")
+
+nonfor_conc <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/NonForestryConcessions.shp") %>%
+  st_transform(., crs = 102033) 
+nonfor_conc$category <- "1"
+st_write(nonfor_conc, 
+           "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/nonforest_conc.shp")
+```
+rasterize in gdal, burn in to category
+
+#### Resample to match map
+```{r}
+### Read in tifs
+nuts <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/nut_prod.tif")
+paddd <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/paddd.tif")
+prot_forest <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/prot_forest.tif")
+reforest <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/reforest.tif")
+nonforest_conc <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/nonforest_conc.tif")
+
+### Resample tifs
+nuts <- raster::resample(nuts, 
+                         peru_luc, 
+                         "ngb")
+paddd <- raster::resample(paddd, 
+                          peru_luc, 
+                          "ngb")
+prot_forest <- raster::resample(prot_forest, 
+                                peru_luc, 
+                                "ngb")
+reforest <- raster::resample(reforest, 
+                             peru_luc, 
+                             "ngb")
+nonforest_conc <- raster::resample(nonforest_conc, 
+                                   peru_luc, 
+                                   "ngb")
+
+### Write out tifs
+writeRaster(nuts,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_nut_prod.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+writeRaster(paddd,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_paddd.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+writeRaster(prot_forest,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_prot_forest.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+writeRaster(reforest,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_reforest.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+writeRaster(nonforest_conc,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_nonforest_conc.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
 
 ## Classic model layers
 ### Convert to 102033
@@ -231,13 +342,28 @@ rm(slope)
 
 ### Brick classic model layers
 ```{r}
+### Open resampled layers
+prot_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_prot_status.tif")
+soil_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_soilm.tif")
+aspect_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_aspect.tif")
+cropsuit_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_cropsuit.tif")
+mines_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_mines.tif")
+rivers_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_rivers.tif")
+roads_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_roads.tif")
+cities_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_cities.tif")
+elev_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_elev.tif")
+pd_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_popdens.tif")
+pov_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_poverty.tif")
+precip_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_precip.tif")
+slope_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_slope.tif")
+
 ### Make brick
 peru_brick <- raster::brick(aspect_resample, 
                             cities_resample,
                             cropsuit_resample,
                             elev_resample,
                             mines_resample,
-                            np_resample,
+                            prot_resample,
                             pd_resample,
                             pov_resample,
                             precip_resample,
@@ -248,7 +374,7 @@ peru_brick <- raster::brick(aspect_resample,
 
 ### Write out brick
 writeRaster(peru_brick, 
-            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/peru_static_vars.tif", 
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_static_vars.tif", 
             format = "GTiff",
             overwrite = TRUE, 
             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
@@ -476,6 +602,21 @@ rm(tourism)
 
 ### Brick discourse analysis layers
 ```{r}
+### Open resampled rasters
+ag_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_ag.tif")
+control_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_controlposts.tif")
+commun_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_communities.tif")
+fire_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_fires.tif")
+forest_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_forest.tif")
+ill_min_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_ill_mines.tif")
+minconc_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_minconc.tif")
+nonforconc_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_nonforest_conc.tif")
+npchg_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_paddd.tif")
+permprod_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_nut_prod.tif")
+protforest_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_prot_forest.tif")
+refor_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_reforest.tif")
+tourism_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_tourism.tif")
+
 ### Make brick
 da_only_brick <- raster::brick(ag_resample,
                                control_resample,
@@ -508,7 +649,7 @@ all_layer_brick <- raster::brick(aspect_resample,
                                  cropsuit_resample,
                                  elev_resample,
                                  mines_resample,
-                                 np_resample,
+                                 prot_resample,
                                  pd_resample,
                                  pov_resample,
                                  precip_resample,
@@ -537,7 +678,6 @@ writeRaster(all_layer_brick,
             overwrite = TRUE, 
             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
 ```
-
 ## OLD CODE
 ### Open raster layers
 ```{r}
