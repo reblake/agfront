@@ -14,8 +14,531 @@ library(raster)
 library(sf)
 ```
 
-Make rasterbrick for Peru static layers
+## Classic model layers
+### Convert to 102033
+Use gdal to reproject all tifs from SESYNC/dinamica/peru_dinamica/ClassicModel
+gdalwarp -t_srs EPSG:102033 -tr 30 30 -r bilinear ____.tif ____102033.tif
 
+### Fix extent of all layers
+```{r}
+### Open Peru LUC raster
+peru_luc <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/classi_per_dry_2008_102033.tif")
+
+################################  
+### Soil
+################################  
+### Open soil raster
+soil <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/ClassicModel/soil_102033.tif")
+
+### Resample soil raster to match Peru raster
+soil_resample <- raster::resample(soil, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(soil_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_soilm.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+
+################################  
+### Aspect
+################################ 
+### Open soil raster
+aspect <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/ClassicModel/aspect_102033.tif")
+
+### Resample soil raster to match Peru raster
+aspect_resample <- raster::resample(aspect, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(aspect_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_aspect.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+
+################################  
+### Crop suit
+################################ 
+### Open raster
+cropsuit <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/ClassicModel/cropsuit_102033.tif")
+
+### Resample soil raster to match Peru raster
+cropsuit_resample <- raster::resample(cropsuit, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(cropsuit_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_cropsuit.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+
+################################  
+### Distance to mines
+################################ 
+### Open raster
+mines <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/ClassicModel/d_mines_102033.tif")
+
+### Resample soil raster to match Peru raster
+mines_resample <- raster::resample(mines, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(mines_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_mines.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+
+################################  
+### Distance to rivers
+################################ 
+### Open raster
+rivers <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/ClassicModel/d_rivers_102033.tif")
+
+### Resample soil raster to match Peru raster
+rivers_resample <- raster::resample(rivers, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(rivers_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_rivers.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(rivers)
+
+################################  
+### Distance to roads
+################################ 
+### Open raster
+roads <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/ClassicModel/d_roads_102033.tif")
+
+### Resample soil raster to match Peru raster
+roads_resample <- raster::resample(roads, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(roads_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_roads.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(roads)
+
+################################  
+### Distance to cities
+################################ 
+### Open raster
+cities <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/ClassicModel/d_urb_102033.tif")
+
+### Resample soil raster to match Peru raster
+cities_resample <- raster::resample(cities, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(cities_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_cities.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(cities)
+
+################################  
+### Distance to elevation
+################################ 
+### Open raster
+elev <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/ClassicModel/elev_102033.tif")
+
+### Resample soil raster to match Peru raster
+elev_resample <- raster::resample(elev, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(elev_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_elev.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(elev)
+
+################################  
+### National parks
+################################ 
+### Open raster
+np <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/ClassicModel/natparks_102033.tif")
+
+### Resample soil raster to match Peru raster
+np_resample <- raster::resample(np, peru_luc, "ngb")
+
+### Write out raster
+writeRaster(np_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_natpark.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(np)
+
+################################  
+### Pop density
+################################ 
+### Open raster
+pd <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/ClassicModel/popdens_102033.tif")
+
+### Resample soil raster to match Peru raster
+pd_resample <- raster::resample(pd, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(pd_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_popdens.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(pd)
+
+################################  
+### Poverty rate
+################################ 
+### Open raster
+pov <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/ClassicModel/povrate_102033.tif")
+
+### Resample soil raster to match Peru raster
+pov_resample <- raster::resample(pov, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(pov_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_poverty.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(pov)
+
+################################  
+### Precip
+################################ 
+### Open raster
+precip <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/ClassicModel/precip_102033.tif")
+
+### Resample soil raster to match Peru raster
+precip_resample <- raster::resample(precip, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(precip_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_precip.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(precip)
+
+################################  
+### Slope
+################################ 
+### Open raster
+slope <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/ClassicModel/slope_102033.tif")
+
+### Resample soil raster to match Peru raster
+slope_resample <- raster::resample(slope, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(slope_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_slope.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(slope)
+```
+
+### Brick classic model layers
+```{r}
+### Make brick
+peru_brick <- raster::brick(aspect_resample, 
+                            cities_resample,
+                            cropsuit_resample,
+                            elev_resample,
+                            mines_resample,
+                            np_resample,
+                            pd_resample,
+                            pov_resample,
+                            precip_resample,
+                            rivers_resample,
+                            roads_resample,
+                            slope_resample,
+                            soil_resample)
+
+### Write out brick
+writeRaster(peru_brick, 
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/peru_static_vars.tif", 
+            format = "GTiff",
+            overwrite = TRUE, 
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+## Discourse analysis model layers
+### Convert to 102033
+Use gdal to reproject all tifs from SESYNC/dinamica/peru_dinamica/NewLayers
+gdalwarp -t_srs EPSG:102033 -tr 30 30 -r bilinear ____.tif ____102033.tif
+
+* assuming that the d_ layers are distance to __, so used bilinear method  
+* didn't do distance to bare soil, wetlands because doesn't seem relevant  
+* didn't do d_roads because already have that
+
+### Fix extent of all layers
+```{r}
+################################  
+### Distance to ag
+################################  
+### Open raster
+ag <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/d_ag_102033.tif")
+
+### Resample to match Peru raster
+ag_resample <- raster::resample(ag, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(ag_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_ag.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(ag)
+
+################################  
+### Distance to control posts
+################################  
+### Open raster
+control_posts <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/d_cntrlposts_102033.tif")
+
+### Resample to match Peru raster
+control_resample <- raster::resample(control_posts, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(control_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_controlposts.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(control_posts)
+
+################################  
+### Distance to communities
+################################  
+### Open raster
+commun <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/d_commun_102033.tif")
+
+### Resample to match Peru raster
+commun_resample <- raster::resample(commun, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(commun_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_communities.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(commun)
+
+################################  
+### Distance to fires
+################################  
+### Open raster
+fires <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/d_fires_102033.tif")
+
+### Resample to match Peru raster
+fire_resample <- raster::resample(fires, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(fire_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_fires.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(fires)
+
+################################  
+### Distance to forest
+################################  
+### Open raster
+forest <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/d_forest_102033.tif")
+
+### Resample to match Peru raster
+forest_resample <- raster::resample(forest, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(forest_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_forest.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(forest)
+
+################################  
+### Distance to illegal mining
+################################  
+### Open raster
+ill_min <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/d_ill_min_102033.tif")
+
+### Resample to match Peru raster
+ill_min_resample <- raster::resample(ill_min, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(ill_min_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_ill_mines.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(ill_min)
+
+################################  
+### Distance to minconc
+################################  
+### Open raster
+minconc <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/d_minconc_102033.tif")
+
+### Resample to match Peru raster
+minconc_resample <- raster::resample(minconc, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(minconc_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_minconc.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(minconc)
+
+################################  
+### Distance to nonforconc
+################################  
+### Open raster
+nonforconc <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/d_nonforconc_102033.tif")
+
+### Resample to match Peru raster
+nonforconc_resample <- raster::resample(nonforconc, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(nonforconc_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_nonforconc.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(nonforconc)
+
+################################  
+### Distance to npchg
+################################  
+### Open raster
+npchg <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/d_npchg_102033.tif")
+
+### Resample to match Peru raster
+npchg_resample <- raster::resample(npchg, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(npchg_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_npchg.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(npchg)
+
+################################  
+### Distance to permprod
+################################  
+### Open raster
+permprod <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/d_permprod_102033.tif")
+
+### Resample to match Peru raster
+permprod_resample <- raster::resample(permprod, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(permprod_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_permprod.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(permprod)
+
+################################  
+### Distance to protforest
+################################  
+### Open raster
+protforest <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/d_protforest_102033.tif")
+
+### Resample to match Peru raster
+protforest_resample <- raster::resample(protforest, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(protforest_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_protforest.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(protforest)
+
+################################  
+### Distance to refor
+################################  
+### Open raster
+refor <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/d_refor_102033.tif")
+
+### Resample to match Peru raster
+refor_resample <- raster::resample(refor, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(refor_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_refor.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(refor)
+
+################################  
+### Distance to tourism
+################################  
+### Open raster
+tourism <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/NewLayers/d_tourism_102033.tif")
+
+### Resample to match Peru raster
+tourism_resample <- raster::resample(tourism, peru_luc, "bilinear")
+
+### Write out raster
+writeRaster(tourism_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_tourism.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+rm(tourism)
+```
+
+### Brick discourse analysis layers
+```{r}
+### Make brick
+da_only_brick <- raster::brick(ag_resample,
+                               control_resample,
+                               commun_resample,
+                               fire_resample,
+                               forest_resample,
+                               ill_min_resample,
+                               minconc_resample,
+                               nonforconc_resample,
+                               npchg_resample,
+                               permprod_resample,
+                               protforest_resample,
+                               refor_resample,
+                               tourism_resample)
+
+### Write out brick
+writeRaster(da_only_brick, 
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/peru_da_vars.tif", 
+            format = "GTiff",
+            overwrite = TRUE, 
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+### Brick all layers
+Simple model layers + discourse analysis
+```{r}
+### Make brick
+all_layer_brick <- raster::brick(aspect_resample, 
+                                 cities_resample,
+                                 cropsuit_resample,
+                                 elev_resample,
+                                 mines_resample,
+                                 np_resample,
+                                 pd_resample,
+                                 pov_resample,
+                                 precip_resample,
+                                 rivers_resample,
+                                 roads_resample,
+                                 slope_resample,
+                                 soil_resample,
+                                 ag_resample,
+                                 control_resample,
+                                 commun_resample,
+                                 fire_resample,
+                                 forest_resample,
+                                 ill_min_resample,
+                                 minconc_resample,
+                                 nonforconc_resample,
+                                 npchg_resample,
+                                 permprod_resample,
+                                 protforest_resample,
+                                 refor_resample,
+                                 tourism_resample)
+
+### Write out brick
+writeRaster(all_layer_brick, 
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/peru_all_layers.tif", 
+            format = "GTiff",
+            overwrite = TRUE, 
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+## OLD CODE
 ### Open raster layers
 ```{r}
 ### Get names of all files in folder
