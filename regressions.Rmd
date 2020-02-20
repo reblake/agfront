@@ -454,6 +454,106 @@ write.csv(fit_bol_coeff,
           file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/visuals_feb/fit_bol_simple_summary.csv")
 ```
 
+### Peru
+#### Assemble datasets
+Extract values from rasterbricks to sample points
+```{r}
+### Open Peru sample pts, reproject to 102033
+per_pts <- st_read("per_pts_for_regression.shp") %>%
+  st_transform(., crs = 102033)
+
+### Open Peru rasterbrick
+per_layers <- brick("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_static_vars.tif")
+
+### Convert pts to sp
+per_pts_sp <- as(per_pts, "Spatial")
+
+### Extract values to pts
+per_dat <- extract(per_layers, 
+                   per_pts_sp,
+                   df = TRUE)
+
+### Rename columns
+colnames(per_dat) <- c("id", "aspect", "cities", "cropsuit",
+                       "elev", "mines", "prot_stat",
+                       "popdens", "pov", "precip",
+                       "rivers", "roads", "slope",
+                       "soil_moisture")
+
+### Open 2018 land cover map
+per_2018_lc <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/classi_per_dry_2018_102033.tif")
+
+### Extract 2018 land cover class to points
+pts_2018 <- extract(per_2018_lc, 
+                    per_pts_sp,
+                    df = TRUE)
+
+colnames(pts_2018) <- c("id", "lc_2018")
+
+### Combine dfs
+per_dat <- merge(per_dat, pts_2018, by = "id")
+
+### Make column for transition/none
+per_dat <- per_dat %>%
+  mutate(transition = ifelse(lc_2018 == "2",
+                             "no_change",
+                             "change"),
+         trans_rc = ifelse(transition == "no_change",
+                           "0", "1"))
+
+### Make columns factor
+fact_cols <- c("id", "prot_stat", "lc_2018", "trans_rc")
+per_dat <- per_dat %>%
+  mutate_each_(funs(factor(.)), fact_cols)
+```
+
+#### Check correlations
+```{r}
+### Make corr table
+cor_table_per <- flattenSquareMatrix(cor.prob(per_dat[, c(2:6, 8:14)]))
+
+### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
+cor_table_per <- subset(cor_table_per, 
+                        abs(cor) > 0.66 & p <= 0.05)
+
+### Distance to cities and distance to mines (0.8214095)
+### Pop density and poverty rate (0.9452610)
+### Distance to rivers and roads (1.0000000)
+### Elevation and slope (0.7843344)
+### Elevation and soil moisture (0.7201558)
+### Slope and soil moisture (0.7187970)
+
+### Drop slope, distance to roads, distance to mines, poverty rate, soil moisture
+
+### Make updated dataset
+per_dat_red <- per_dat %>%
+  dplyr::select(-pov, -roads, -mines, -slope, -soil_moisture)
+
+### Drop incomplete rows
+per_dat_comp <- per_dat_red[complete.cases(per_dat_red), ]
+
+### Drop rows where prot_status = 0 (??)
+per_dat_comp <- per_dat_comp %>%
+  filter(., !prot_stat == "0")
+```
+
+#### Regression
+```{r}
+### Run regression
+fit_per <- glm(trans_rc ~ aspect + elev +
+                 cities + rivers +
+                 precip + cropsuit +
+                 popdens + prot_stat,
+               data = per_dat_comp,
+               family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_per_summ <- summary(fit_per)
+fit_per_coeff <- as.data.frame(fit_per_summ$coefficients)
+write.csv(fit_per_coeff, 
+          file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/visuals_feb/fit_per_simple_summary.csv")
+```
+
 ## Full models
 Simple models + discourse analysis layers
 ### Brazil
@@ -686,3 +786,143 @@ fit_bol_summ <- summary(fit_bol_all)
 fit_bol_coeff <- as.data.frame(fit_bol_summ$coefficients)
 write.csv(fit_bol_coeff, 
           file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/visuals_feb/fit_bol_full_summary.csv")
+```
+
+### Peru
+#### Assemble datasets
+Extract values from rasterbricks to sample points
+```{r}
+# ### Open Peru sample pts, reproject to 102033
+# per_pts <- st_read("per_pts_for_regression.shp") %>%
+#   st_transform(., crs = 102033)
+
+### Open Peru rasterbrick, all layers
+per_layers_all <- brick("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/peru_all_layers.tif")
+
+# ### Convert pts to sp
+# per_pts_sp <- as(per_pts, "Spatial")
+
+### Extract values to pts
+per_dat_all <- extract(per_layers_all, 
+                       per_pts_sp,
+                       df = TRUE)
+
+### Rename columns
+colnames(per_dat_all) <- c("id", "aspect", 
+                           "cities", "cropsuit",
+                           "elev", "mines",
+                           "prot_stat", "popdens",
+                           "pov", "precip",
+                           "rivers", "roads",
+                           "slope", "soil_moist",
+                           "ag_dist", "control_stations",
+                           "dist_communities", "dist_fire",
+                           "dist_forest", "dist_ill_mines",
+                           "dist_mine_concess", 
+                           "nonforest_concess",
+                           "paddd", "nut_prod",
+                           "prot_forest", "reforestation",
+                           "tourism")
+
+### Switch NAs to 0s in nonforest_concess, paddd, nut_prod, prot_forest, reforestation
+per_dat_all$nonforest_concess[is.na(per_dat_all$nonforest_concess)] <- 0
+per_dat_all$paddd[is.na(per_dat_all$paddd)] <- 0
+per_dat_all$nut_prod[is.na(per_dat_all$nut_prod)] <- 0
+per_dat_all$prot_forest[is.na(per_dat_all$prot_forest)] <- 0
+per_dat_all$reforestation[is.na(per_dat_all$reforestation)] <- 0
+
+### Open 2018 land cover map
+per_2018_lc <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/classi_per_dry_2018_102033.tif")
+
+### Extract 2018 land cover class to points
+pts_2018_all <- extract(per_2018_lc, 
+                        per_pts_sp,
+                        df = TRUE)
+colnames(pts_2018_all) <- c("id", "lc_2018")
+
+### Combine dfs
+per_dat_all <- merge(per_dat_all, 
+                     pts_2018_all, by = "id")
+
+### Make column for transition/none
+per_dat_all <- per_dat_all %>%
+  mutate(transition = ifelse(lc_2018 == "2",
+                             "no_change",
+                             "change"),
+         trans_rc = ifelse(transition == "no_change",
+                           "0", "1"))
+
+### Make columns factor
+fact_cols <- c("id", "prot_stat", 
+               "nonforest_concess", "paddd",
+               "nut_prod", "prot_forest",
+               "reforestation",
+               "lc_2018", "trans_rc")
+per_dat_all <- per_dat_all %>%
+  mutate_each_(funs(factor(.)), fact_cols)
+```
+
+#### Check correlations
+```{r}
+### Make corr table
+cor_table_per_all <- flattenSquareMatrix(cor.prob(per_dat_all[, c(2:6, 8:21, 27)]))
+
+### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
+cor_table_per_all <- subset(cor_table_per_all, 
+                            abs(cor) > 0.66 & p <= 0.05)
+
+### Highly correlated variables
+### cities and mines
+### popdens and pov
+### rivers and roads
+### elev and slope
+### elev and soil moisture
+### slope and soil_moist 
+### pov and control_stations 
+### elev and dist_communities 
+### pov and dist_communities 
+### control_stations and dist_communities 
+### cities and dist_ill_mines 
+### mines and dist_ill_mines 
+### cities and dist_mine_concess 
+### mines and dist_mine_concess 
+### dist_ill_mines and dist_mine_concess
+
+### Drop dist_mine_concess, slope, soil_moist, dist_communities, dist_ill_mines, pov, mines, roads  
+
+### Make updated dataset
+per_dat_all_red <- per_dat_all %>%
+  dplyr::select(-dist_mine_concess, -slope, 
+                -soil_moist, -dist_communities,
+                -dist_ill_mines, -pov, 
+                -mines, -roads)
+
+### Drop incomplete rows
+per_dat_all_comp <- per_dat_all_red[complete.cases(per_dat_all_red), ]
+
+### Drop rows where prot_status = 0 (??)
+per_dat_all_comp <- per_dat_all_comp %>%
+  filter(., !prot_stat == "0")
+```
+
+#### Regression
+```{r}
+### Run regression
+fit_per_all <- glm(trans_rc ~ aspect + elev +
+                     rivers + cities +
+                     precip + cropsuit +
+                     popdens + prot_stat +
+                     ag_dist + control_stations +
+                     dist_fire + dist_forest +
+                     nonforest_concess + paddd +
+                     nut_prod + prot_forest +
+                     reforestation + tourism,
+                   data = per_dat_all_comp,
+                   family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_per_summ <- summary(fit_per_all)
+fit_per_coeff <- as.data.frame(fit_per_summ$coefficients)
+write.csv(fit_per_coeff, 
+          file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/visuals_feb/fit_per_full_summary.csv")
+```
