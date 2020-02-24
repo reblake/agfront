@@ -257,6 +257,61 @@ luc_2018_per_summ <- luc_2018_per %>%
 #   summarise(pts_per_class = n())
 ```
 
+## Grid sample
+### Brazil
+```{r}
+### Brazil case study shape file
+jaman_shp <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/JamanBuffer_reproj.shp") %>%
+
+  ### Convert to metric
+  st_transform(crs = "+proj=utm +zone=12 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
+
+### Make sampling grid, point every 1 km
+# samples <- map(jaman_shp$NAME_1, function(x){
+# 
+#   ### For each state
+#   state_poly <- west %>% filter(NAME_1 == x)
+jaman_samples <- jaman_shp %>%
+  
+  ### Make samples
+  st_make_grid(cellsize = c(1000, 1000), 
+               what = "centers") %>%
+  
+  ### Convert to sf
+  st_sf()  %>%
+  
+  ### Add identifiers
+  mutate(lon = st_coordinates(.)[,1],
+         lat = st_coordinates(.)[,2])
+
+### Back to 102033
+jaman_samples <- jaman_samples %>%
+  st_transform(crs = 102033)
+jaman_shp <- jaman_shp %>%
+  st_transform(crs = 102033)
+
+# ### Write out to check
+# st_write(jaman_samples, "bra_pts_grid.shp")
+
+### Remove points that fall outside of study area
+jaman_pts <- st_intersection(jaman_samples, jaman_shp) 
+
+### Convert pts to sp
+jaman_pts_sp <- as(jaman_pts, "Spatial")
+
+### Extract 2008 land cover type to pts
+bra_lc_2008 <- extract(bra_2008, 
+                       jaman_pts_sp,
+                       df = TRUE)
+
+### See how many are forested in 2008
+bra_lc_2008_summ <- bra_lc_2008 %>%
+  group_by(classi_bra_dry_2008_102033) %>%
+  summarise(n_pts = n())
+```
+
+This yields 75,600 pts for regression
+
 ## Simple Models
 ### Brazil
 #### Assemble datasets
@@ -552,6 +607,116 @@ fit_per_summ <- summary(fit_per)
 fit_per_coeff <- as.data.frame(fit_per_summ$coefficients)
 write.csv(fit_per_coeff, 
           file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/visuals_feb/fit_per_simple_summary.csv")
+```
+
+
+## Grid Points, Simple Models
+### Brazil
+#### Assemble datasets
+Extract values from rasterbricks to sample points
+```{r}
+### Convert pts to sp
+jaman_pts_sp <- as(jaman_pts, "Spatial")
+
+### Extract 2008 land cover type to pts
+bra_lc_2008 <- extract(bra_2008, 
+                       jaman_pts_sp,
+                       df = TRUE)
+colnames(bra_lc_2008) <- c("id", "lc_2008")
+
+### Open Brazil rasterbrick
+bra_layers <- brick("D:/dinamica/brazil_simple/data/brazil_static_vars.tif")
+
+### Extract values to pts
+bra_dat <- extract(bra_layers, 
+                   jaman_pts_sp,
+                   df = TRUE)
+
+### Rename columns
+colnames(bra_dat) <- c("id", "aspect", "mines", 
+                       "roads", "rivers", 
+                       "cities", "elev", 
+                       "popdens", "poverty", 
+                       "ppt", "prot_status", 
+                       "slope", "soil", 
+                       'crop_suit')
+
+### Combine
+bra_dat <- merge(bra_dat, bra_lc_2008, by = "id")
+
+### Open 2018 land cover map
+bra_2018_lc <- raster("D:/dinamica/brazil_simple/data/classi_bra_dry_2018_102033.tif")
+
+### Extract 2018 land cover class to points
+pts_2018 <- extract(bra_2018_lc, 
+                    jaman_pts_sp,
+                    df = TRUE)
+colnames(pts_2018) <- c("id", "lc_2018")
+
+### Combine dfs
+bra_dat <- merge(bra_dat, pts_2018, by = "id")
+
+### Remove if lc_2008 =/= 2
+bra_dat_keep <- bra_dat %>%
+  filter(lc_2008 == 2)
+
+### Make column for transition/none
+bra_dat_keep <- bra_dat_keep %>%
+  mutate(transition = ifelse(lc_2018 == "2",
+                             "no_change",
+                             "change"),
+         trans_rc = ifelse(transition == "no_change",
+                           "0", "1"))
+
+### Make columns factor
+fact_cols <- c("id", "prot_status", "lc_2018", "trans_rc")
+bra_dat_keep <- bra_dat_keep %>%
+  mutate_each_(funs(factor(.)), fact_cols)
+```
+
+#### Check correlations
+```{r}
+### Make corr table
+cor_table_bra <- flattenSquareMatrix(cor.prob(bra_dat[, c(2:10, 12:14)]))
+
+### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
+cor_table_bra <- subset(cor_table_bra, 
+                        abs(cor) > 0.66 & p <= 0.05)
+
+### Population density and poverty rate are highly correlated (correlation coefficient = 0.93)
+
+### Make updated dataset
+bra_dat_red <- bra_dat_keep %>%
+  dplyr::select(-poverty)
+
+### Drop incomplete rows
+bra_dat_comp <- bra_dat_red[complete.cases(bra_dat_red), ]
+
+### Drop rows where prot_status = 0 (??)
+bra_dat_comp <- bra_dat_comp %>%
+  filter(., !prot_status == "0")
+
+### Summarize transitions
+bra_dat_summ <- bra_dat_comp %>%
+  group_by(lc_2018) %>%
+  summarise(n_pts_2018 = n())
+```
+
+#### Regression
+```{r}
+### Run regression
+fit_bra <- glm(trans_rc ~ aspect + slope + elev +
+                 roads + rivers + cities + mines +
+                 ppt + soil + crop_suit +
+                 popdens + prot_status,
+               data = bra_dat_comp,
+               family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_bra_summ <- summary(fit_bra)
+fit_bra_coeff <- as.data.frame(fit_bra_summ$coefficients)
+write.csv(fit_bra_coeff, 
+          file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/visuals_feb/fit_bra_simple_summary.csv")
 ```
 
 ## Full models
