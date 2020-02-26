@@ -48,6 +48,7 @@ bolivia <- getData("GADM", country = "BOL", level = 3) %>%
                 province = NAME_2,
                 municipio = NAME_3,
                 geometry)
+st_write(bolivia, "bolivia_municip.shp")
 # st_write(bolivia,
 #          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_provinces.shp")
 
