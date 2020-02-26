@@ -1,0 +1,344 @@
+---
+title: "land use change"
+author: "Katherine Siegel"
+date: "February 26, 2020"
+output: html_document
+---
+
+## Description
+Play with LUC models in R
+
+## Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Open packages
+library(tidyverse)
+library(sf)
+library(raster)
+library(sp)
+library(rgdal)
+library(lulcc)
+library(gsubfn)
+library(caret)
+
+### Remote sensing maps
+bol_dat <- "D:/dinamica/bolivia_simple/data/"
+bra_dat <- "D:/dinamica/brazil_simple/data/"
+bol_dat_exp <- "D:/dinamica/bolivia_simple/data/ind_tifs"
+```
+
+## Grid sample
+### Bolivia
+```{r}
+### Bolivia case study shape file
+ambcar_shp <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/ambcar_buffer_updated.shp") %>%
+
+  ### Convert to metric
+  st_transform(crs = "+proj=utm +zone=20 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
+
+### Make sampling grid, point every 1 km
+ambcar_samples <- ambcar_shp %>%
+  
+  ### Make samples
+  st_make_grid(cellsize = c(1000, 1000), 
+               what = "centers") %>%
+  
+  ### Convert to sf
+  st_sf()  %>%
+  
+  ### Add identifiers
+  mutate(lon = st_coordinates(.)[,1],
+         lat = st_coordinates(.)[,2])
+
+### Back to 102033
+ambcar_samples <- ambcar_samples %>%
+  st_transform(crs = 102033)
+ambcar_shp <- ambcar_shp %>%
+  st_transform(crs = 102033)
+
+# ### Write out to check
+# st_write(jaman_samples, "bra_pts_grid.shp")
+
+### Remove points that fall outside of study area
+ambcar_pts <- st_intersection(ambcar_samples,
+                              ambcar_shp) 
+
+### Convert pts to sp
+ambcar_pts_sp <- as(ambcar_pts, "Spatial")
+```
+
+### Smaller area to practice on
+```{r}
+### Open shp subset
+amb_imna <- st_read("amboro_imna.shp")
+
+### Open raster brick
+bol_stat_dat <- raster::brick(paste0(bol_dat,
+                                "bolivia_static_vars.tif"))
+
+### Clip raster brick to shp
+bol_clip <- crop(bol_stat_dat, amb_imna)
+
+### Save rasterbrick
+writeRaster(bol_clip,
+            filename = paste0(bol_dat,
+                              "bol_vars_cl.tif"),
+            format = "GTiff",
+            overwrite = TRUE, 
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Smaller remote sensing areas
+### 2008
+bol_2008 <- raster(paste0(bol_dat,
+                          "classi_bol_dry_2008_102033.tif"))
+bol_2008 <- crop(bol_2008, amb_imna)
+writeRaster(bol_2008,
+             filename = paste0(bol_dat,
+                               "lc_2008_clipped.tif"),
+            format = "GTiff",
+            overwrite = TRUE, 
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### 2018
+bol_2018 <- raster(paste0(bol_dat,
+                          "classi_bol_dry_2018_102033.tif"))
+bol_2018 <- crop(bol_2018, amb_imna)
+writeRaster(bol_2018,
+             filename = paste0(bol_dat,
+                               "lc_2018_clipped.tif"),
+            format = "GTiff",
+            overwrite = TRUE, 
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+
+## lulcc package
+Prep steps:  
+1. Reclassify raster to drop land cover classes we aren't interested in
+
+Steps:  
+1. Load observed maps for both time periods (reclassify rasters to just have Ag, Forest, and Other)  
+2. Calculate transition matrix  
+3. Load explanatory variables  
+4. Partition data into training and testing  
+5. Write regression models  
+6. Fit model to training data  
+7. Map suitability of every pixel to different land use classes  
+
+
+### Bolivia simple
+```{r}
+### Set observed maps
+obs_bol <- ObsLulcRasterStack(x = bol_dat,
+                              pattern = "*_clipped.tif",
+                              categories = c(0, 1, 2, 3, 4, 
+                                             5, 6, 7),
+                              labels = c("NoData", "Agriculture",
+                                         "Forest", "BareSoil",
+                                         "Developed", "Wetland",
+                                         "Desert", "Water"),
+                              t = c(0, 10))
+# plot(obs_bol)
+
+### Get transition matrix
+tr_matrix <- crossTabulate(x = obs_bol,
+                           times = c(0, 10))
+
+### Open raster brick of explanatory variables
+exp_vars <- raster::stack(paste0(bol_dat, "bol_vars_cl.tif"))
+exp_vars <- ExpVarRasterList(exp_vars)
+
+### Partition
+part <- partition(x = obs_bol[[1]], 
+                  size = 0.5, 
+                  spatial = TRUE)
+
+### Train data
+train_data <- getPredictiveModelInputData(obs = obs_bol, 
+                                          ef = exp_vars, 
+                                          cells = part[["train"]])
+
+### Write formulas for each land cover type
+forms <- list(NoData ~ bol_vars_cl.1 + bol_vars_cl.2 +
+                bol_vars_cl.3 + bol_vars_cl.4 +
+                bol_vars_cl.5 + bol_vars_cl.6 +
+                bol_vars_cl.7 + bol_vars_cl.8 +
+                bol_vars_cl.9 + factor(bol_vars_cl.10) +
+                bol_vars_cl.11 + bol_vars_cl.12 +
+                bol_vars_cl.13,
+              Agriculture ~ bol_vars_cl.1 + bol_vars_cl.2 +
+                bol_vars_cl.3 + bol_vars_cl.4 +
+                bol_vars_cl.5 + bol_vars_cl.6 +
+                bol_vars_cl.7 + bol_vars_cl.8 +
+                bol_vars_cl.9 + factor(bol_vars_cl.10) +
+                bol_vars_cl.11 + bol_vars_cl.12 +
+                bol_vars_cl.13,
+              Forest ~ bol_vars_cl.1 + bol_vars_cl.2 +
+                bol_vars_cl.3 + bol_vars_cl.4 +
+                bol_vars_cl.5 + bol_vars_cl.6 +
+                bol_vars_cl.7 + bol_vars_cl.8 +
+                bol_vars_cl.9 + factor(bol_vars_cl.10) +
+                bol_vars_cl.11 + bol_vars_cl.12 +
+                bol_vars_cl.13,
+              BareSoil ~ bol_vars_cl.1 + bol_vars_cl.2 +
+                bol_vars_cl.3 + bol_vars_cl.4 +
+                bol_vars_cl.5 + bol_vars_cl.6 +
+                bol_vars_cl.7 + bol_vars_cl.8 +
+                bol_vars_cl.9 + factor(bol_vars_cl.10) +
+                bol_vars_cl.11 + bol_vars_cl.12 +
+                bol_vars_cl.13,
+              Developed ~ bol_vars_cl.1 + bol_vars_cl.2 +
+                bol_vars_cl.3 + bol_vars_cl.4 +
+                bol_vars_cl.5 + bol_vars_cl.6 +
+                bol_vars_cl.7 + bol_vars_cl.8 +
+                bol_vars_cl.9 + factor(bol_vars_cl.10) +
+                bol_vars_cl.11 + bol_vars_cl.12 +
+                bol_vars_cl.13,
+              Wetland ~ bol_vars_cl.1 + bol_vars_cl.2 +
+                bol_vars_cl.3 + bol_vars_cl.4 +
+                bol_vars_cl.5 + bol_vars_cl.6 +
+                bol_vars_cl.7 + bol_vars_cl.8 +
+                bol_vars_cl.9 + factor(bol_vars_cl.10) +
+                bol_vars_cl.11 + bol_vars_cl.12 +
+                bol_vars_cl.13,
+              Desert ~ bol_vars_cl.1 + bol_vars_cl.2 +
+                bol_vars_cl.3 + bol_vars_cl.4 +
+                bol_vars_cl.5 + bol_vars_cl.6 +
+                bol_vars_cl.7 + bol_vars_cl.8 +
+                bol_vars_cl.9 + factor(bol_vars_cl.10) +
+                bol_vars_cl.11 + bol_vars_cl.12 +
+                bol_vars_cl.13,
+              Water ~ bol_vars_cl.1 + bol_vars_cl.2 +
+                bol_vars_cl.3 + bol_vars_cl.4 +
+                bol_vars_cl.5 + bol_vars_cl.6 +
+                bol_vars_cl.7 + bol_vars_cl.8 +
+                bol_vars_cl.9 + factor(bol_vars_cl.10) +
+                bol_vars_cl.11 + bol_vars_cl.12 +
+                bol_vars_cl.13)
+
+### Write GLMs
+glm_models <- glmModels(formula = forms, 
+                        family = binomial, 
+                        data = train_data, 
+                        obs = obs_bol)
+
+### Extract data for suitability maps
+all_data <- as.data.frame(x = exp_vars,
+                          cells = part[["all"]])
+
+### Make probability maps
+prob_maps <- predict(object = glm_models,
+                     newdata = all_data,
+                     data.frame = TRUE)
+points <- rasterToPoints(obs_bol[[1]], spatial = TRUE)
+prob_maps <- SpatialPointsDataFrame(points, prob_maps)
+prob_maps <- rasterize(x = prob_maps, y = obs_bol[[1]],
+                      field = names(prob_maps))
+levelplot(prob_maps)
+
+```
+
+### Demo code
+```{r}
+## Plum Island Ecosystems
+## load data
+data(pie)
+## observed maps
+obs <- ObsLulcRasterStack(x=pie,
+                          pattern="lu",
+                          categories=c(1,2,3),
+                          labels=c("Forest","Built","Other"),
+                          t=c(0,6,14))
+obs
+plot(obs)
+crossTabulate(obs, times=c(0,14))
+## explanatory variables
+ef <- ExpVarRasterList(x=pie, pattern="ef")
+ef
+part <- partition(x=obs[[1]], size=0.1, spatial=TRUE)
+train.data <- getPredictiveModelInputData(obs=obs, ef=ef, cells=part[["train"]])
+forms <- list(Built ~ ef_001+ef_002+ef_003,
+              Forest ~ ef_001+ef_002,
+              Other ~ ef_001+ef_002)
+glm.models <- glmModels(formula=forms, family=binomial, data=train.data, obs=obs)
+rpart.models <- rpartModels(formula=forms, data=train.data, obs=obs)
+rf.models <- randomForestModels(formula=forms, data=train.data, obs=obs)
+## test ability of models to predict allocation of forest, built and other
+## land uses in testing partition
+test.data <- getPredictiveModelInputData(obs=obs, ef=ef, cells=part[["test"]])
+glm.pred <- PredictionList(models=glm.models, newdata=test.data)
+glm.perf <- PerformanceList(pred=glm.pred, measure="rch")
+rpart.pred <- PredictionList(models=rpart.models, newdata=test.data)
+rpart.perf <- PerformanceList(pred=rpart.pred, measure="rch")
+rf.pred <- PredictionList(models=rf.models, newdata=test.data)
+rf.perf <- PerformanceList(pred=rf.pred, measure="rch")
+plot(list(glm=glm.perf, rpart=rpart.perf, rf=rf.perf))
+## test ability of models to predict location of urban gain 1985 to 1991
+part <- rasterToPoints(obs[[1]], fun=function(x) x != 2, spatial=TRUE)
+test.data <- getPredictiveModelInputData(obs=obs, ef=ef, cells=part, t=6)
+glm.pred <- PredictionList(models=glm.models[[2]], newdata=test.data)
+glm.perf <- PerformanceList(pred=glm.pred, measure="rch")
+plot(list(glm=glm.perf))
+## obtain demand scenario
+dmd <- approxExtrapDemand(obs=obs, tout=0:14)
+matplot(dmd, type="l", ylab="Demand (no. of cells)", xlab="Time point",
+        lty=1, col=c("Green","Red","Blue"))
+legend("topleft", legend=obs@labels, col=c("Green","Red","Blue"), lty=1)
+## get neighbourhood values
+w <- matrix(data=1, nrow=3, ncol=3)
+nb <- NeighbRasterStack(x=obs[[1]], weights=w, categories=2)
+## create CLUE-S model object
+clues.rules <- matrix(data=1, nrow=3, ncol=3, byrow=TRUE)
+clues.parms <- list(jitter.f=0.0002,
+                    scale.f=0.000001,
+                    max.iter=1000,
+                    max.diff=50,
+                    ave.diff=50)
+clues.model <- CluesModel(obs=obs,
+                          ef=ef, models=glm.models,
+                          time=0:14,
+                          demand=dmd,
+                          elas=c(0.2,0.2,0.2),
+                          rules=clues.rules,
+                          params=clues.parms)
+## Create Ordered model
+ordered.model <- OrderedModel(obs=obs,
+                              ef=ef,
+                              models=glm.models,
+                              time=0:14,
+                              demand=dmd,
+                              order=c(2,1,3))
+## perform allocation
+clues.model <- allocate(clues.model)
+ordered.model <- allocate(ordered.model, stochastic=TRUE)
+## pattern validation
+## CLUE-S
+clues.tabs <- ThreeMapComparison(x=clues.model,
+                                 factors=2^(1:8),
+                                 timestep=14)
+plot(clues.tabs)
+plot(clues.tabs, category=1, factors=2^(1:8)[c(1,3,5,7)])
+## Ordered
+ordered.tabs <- ThreeMapComparison(x=ordered.model,
+                                   factors=2^(1:8),
+                                   timestep=14)
+plot(ordered.tabs)
+plot(ordered.tabs, category=1, factors=2^(1:8)[c(1,3,5,7)])
+## calculate agreement budget and plot
+## CLUE-S
+clues.agr <- AgreementBudget(x=clues.tabs)
+plot(clues.agr, from=1, to=2)
+## Ordered
+ordered.agr <- AgreementBudget(x=ordered.tabs)
+plot(ordered.agr, from=1, to=2)
+## calculate Figure of Merit and plot
+## CLUE-S
+clues.fom <- FigureOfMerit(x=clues.tabs)
+p1 <- plot(clues.fom, from=1, to=2)
+## Ordered
+ordered.fom <- FigureOfMerit(x=ordered.tabs)
+p2 <- plot(ordered.fom, from=1, to=2)
+
+```
+
