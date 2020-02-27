@@ -89,21 +89,39 @@ writeRaster(bol_clip,
             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
 
 ### Smaller remote sensing areas
-### 2008
+### Open years
 bol_2008 <- raster(paste0(bol_dat,
                           "classi_bol_dry_2008_102033.tif"))
+bol_2018 <- raster(paste0(bol_dat,
+                          "classi_bol_dry_2018_102033.tif"))
+
+### Crop to IMNA
 bol_2008 <- crop(bol_2008, amb_imna)
+bol_2018 <- crop(bol_2018, amb_imna)
+
+### Make reclassification df
+reclass_df <- c(-1, 0.5, NA, # 0 -> No data
+                0.6, 1.2, 1, # Keep ag = 1
+                1.8, 2.4, 2, # Keep forest = 2
+                2.5, 10, 3)  # All other land covers = 3 
+
+### Convert to matrix                
+reclass_m <- matrix(reclass_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify rasters
+bol_2008 <- reclassify(bol_2008, reclass_m)
+bol_2018 <- reclassify(bol_2018, reclass_m)
+
+
+### Write rasters
 writeRaster(bol_2008,
              filename = paste0(bol_dat,
                                "lc_2008_clipped.tif"),
             format = "GTiff",
             overwrite = TRUE, 
             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
-
-### 2018
-bol_2018 <- raster(paste0(bol_dat,
-                          "classi_bol_dry_2018_102033.tif"))
-bol_2018 <- crop(bol_2018, amb_imna)
 writeRaster(bol_2018,
              filename = paste0(bol_dat,
                                "lc_2018_clipped.tif"),
