@@ -8,6 +8,9 @@ output: html_document
 ## Description
 Play with LUC models in R
 
+## Log
+Getting issue with rasterizing prob_maps (making huge intermediate vectors that R can't allocate) -- try rasterizing in gdal directly.
+
 ## Set up
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -150,12 +153,9 @@ Steps:
 ### Set observed maps
 obs_bol <- ObsLulcRasterStack(x = bol_dat,
                               pattern = "*_clipped.tif",
-                              categories = c(0, 1, 2, 3, 4, 
-                                             5, 6, 7),
-                              labels = c("NoData", "Agriculture",
-                                         "Forest", "BareSoil",
-                                         "Developed", "Wetland",
-                                         "Desert", "Water"),
+                              categories = c(1, 2, 3),
+                              labels = c("Agriculture",
+                                         "Forest", "Other"),
                               t = c(0, 10))
 # plot(obs_bol)
 
@@ -178,20 +178,7 @@ train_data <- getPredictiveModelInputData(obs = obs_bol,
                                           cells = part[["train"]])
 
 ### Write formulas for each land cover type
-forms <- list(NoData ~ bol_vars_cl.1 + bol_vars_cl.2 +
-                bol_vars_cl.3 + bol_vars_cl.4 +
-                bol_vars_cl.5 + bol_vars_cl.6 +
-                bol_vars_cl.7 + bol_vars_cl.8 +
-                bol_vars_cl.9 + factor(bol_vars_cl.10) +
-                bol_vars_cl.11 + bol_vars_cl.12 +
-                bol_vars_cl.13,
-              Agriculture ~ bol_vars_cl.1 + bol_vars_cl.2 +
-                bol_vars_cl.3 + bol_vars_cl.4 +
-                bol_vars_cl.5 + bol_vars_cl.6 +
-                bol_vars_cl.7 + bol_vars_cl.8 +
-                bol_vars_cl.9 + factor(bol_vars_cl.10) +
-                bol_vars_cl.11 + bol_vars_cl.12 +
-                bol_vars_cl.13,
+forms <- list(Agriculture ~ 1,
               Forest ~ bol_vars_cl.1 + bol_vars_cl.2 +
                 bol_vars_cl.3 + bol_vars_cl.4 +
                 bol_vars_cl.5 + bol_vars_cl.6 +
@@ -199,41 +186,7 @@ forms <- list(NoData ~ bol_vars_cl.1 + bol_vars_cl.2 +
                 bol_vars_cl.9 + factor(bol_vars_cl.10) +
                 bol_vars_cl.11 + bol_vars_cl.12 +
                 bol_vars_cl.13,
-              BareSoil ~ bol_vars_cl.1 + bol_vars_cl.2 +
-                bol_vars_cl.3 + bol_vars_cl.4 +
-                bol_vars_cl.5 + bol_vars_cl.6 +
-                bol_vars_cl.7 + bol_vars_cl.8 +
-                bol_vars_cl.9 + factor(bol_vars_cl.10) +
-                bol_vars_cl.11 + bol_vars_cl.12 +
-                bol_vars_cl.13,
-              Developed ~ bol_vars_cl.1 + bol_vars_cl.2 +
-                bol_vars_cl.3 + bol_vars_cl.4 +
-                bol_vars_cl.5 + bol_vars_cl.6 +
-                bol_vars_cl.7 + bol_vars_cl.8 +
-                bol_vars_cl.9 + factor(bol_vars_cl.10) +
-                bol_vars_cl.11 + bol_vars_cl.12 +
-                bol_vars_cl.13,
-              Wetland ~ bol_vars_cl.1 + bol_vars_cl.2 +
-                bol_vars_cl.3 + bol_vars_cl.4 +
-                bol_vars_cl.5 + bol_vars_cl.6 +
-                bol_vars_cl.7 + bol_vars_cl.8 +
-                bol_vars_cl.9 + factor(bol_vars_cl.10) +
-                bol_vars_cl.11 + bol_vars_cl.12 +
-                bol_vars_cl.13,
-              Desert ~ bol_vars_cl.1 + bol_vars_cl.2 +
-                bol_vars_cl.3 + bol_vars_cl.4 +
-                bol_vars_cl.5 + bol_vars_cl.6 +
-                bol_vars_cl.7 + bol_vars_cl.8 +
-                bol_vars_cl.9 + factor(bol_vars_cl.10) +
-                bol_vars_cl.11 + bol_vars_cl.12 +
-                bol_vars_cl.13,
-              Water ~ bol_vars_cl.1 + bol_vars_cl.2 +
-                bol_vars_cl.3 + bol_vars_cl.4 +
-                bol_vars_cl.5 + bol_vars_cl.6 +
-                bol_vars_cl.7 + bol_vars_cl.8 +
-                bol_vars_cl.9 + factor(bol_vars_cl.10) +
-                bol_vars_cl.11 + bol_vars_cl.12 +
-                bol_vars_cl.13)
+              Other ~ 1)
 
 ### Write GLMs
 glm_models <- glmModels(formula = forms, 
@@ -254,7 +207,6 @@ prob_maps <- SpatialPointsDataFrame(points, prob_maps)
 prob_maps <- rasterize(x = prob_maps, y = obs_bol[[1]],
                       field = names(prob_maps))
 levelplot(prob_maps)
-
 ```
 
 ### Demo code
