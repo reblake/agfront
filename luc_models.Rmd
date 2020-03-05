@@ -204,9 +204,32 @@ prob_maps <- predict(object = glm_models,
                      data.frame = TRUE)
 points <- rasterToPoints(obs_bol[[1]], spatial = TRUE)
 prob_maps <- SpatialPointsDataFrame(points, prob_maps)
-prob_maps <- rasterize(x = prob_maps, y = obs_bol[[1]],
-                      field = names(prob_maps))
-levelplot(prob_maps)
+
+### Convert to sf
+prob_maps_sf <- st_as_sf(prob_maps)
+st_write(prob_maps_sf, "lulcc_bol_probmaps.shp")
+
+# prob_maps <- rasterize(x = prob_maps, y = obs_bol[[1]],
+#                       field = names(prob_maps))
+# levelplot(prob_maps)
+
+#############################################
+## Test ability of models to predict allocation of forest, ag and other
+#############################################
+## Extract land cover in testing data
+test_data <- getPredictiveModelInputData(obs = obs_bol, 
+                                         ef = exp_vars,
+                                         cells = part[["test"]])
+
+### Extract predictions for testing data using GLMs
+glm_pred <- PredictionList(models = glm_models,
+                           newdata = test_data)
+
+### Get performance of predictions
+glm_perf <- PerformanceList(pred = glm_pred,
+                            measure = "rch")
+
+plot(list(glm = glm_perf))
 ```
 
 ### Demo code

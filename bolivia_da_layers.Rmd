@@ -156,7 +156,7 @@ writeRaster(fire_dens_resample,
             overwrite = TRUE)
 ```
 
-### Distance to population centers
+## Distance to population centers
 Map from GeoBolivia
 "Mapa de centros poblados según número de habitantes, Bolivia 2002"
 https://geo.gob.bo/geonetwork/srv/spa/catalog.search#/metadata/bb8675b5-7deb-4bd8-bbf6-7df9a2a5855e
