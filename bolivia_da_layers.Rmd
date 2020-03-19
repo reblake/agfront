@@ -230,7 +230,6 @@ writeRaster(dist_ag_resample,
             overwrite = TRUE)
 ```
 
-## Illegal mines
 ## Illegal mining
 Illegal mining across Amazon, from https://www.amazoniasocioambiental.org/es/mapas/#descargas. Three files: points, lines, polygons. Open here and combine into single shp, except leave out lines because lines are never the closest location to study areas and cause gdal issues.
 
