@@ -48,13 +48,13 @@ bolivia <- getData("GADM", country = "BOL", level = 3) %>%
                 province = NAME_2,
                 municipio = NAME_3,
                 geometry)
-st_write(bolivia, "bolivia_municip.shp")
+# st_write(bolivia, "bolivia_municip.shp")
 # st_write(bolivia,
 #          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_provinces.shp")
 
 ### Municipios in buffer zone
 buff_municipios <- st_intersection(bolivia, ambcar)
-st_geometry(buff_municipios) <- NULL
+# st_geometry(buff_municipios) <- NULL
 # write.csv(buff_municipios, "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/municipios_buffer.csv",
 #           row.names = FALSE)
 
@@ -65,6 +65,51 @@ ambcar_latest <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/ca
 
 ### Classified rasters
 Reprojected all classified rasters to 102033 in QGIS
+
+## Head of cattle
+```{r}
+### Open head of cattle per municipio
+cows <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/ganado_municipio/Pob_ganadera_337mun.shp") %>%
+  st_transform(., crs = 102033)
+
+# ### Filter to just include municipios that intersect with buffer area
+# cows_ac <- cows %>% 
+#   filter(., MUNICIPIO %in% buff_municipios$municipio)
+# ## buff_municipios
+
+### Intersect with ambcar buff
+ambcar_cattle <- st_intersection(cows, ambcar_latest)
+
+### Calculate cows per area
+ambcar_cattle <- ambcar_cattle %>%
+  mutate(head_per_area = BOVINO/SHAPE_Area)
+
+### Drop excess cols
+ambcar_cattle <- ambcar_cattle %>%
+  dplyr::select(., head_per_area, geometry)
+
+### Write out shp to rasterize in gdal
+st_write(ambcar_cattle, 
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/cattle_ambcar.shp")
+### col name is hd_pr_r
+
+### gdal_rasterize -a hd_pr_r -tr 30 30 cattle_ambcar.shp cattle_ambcar.tiff
+
+### Open raster
+cow_rast <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/cattle_ambcar.tiff")
+
+### Resample to match
+cow_resample <- raster::resample(cow_rast, 
+                                 ambcar_rast, 
+                                 "bilinear")
+
+### Save output rasters to folder
+writeRaster(cow_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_cows.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
 
 ## Field research
 Locations of field research sites from published lit in Web of Science (searched "Amboro" and "Carrasco" [2 separate searches], pulled out lat/long of research sites, made kmz in Google Earth, then converted to shp in ArcGIS)
