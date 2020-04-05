@@ -212,6 +212,45 @@ st_write(peru_buffers,
          "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/peru/peru_buffers.shp")
 ```
 
+## AmbCar map for AAG
+## Amboro-Carrasco
+```{r}
+### Open Amboro and Carrasco shp (from protectedplanet)
+amb <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/WDPA_Aug2019_protected_area_9779-shapefile-polygons.shp") %>%
+  mutate(management = "amboro",
+         management_type = "np",
+         category = "1")
+amb_imna <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/WDPA_Feb2020_protected_area_303887-shapefile-polygons.shp") %>%
+  mutate(management = "amboro_imna",
+         management_type = "imna",
+         category = "2")
+car <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/WDPA_Aug2019_protected_area_20037-shapefile-polygons.shp") %>%
+  mutate(management = "carrasco",
+         management_type = "np",
+         category = "3")
+
+### Combine to single sf
+ambcar <- rbind(amb, amb_imna, car)
+
+### Transform to equal area projection (ESRI South America Equidistant Conic)
+ambcar <- st_transform(ambcar, crs = 102033)
+
+### Make unioned version for buffers
+ambcar_union <- ambcar %>%
+  summarise(area = sum(GIS_AREA))
+# ggplot(ambcar_union) + geom_sf()
+
+### Make 10km and 20km buffers
+buff_10 <- st_buffer(ambcar_union, 10000)
+buff_20 <- st_buffer(ambcar_union, 20000)
+
+### Write feature
+st_write(buff_10, 
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/analyses_aag//ambcar_10km_buffer.shp")
+st_write(buff_20, 
+         "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/analyses_aag//ambcar_20km_buffer.shp")
+
+```
 
 ## old misc
 ogr2ogr -clipsrc -skipfailures braz_northern_states.shp braz_northern_rds.shp braz_roads_projected.shp
