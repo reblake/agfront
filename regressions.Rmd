@@ -1176,41 +1176,76 @@ luc_bol_fa <- luc_bol_fa %>%
 st_write(luc_bol_fa, "bol_gridpts_for_regression.shp")
 ```
 
-### Model 1
-Standard LUC variables only
-#### Assemble datasets
-Extract values from rasterbricks to sample points
+### UIDs of points with complete data
 ```{r}
 ### Open Bol points
-luc_bol_fa <- st_read(luc_bol_fa,
-                      "bol_gridpts_for_regression.shp")
+luc_bol_fa <- st_read("bol_gridpts_for_regression.shp")
 
-### Open Bolivia rasterbrick
-bol_layers <- brick("D:/dinamica/bolivia_simple/data/bolivia_static_vars.tif")
-
-### Convert pts to sp
-bol_pts_sp <- as(luc_bol_fa, "Spatial")
+### Open Bolivia rasterbrick, all layers
+bol_layers_all <- brick("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bolivia_all_vars.tif")
 
 ### Extract values to pts
-bol_dat <- extract(bol_layers, 
-                   bol_pts_sp,
-                   df = TRUE)
+bol_dat_all <- extract(bol_layers_all, 
+                       luc_bol_fa,
+                       df = TRUE)
 
 ### Rename columns
-colnames(bol_dat) <- c("id", "aspect", "mines", 
-                       "roads", "rivers", 
-                       "cities", "elev", 
-                       "popdens", "poverty", 
-                       "ppt", "prot_status", 
-                       "slope", "soil", 
-                       'crop_suit')
+colnames(bol_dat_all) <- c("id", "aspect", "mines", 
+                           "roads", "rivers", 
+                           "cities", "elev", 
+                           "popdens", "poverty", 
+                           "ppt", "prot_status", 
+                           "slope", "soil", 
+                           "crop_suit", "dist_ag", 
+                           "dist_fire", "fire_dens",
+                           "ill_mine", "field_res",
+                           "tourism", "pes")
 
 ### Give it a uid
-bol_dat$uid <- bol_pts_sp$uid
+bol_dat_all$uid <- luc_bol_fa$uid
 
 ### Merge with sf
-bol_dat <- merge(bol_dat, luc_bol_fa,
-                 by = "uid")
+bol_dat_all <- merge(bol_dat_all, luc_bol_fa,
+                     by = "uid")
+
+### Open cow raster (head of cattle per area)
+cattle <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_cows.tif")
+
+### Extract cattle
+bol_cattle <- extract(cattle, 
+                      luc_bol_fa,
+                      df = TRUE)
+
+### Give it a uid
+bol_cattle$uid <- luc_bol_fa$uid
+
+### Merge with rest of data
+bol_dat_all <- merge(bol_dat_all, 
+                     bol_cattle,
+                     by = "uid")
+
+### Drop geometry
+bol_dat_all_simp <- bol_dat_all
+bol_dat_all_simp$geometry <- NULL
+
+### Drop incomplete rows
+bol_dat_all_simp <- bol_dat_all_simp[complete.cases(bol_dat_all_simp), ]
+
+### Drop rows where prot_status = 0 (??)
+bol_dat_all_simp <- bol_dat_all_simp %>%
+  filter(., !prot_status == "0")
+
+### Get uids
+uid_comp <- bol_dat_all_simp$uid
+
+### Add geom back to visualize
+st_geometry(bol_dat_all) <- bol_dat_all$geometry
+bol_dat_all <- bol_dat_all %>%
+  filter(uid %in% uid_comp)
+
+### Drop geom for regressions
+bol_dat <- bol_dat_all
+st_geometry(bol_dat) <- NULL
 
 ### Make column for transition/none
 bol_dat <- bol_dat %>%
@@ -1221,43 +1256,83 @@ bol_dat <- bol_dat %>%
                            "0", "1"))
 
 ### Make columns factor
-fact_cols <- c("uid", "prot_status", "lc_2018", "trans_rc")
+fact_cols <- c("uid", "prot_status", "pes",
+               "lc_2018", "trans_rc")
 bol_dat <- bol_dat %>%
   mutate_each_(funs(factor(.)), fact_cols)
+```
+
+### Model 1
+Standard LUC variables only
+#### Assemble datasets
+Extract values from rasterbricks to sample points
+```{r}
+# ### Open Bol points
+# luc_bol_fa <- st_read("bol_gridpts_for_regression.shp")
+# 
+# ### Open Bolivia rasterbrick
+# bol_layers <- brick("D:/dinamica/bolivia_simple/data/bolivia_static_vars.tif")
+# 
+# ### Convert pts to sp
+# bol_pts_sp <- as(luc_bol_fa, "Spatial")
+# 
+# ### Extract values to pts
+# bol_dat <- extract(bol_layers, 
+#                    bol_pts_sp,
+#                    df = TRUE)
+# 
+# ### Rename columns
+# colnames(bol_dat) <- c("id", "aspect", "mines", 
+#                        "roads", "rivers", 
+#                        "cities", "elev", 
+#                        "popdens", "poverty", 
+#                        "ppt", "prot_status", 
+#                        "slope", "soil", 
+#                        'crop_suit')
+# 
+# ### Give it a uid
+# bol_dat$uid <- bol_pts_sp$uid
+# 
+# ### Merge with sf
+# bol_dat <- merge(bol_dat, luc_bol_fa,
+#                  by = "uid")
+# 
+# ### Make column for transition/none
+# bol_dat <- bol_dat %>%
+#   mutate(transition = ifelse(lc_2018 == "2",
+#                              "no_change",
+#                              "change"),
+#          trans_rc = ifelse(transition == "no_change",
+#                            "0", "1"))
+# 
+# ### Make columns factor
+# fact_cols <- c("uid", "prot_status", "lc_2018", "trans_rc")
+# bol_dat <- bol_dat %>%
+#   mutate_each_(funs(factor(.)), fact_cols)
 ```
 
 #### Check correlations
 ```{r}
 ### Make corr table
-cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat[, c(3:11, 13:15, 18, 19)]))
+cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat[, c(3:11, 13:15, 
+                                                          25, 26)]))
 
 ### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
 cor_table_bol <- subset(cor_table_bol, 
                         abs(cor) > 0.66 & p <= 0.05)
 
-### Distance to roads and distance to cities highly correlated (coeff = 0.7177882)
-### Poverty and soil moisture are highly correlated (coeff = 0.7959958)
-### Poverty and longitude (-0.7807923)
-### Soil and longitude (-0.8935180)
-### Precip and latitude (0.8377322)
-### Lon and lat (-0.7334816)
+### Distance to roads and distance to cities highly correlated (coeff = 0.7254542)
+### Roads and precipitation (0.6751290)
+### Poverty and soil moisture are highly correlated (coeff = 0.7205976)
+### Poverty and longitude (-0.7764958)
+### Soil and longitude (-0.9706443)
+### Precip and latitude (0.8522991)
 
-### Drop soil moisture (poverty, longitude), distance to cities (distance to roads), precip (latitude), longitude
+### Drop soil moisture (poverty, longitude), distance to cities (distance to roads), precip (latitude, roads), longitude (poverty)
 
 ### Make updated dataset
 bol_dat_red <- bol_dat %>%
   dplyr::select(-soil, -cities, -ppt, -lon)
-
-### Drop geometry
-bol_dat_simp <- bol_dat_red
-bol_dat_simp$geometry <- NULL
-
-### Drop incomplete rows
-bol_dat_simp <- bol_dat_simp[complete.cases(bol_dat_simp), ]
-
-### Drop rows where prot_status = 0 (??)
-bol_dat_simp <- bol_dat_simp %>%
-  filter(., !prot_status == "0")
 ```
 
 #### Regression
@@ -1268,7 +1343,7 @@ fit_bol <- glm(trans_rc ~ aspect + slope + elev +
                  crop_suit + popdens + poverty +
                  # (1|uid) +
                  lat + prot_status,
-               data = bol_dat_simp,
+               data = bol_dat_red,
                family = binomial(link = "logit"))
 
 ### Write out coefficients
@@ -1284,107 +1359,102 @@ Discourse analysis variables only
 #### Assemble datasets
 Extract values from rasterbricks to sample points
 ```{r}
-### Open Bolivia rasterbrick, all layers
-bol_layers_all <- brick("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bolivia_all_vars.tif")
-
-### Extract values to pts
-bol_dat_2 <- extract(bol_layers_all, 
-                      bol_pts_sp,
-                      df = TRUE)
-
-### Rename columns
-colnames(bol_dat_2) <- c("id", "aspect", "mines", 
-                       "roads", "rivers", 
-                       "cities", "elev", 
-                       "popdens", "poverty", 
-                       "ppt", "prot_status", 
-                       "slope", "soil", 
-                       "crop_suit", "dist_ag", 
-                       "dist_fire", "fire_dens",
-                       "ill_mine", "field_res",
-                       "tourism", "pes")
-
-### Give it a uid
-bol_dat_2$uid <- bol_pts_sp$uid
-
-### Merge with sf
-bol_dat_2 <- merge(bol_dat_2, luc_bol_fa,
-                 by = "uid")
-
-### Open cow raster (head of cattle per area)
-cattle <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_cows.tif")
-
-### Extract cattle
-bol_cattle <- extract(cattle, 
-                      bol_pts_sp,
-                      df = TRUE)
-
-### Give it a uid
-bol_cattle$uid <- bol_pts_sp$uid
-
-### Merge with rest of data
-bol_dat_2 <- merge(bol_dat_2, bol_cattle,
-                 by = "uid")
-
-### Make column for transition/none
-bol_dat_2 <- bol_dat_2 %>%
-  mutate(transition = ifelse(lc_2018 == "2",
-                             "no_change",
-                             "change"),
-         trans_rc = ifelse(transition == "no_change",
-                           "0", "1"))
-
-### Make columns factor
-fact_cols <- c("id", "prot_status", "pes", "lc_2008",
-               "lc_2018", "trans_rc")
-bol_dat_2 <- bol_dat_2 %>%
-  mutate_each_(funs(factor(.)), fact_cols)
-
-### Drop variables I don't need for model 2
-bol_dat_m2 <- bol_dat_2 %>%
-  dplyr::select(-aspect, -slope, -elev,
-                -mines, -roads, -rivers,
-                -cities, -popdens, -poverty,
-                -ppt, -soil, -prot_status,
-                -crop_suit)
+# ### Open Bolivia rasterbrick, all layers
+# bol_layers_all <- brick("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bolivia_all_vars.tif")
+# 
+# ### Extract values to pts
+# bol_dat_2 <- extract(bol_layers_all, 
+#                       bol_pts_sp,
+#                       df = TRUE)
+# 
+# ### Rename columns
+# colnames(bol_dat_2) <- c("id", "aspect", "mines", 
+#                        "roads", "rivers", 
+#                        "cities", "elev", 
+#                        "popdens", "poverty", 
+#                        "ppt", "prot_status", 
+#                        "slope", "soil", 
+#                        "crop_suit", "dist_ag", 
+#                        "dist_fire", "fire_dens",
+#                        "ill_mine", "field_res",
+#                        "tourism", "pes")
+# 
+# ### Give it a uid
+# bol_dat_2$uid <- bol_pts_sp$uid
+# 
+# ### Merge with sf
+# bol_dat_2 <- merge(bol_dat_2, luc_bol_fa,
+#                  by = "uid")
+# 
+# ### Open cow raster (head of cattle per area)
+# cattle <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_cows.tif")
+# 
+# ### Extract cattle
+# bol_cattle <- extract(cattle, 
+#                       bol_pts_sp,
+#                       df = TRUE)
+# 
+# ### Give it a uid
+# bol_cattle$uid <- bol_pts_sp$uid
+# 
+# ### Merge with rest of data
+# bol_dat_2 <- merge(bol_dat_2, bol_cattle,
+#                  by = "uid")
+# 
+# ### Make column for transition/none
+# bol_dat_2 <- bol_dat_2 %>%
+#   mutate(transition = ifelse(lc_2018 == "2",
+#                              "no_change",
+#                              "change"),
+#          trans_rc = ifelse(transition == "no_change",
+#                            "0", "1"))
+# 
+# ### Make columns factor
+# fact_cols <- c("id", "prot_status", "pes", "lc_2008",
+#                "lc_2018", "trans_rc")
+# bol_dat_2 <- bol_dat_2 %>%
+#   mutate_each_(funs(factor(.)), fact_cols)
+# 
+# ### Drop variables I don't need for model 2
+# bol_dat_m2 <- bol_dat_2 %>%
+#   dplyr::select(-aspect, -slope, -elev,
+#                 -mines, -roads, -rivers,
+#                 -cities, -popdens, -poverty,
+#                 -ppt, -soil, -prot_status,
+#                 -crop_suit)
 ```
 
 #### Check correlations
 Variables to include:
 ```{r}
 ### Make corr table
-cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat_m2[, c(3:8, 12:13, 16)]))
+cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat[, c(5, 16:21,
+                                                          25, 26, 28)]))
 
 ### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
 cor_table_bol <- subset(cor_table_bol, 
                         abs(cor) > 0.66 & p <= 0.05)
 
 ### Highly correlated variables
-### Distance to illegal mines and longitude (0.9861674)
-### Distance to illegal mines and latitude (-0.8341533)
-### Longitude and latitude (-0.7334816)
+### Distance to illegal mines and longitude (0.9691501)
+### Distance to field research and latitude (0.7347974)
 
 ### Drop lon and lat
 
 ### Make updated dataset
-bol_dat_red_m2 <- bol_dat_m2 %>%
+bol_dat_red_m2 <- bol_dat %>%
   dplyr::select(-lon, -lat)
-
-bol_simp_m2 <- bol_dat_red_m2
-bol_simp_m2$geometry <- NULL
-
-### Drop incomplete rows
-bol_dat_comp_m2 <- bol_simp_m2[complete.cases(bol_simp_m2), ]
 ```
 
 #### Regression
 ```{r}
 ### Run regression
-fit_bol_m2 <- glm(trans_rc ~ dist_ag + dist_fire +
+fit_bol_m2 <- glm(trans_rc ~ roads +
+                    dist_ag + dist_fire +
                     fire_dens + field_res +
                     ill_mine + tourism + pes +
                     bol_cows,
-                  data = bol_dat_comp_m2,
+                  data = bol_dat_red_m2,
                   family = binomial(link = "logit"))
 
 ### Write out coefficients
@@ -1400,55 +1470,52 @@ All standard variables and discourse analysis variables
 #### Check correlations
 Use df bol_dat_2
 ```{r}
-### Drop geometry
-bol_dat_2$geometry <- NULL
-
 ### Make corr table
-cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat_2[, c(3:11, 13:21, 25, 26, 28)]))
+cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat[, c(3:11, 
+                                                          13:21, 
+                                                          25, 26, 
+                                                          28)]))
 
 ### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
 cor_table_bol <- subset(cor_table_bol, 
                         abs(cor) > 0.66 & p <= 0.05)
 
 ### Highly correlated variables
-### Distance to roads and cities (0.7177882)
-### Poverty and soil moisture (0.7959958)
-### Poverty and distance to illegal mining (-0.7784845)
-### Soil moisture and distance to illegal mining (-0.8533168)
-### Poverty and longitude (-0.7807923)
-### Soil moisture and longitude (-0.8935180)
-### Distance to illegal mining and longitude (0.9861674)
-### Precip and latitude (0.8377322)
-### Illegal mining and latitude (-0.8341533)
-### Lon and lat (-0.7334816)
+### Distance to roads and cities (0.7254542)
+### Distance to roads and precip (0.6751290)
+### Poverty and soil moisture (0.7205976)
+### Poverty and distance to illegal mining (-0.8114084)
+### Soil moisture and distance to illegal mining (-0.9036921)
+### Elev and field research (-0.6948379)
+### Precip and field research (0.7440272)
+### Distance to mines and tourism (0.6684893)
+### Poverty and longitude (-0.7764958)
+### Soil moisture and longitude (-0.9706443)
+### Distance to illegal mining and longitude (0.9691501)
+### Precip and latitude (0.8522991)
+### Field research and latitude (0.7347974)
 
-### Drop lon, lat, soil moisture (illegal mining), distance to cities (distance to roads), poverty (illegal mining)
+### Drop distance to cities (distance to roads), precip (roads, latitude), poverty (soil moisture, illegal mining), soil moisture (illegal mining, longitude), distance to field research (elev, precip, latitude), distance to legal mines (tourism), longitude
 
 ### Make updated dataset
-bol_dat_red_m3 <- bol_dat_2 %>%
-  dplyr::select(-lon, -lat, -soil, 
-                -cities, -poverty)
-
-### Drop incomplete rows
-bol_dat_comp_m3 <- bol_dat_red_m3[complete.cases(bol_dat_red_m3), ]
-
-### Drop rows where prot_status = 0 (??)
-bol_dat_comp_m3 <- bol_dat_comp_m3 %>%
-  filter(., !prot_status == "0")
+bol_dat_red_m3 <- bol_dat %>%
+  dplyr::select(-lon, -soil, -ppt,
+                -cities, -poverty,
+                -field_res, -mines)
 ```
 
 #### Regression
 ```{r}
 ### Run regression
 fit_bol_m3 <- glm(trans_rc ~ aspect + slope + elev +
-                    mines + roads + rivers +
-                    popdens + ppt + prot_status +
+                    roads + rivers +
+                    popdens + prot_status +
                     crop_suit + 
                     dist_ag + dist_fire +
-                    fire_dens + field_res +
-                    ill_mine + tourism + pes +
-                    bol_cows,
-                  data = bol_dat_comp_m3,
+                    fire_dens + ill_mine + 
+                    tourism + pes +
+                    lat + bol_cows,
+                  data = bol_dat_red_m3,
                   family = binomial(link = "logit"))
 
 ### Write out coefficients
@@ -1460,45 +1527,43 @@ write.csv(fit_bol3_coeff,
 
 ### Model 4
 Significant LUC variables + key DA variables:
-* poverty rate, protection status (all), slope, aspect, elevation, distance to roads, distance to legal mines, latitude
+* crop suitability, poverty rate, latitude, protection status, slope, aspect, elevation, distance to roads, rivers, mines  
 * distance to northern and southern cities, fire perimeters, fire density, distance to roads, tourism, PES, cattle, land tenure
 
 
 ### Assemble data and check for correlations
 ```{r}
 ### Select variables for this model
-bol_dat_4 <- bol_dat_2 %>%
-  dplyr::select(uid, poverty, prot_status, slope, aspect,
-                elev, roads, mines, lat,
+bol_dat_4 <- bol_dat %>%
+  dplyr::select(uid, crop_suit, poverty, prot_status, slope, aspect,
+                elev, roads, mines, rivers, lat,
                 dist_fire, fire_dens, tourism, pes, bol_cows,
                 trans_rc)
 
 ### Make corr table
-cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat_4[, c(2, 4:12, 14)]))
+cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat_4[, c(2, 3, 5:14, 16)]))
 
 ### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
 cor_table_bol <- subset(cor_table_bol, 
                         abs(cor) > 0.66 & p <= 0.05)
 
-### Drop incomplete rows
-bol_dat_comp_m4 <- bol_dat_4[complete.cases(bol_dat_4), ]
-
-### Drop rows where prot_status = 0 (??)
-bol_dat_comp_m4 <- bol_dat_comp_m4 %>%
-  filter(., !prot_status == "0")
+### Distance to legla mines correlated with distance to tourist sites (0.6684893)
+bol_dat_4 <- bol_dat_4 %>%
+  dplyr::select(-mines)
 ```
 
 #### Regression
 ```{r}
 ### Run regression
 fit_bol_m4 <- glm(trans_rc ~ aspect + slope + elev +
-                    mines + roads + 
-                    poverty + prot_status +
+                    crop_suit + poverty +
+                    prot_status + roads + 
+                    rivers + lat +
                     dist_fire +
                     fire_dens + 
                     tourism + pes +
                     bol_cows,
-                  data = bol_dat_comp_m4,
+                  data = bol_dat_4,
                   family = binomial(link = "logit"))
 
 ### Write out coefficients
