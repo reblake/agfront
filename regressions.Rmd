@@ -1547,7 +1547,7 @@ cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat_4[, c(2, 3, 5:14, 16)]))
 cor_table_bol <- subset(cor_table_bol, 
                         abs(cor) > 0.66 & p <= 0.05)
 
-### Distance to legla mines correlated with distance to tourist sites (0.6684893)
+### Distance to legal mines correlated with distance to tourist sites (0.6684893)
 bol_dat_4 <- bol_dat_4 %>%
   dplyr::select(-mines)
 ```
@@ -1579,7 +1579,19 @@ write.csv(fit_bol4_coeff,
 AIC(fit_bol, fit_bol_m2,
     fit_bol_m3, fit_bol_m4)
 
+### anova
+anova(fit_bol, fit_bol_m2,
+      fit_bol_m3, fit_bol_m4,
+      test = "Chisq")
+anova(fit_bol_m2, fit_bol_m3, test = "Chisq") ## 3 better than 2
+anova(fit_bol_m3, fit_bol_m4, test = "Chisq") ## 4 better than 3
+anova(fit_bol, fit_bol_m2, test = "Chisq")
+anova(fit_bol, fit_bol_m4, test = "Chisq")
+
 ### Likelihood ratio test
 lrtest(fit_bol, fit_bol_m3)
+lrtest(fit_bol, fit_bol_m2)
+lrtest(fit_bol_m2, fit_bol)
+
 ```
 
