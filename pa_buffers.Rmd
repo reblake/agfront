@@ -1,0 +1,235 @@
+---
+title: "pa_buffers"
+author: "Katherine Siegel"
+date: "June 24, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Load packages
+library(sf)
+library(gmodels)
+library(rgeos)
+library(rgdal)
+library(tidyverse)
+library(lwgeom)
+library(rmapshaper)
+```
+
+## GEE output
+### Open and summarize Hansen GEE output 
+```{r}
+bol_hansen <- read.csv("C:/Users/Katherine Siegel/Documents/SESYNC/iba_data/eva_buffers/bolivia_buff_pas.csv")
+
+### Add columns for cover in each year after 2000
+bol_hansen <- bol_hansen %>%
+  mutate(cover_2009 = treecover2008 + gain_2009 - loss_2009,
+         cover_2010 = cover_2009 + gain_2010 - loss_2010,
+         cover_2011 = cover_2010 + gain_2011 - loss_2011,
+         cover_2012 = cover_2011 + gain_2012 - loss_2012,
+         cover_2013 = cover_2012 + gain_2013 - loss_2013,
+         cover_2014 = cover_2013 + gain_2014 - loss_2014,
+         cover_2015 = cover_2014 + gain_2015 - loss_2015,
+         cover_2016 = cover_2015 + gain_2016 - loss_2016,
+         cover_2017 = cover_2016 + gain_2017 - loss_2017,
+         cover_2018 = cover_2017 + gain_2018 - loss_2018)
+
+### Simplify df
+bol_hansen <- bol_hansen %>%
+  dplyr::select(pa_id = Date,
+                treecover2008:cover_2018)
+
+### Write out csv
+write_csv(bol_hansen, 
+          "C:/Users/Katherine Siegel/Documents/SESYNC/iba_data/eva_buffers/bolivia_buffers_hansen.csv")
+```
+
+
+
+## FAILED CODE
+## Eva's code
+### Open Bolivia and subset to large PAs
+```{r}
+# Read in only the Bolivia shapefiles
+BoliviaSites <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/iba_data/cons_areas/Conservation_Areas_Bolivia_s.shp")
+BoliviaSitesT <- st_transform(BoliviaSites, crs = "+init=epsg:5641")
+
+# add a unique ID by adding a number to each name class (name classes sometimes occur in multiple polygons)
+
+### Convert factors to characters
+BoliviaSitesT$Date <- as.character(BoliviaSitesT$Date)
+BoliviaSitesT$nombre_ap_ <- as.character(BoliviaSitesT$nombre_ap_)
+
+for (k in 1:nrow(BoliviaSitesT)) {
+  BoliviaSitesT[k,]$Date = paste(BoliviaSitesT[k,]$nombre_ap_, k)
+}
+
+# subset dataset to only include large polygons
+BoliviaLarge <- subset(BoliviaSitesT, Area > 500)
+
+plot(st_geometry(BoliviaLarge))
+```
+
+### 20 km buffer
+```{r}
+# create buffer of 20km around it
+BolBuff2 <- st_buffer(BoliviaLarge, 20000)
+
+# just the external buffer
+BolUnion <- st_union(BoliviaLarge)
+BolBuff <- st_buffer(BolUnion, 20000)
+
+plot(st_geometry(BolBuff))
+plot(st_geometry(BoliviaLarge), col = "red", add = TRUE)
+```
+
+### Non-overlapping buffers
+```{r}
+# 1) Extract vertices from polygons, ensuring a unique field is kept as an attribute
+
+## simplify the polygons so there aren't so many vertices
+simplepolys <- rmapshaper::ms_simplify(input = as(BoliviaLarge, "Spatial")) %>%
+  st_as_sf()
+plot(st_geometry(simplepolys))
+
+# cast into a multipoint and then a point to maintain correct attributes
+Multi <- st_cast(simplepolys, "MULTIPOINT", crs = "+init=epsg:5641")
+Pointz <- st_cast(Multi, "POINT", crs = "+init=epsg:5641")
+
+# 2) Create a voronoi from these points
+voronoi <- 
+  Pointz %>% 
+  st_geometry() %>%
+  st_union() %>%
+  st_voronoi() %>%
+  st_collection_extract()
+
+# Put them back in their original order
+voronoi <-
+  voronoi[unlist(st_intersects(Pointz,voronoi))]
+
+
+# voronoi <- st_as_sf(voronoi) -- doesn't do anything
+
+# 3) Buffer the original polygons by the required amount
+# 
+
+# 4) Subtract the buffer polygons from the voronoi
+#
+# get the sf in the right crs 
+voronoi <- st_transform(voronoi, crs=st_crs(BolBuff2))
+
+### bind with Pointz$Date
+voronoi <- st_sf(cbind(Pointz$Date, voronoi))
+voronoi <- st_intersection(voronoi, Pointz)
+
+# add back on the unique id to the voronoi polygons
+voronoi <- rbind(voronoi, Pointz$Date)
+colnames(voronoi) <- c("x", "Date")
+voronoi$Date <- Pointz$Date
+
+# clip at buffer boundaries
+VorIntersected <- st_intersection(voronoi, BolBuff2)
+
+# 5) Recombine/dissolve the remaining voronoi polygons on the unique attribute field
+# 
+
+FinalBuffers_NoOverlap <- VorIntersected %>% group_by(Date) %>% summarize()
+plot(st_geometry(FinalBuffers_NoOverlap)) 
+plot(st_geometry(BoliviaSmall), col = "red", add = TRUE)
+```
+
+
+## Bolivia
+### Data prep
+```{r}
+### Open, transform, and make valid
+bol_pa <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/iba_data/cons_areas/Conservation_Areas_Bolivia_s.shp") %>%
+  st_transform(., crs = 102033) %>%
+  st_make_valid(.)
+
+### Visualize
+ggplot(bol_pa) + geom_sf()
+
+### Open Amazon basin polygon fix geometries
+amaz <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/iba_data/basin_poly/amapoly_ivb.shp") %>%
+  st_transform(., crs = 102033)
+
+### Drop PAs outside Amazon basin
+bol_pa <- st_intersection(bol_pa, amaz)
+
+bol_pa$nombre_ap_ <- as.character(bol_pa$nombre_ap_)
+
+# add a unique ID by adding a number to each name class (name classes sometimes
+# occur in multiple polygons)
+for (k in 1:length(unique(bol_pa$geometry))) {
+  bol_pa[k, ] <- bol_pa[k, ] %>%
+    mutate(ID = paste0(bol_pa[k, ]$nombre_ap_, "_", k))
+}
+
+### Subset of PAs to play with
+bol_sub <- bol_pa %>%
+  filter(nombre_ap_ %in% c("Pilan Lajas",
+                           "Madidi",
+                           "Apolobamba"))
+
+### Visualize
+ggplot(bol_sub) + geom_sf()
+```
+
+### Make buffers
+```{r}
+## Workflow to create non-overlapping buffers
+# 1) Extract vertices from polygons, ensuring a unique field is kept as an attribute
+
+## simplify the polygons so there aren't so many vertices (tolerance = 10 km)
+bol_sub <- st_simplify(bol_sub, dTolerance = 1000)
+
+## convert polygon to points
+Multi <- st_cast(bol_sub, "MULTIPOINT", crs = 102033)
+Pointz <- st_cast(Multi, "POINT", crs = 102033)
+
+# 2) Create a voronoi from these points
+# 
+
+voronoi <- 
+  Pointz %>% 
+  st_geometry() %>%
+  st_union() %>%
+  st_voronoi() %>%
+  st_collection_extract()
+
+# Put them back in their original order
+voronoi <-
+  voronoi[unlist(st_intersects(Pointz, voronoi))]
+
+
+voronoi <- sfc_as_sf(voronoi)
+
+# 3) Buffer the original polygons by the required amount
+# 
+BolBuff2 <- st_buffer(bol_sub, 20000)
+
+# 4) Subtract the buffer polygons from the voronoi
+#
+# get the sf in the right crs 
+voronoi <- st_transform(voronoi, crs=st_crs(BolBuff2))
+
+# add back on the unique id to the voronoi polygons
+colnames(voronoi) <- c("x", "ID")
+voronoi$Date <- Pointz$Date
+
+# clip at buffer boundaries
+VorIntersected <- st_intersection(voronoi, BolBuff2)
+
+# 5) Recombine/dissolve the remaining voronoi polygons on the unique attribute field
+# 
+
+FinalBuffers_NoOverlap <- VorIntersected %>% group_by(Date) %>% summarize()
+plot(st_geometry(FinalBuffers_NoOverlap)) 
+plot(st_geometry(BoliviaSmall), col = "red", add = TRUE)
+```
+
+
