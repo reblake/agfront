@@ -1016,7 +1016,7 @@ brick_layers <- raster::brick(aspect, mines,
 
 ### Write out brick
 writeRaster(brick_layers, 
-            filename = "D:/dinamica/brazil_simple/data/brazil_static_vars.tif", 
+            filename = "D:/dinamica/brazil_simple/data/brazil_static_vars_2.tif", 
             format = "GTiff",
             overwrite = TRUE, 
             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
