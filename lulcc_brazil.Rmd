@@ -1,0 +1,557 @@
+---
+title: "lulcc_brazil"
+author: "Katherine Siegel"
+date: "January 11, 2021"
+output: html_document
+---
+
+## Description
+Play with LUC models in Brazil
+
+## Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Open packages
+library(tidyverse)
+library(sf)
+library(raster)
+library(sp)
+library(rgdal)
+library(lulcc)
+library(gsubfn)
+library(caret)
+
+#### Function to check correlation
+cor.prob <- function (X, dfr = nrow(X) - 2) {
+  R <- cor(X, use="pairwise.complete.obs")
+  above <- row(R) < col(R)
+  r2 <- R[above]^2
+  Fstat <- r2 * dfr/(1 - r2)
+  R[above] <- 1 - pf(Fstat, 1, dfr)
+  R[row(R) == col(R)] <- NA
+  R
+}
+flattenSquareMatrix <- function(m) {
+  if( (class(m) != "matrix") | (nrow(m) != ncol(m))) stop("Must be a square matrix.") 
+  if(!identical(rownames(m), colnames(m))) stop("Row and column names must be equal.")
+  ut <- upper.tri(m)
+  data.frame(i = rownames(m)[row(m)[ut]],
+             j = rownames(m)[col(m)[ut]],
+             cor=t(m)[ut],
+             p=m[ut])
+}
+```
+
+## Land cover maps
+Create stack with 2008 and 2018 maps, read it in
+```{r}
+### Load rasters of 2008 and 2018 land cover classes
+# obs_lc <- ObsLulcRasterStack(x = braz_lc,
+#                              categories = c(1, 2, 3, 
+#                                             4, 5, 6),
+#                              labels = c(),
+#                              t = c(0, 10))
+
+### Get transition matrix
+# obs_change <- crossTabulate(x = obs_lc,
+#                             times = c(0, 10))
+```
+
+## Steps from 2020 AAG Presentation
+Regression models for different sets of variables for Brazil
+
+### Sample on grid
+```{r}
+### Open buffer polygon
+bra_buff <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/JamanBuffer_reproj.shp") %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+
+### Make sampling grid, point every 1 km
+bra_samples <- bra_buff %>%
+  
+  ### Make samples (every 300 m)
+  st_make_grid(cellsize = c(300, 300),
+               what = "centers") %>%
+  
+  ### Convert to sf
+  st_sf() %>%
+  
+  ### Add identifiers
+  mutate(lon = st_coordinates(.)[, 1],
+         lat = st_coordinates(.)[, 2])
+
+### Add UID
+bra_samples$uid <- 1:nrow(bra_samples)
+
+### Open brazil 2008 map
+bra_2008 <- raster("D:/dinamica/brazil_simple/data/classi_bra_dry_2008_102033.tif")
+
+### Extract land cover type to sample points
+bra_samples_2008 <- raster::extract(bra_2008, 
+                                    bra_samples, 
+                                    df = TRUE)
+
+### See how many were forest in 2008
+# b_2008_summ <- bra_samples_2008 %>%
+#   group_by(classi_bra_dry_2008_102033) %>%
+#   summarise(n_per_class = n())
+### 0 = no data, 1 = agriculture, 2 = forest, 3 = bare soil, 4 = urban, 5 = wetland, 6 = desert, and 7 = water
+### 279914 forested points in 2008
+
+### Add uid back in
+bra_samples_2008$uid <- bra_samples$uid
+
+### Merge bra_samples_2008 with bra_samples
+bra_samples <- merge(bra_samples, 
+                     bra_samples_2008,
+                     by = "uid")
+rm(bra_samples_2008)
+
+### Subset to forested points
+bra_forest_samp <- bra_samples %>%
+  subset(classi_bra_dry_2008_102033 == "2")
+
+### Rename cols
+bra_forest_samp <- bra_forest_samp %>%
+  dplyr::select(uid, lon, lat, 
+                lc_2008 = classi_bra_dry_2008_102033)
+
+# ### Write out sample pts
+# st_write(bra_forest_samp,
+#          "D:/dinamica/sample_pts_model/bra_forest.shp")
+
+### Open brazil 2018 map
+bra_2018 <- raster("D:/dinamica/brazil_simple/data/classi_bra_dry_2018_102033.tif")
+
+### Extract 2018 land cover class
+luc_bra <- raster::extract(bra_2018, 
+                           bra_forest_samp, 
+                           df = TRUE)
+
+### Add UID and merge with sf
+luc_bra$uid <- bra_forest_samp$uid
+luc_bra <- merge(bra_forest_samp, 
+                 luc_bra,
+                 by = "uid")
+
+### Rename cols
+luc_bra <- luc_bra %>%
+  dplyr::select(uid, lon, lat, 
+                lc_2008,
+                lc_2018 = classi_bra_dry_2018_102033,
+                geometry)
+
+### Write out sample pts
+st_write(luc_bra,
+         "D:/dinamica/sample_pts_model/bra_forest.shp")
+
+# ### Summarize transitions
+# luc_bra_summ <- luc_bra %>%
+#   group_by(lc_2018) %>%
+#   summarise(n_transitions = n())
+# luc_bra_summ <- luc_bra_summ %>%
+#   mutate(portion_pts = n_transitions/279914*100)
+
+### 94% of forested points remained in forest cover
+### 4.9% converted from forest to ag
+### 0.7% converted from forest to bare soil
+### 0.3% converted from forest to wetland
+### < 0.1% converted to urban or water
+
+### Drop intermediate dfs/rasters
+rm(bra_2008, bra_2018, bra_buff, bra_samples)
+
+### OLD CODE
+# ### Drop points that transitioned to other land uses
+# luc_bol_fa <- luc_bol %>%
+#   subset(classi_BOL_dry_2018 < 3)
+# 
+# ### Make sf
+# st_geometry(luc_bol_fa) <- luc_bol_fa$geometry
+# 
+# ### Rename cols
+# luc_bol_fa <- luc_bol_fa %>%
+#   dplyr::select(uid, 
+#                 lc_2008 = classi_BOL_dry_2008,
+#                 lc_2018 = classi_BOL_dry_2018,
+#                 lon, lat, geometry)
+# 
+# ### Save sf df
+# st_write(luc_bol_fa, "bol_gridpts_for_regression.shp")
+```
+
+### UIDs of points with complete data
+```{r}
+### Open sample points
+luc_bra <- st_read("D:/dinamica/sample_pts_model/bra_forest.shp")
+
+### Open rasterbrick, all layers
+bra_layers_all <- brick("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/brazil_all_layers.tif")
+
+### Extract values to pts
+bra_dat_all <- extract(bra_layers_all, 
+                       luc_bra,
+                       df = TRUE)
+
+### Rename columns
+colnames(bra_dat_all) <- c("id", "aspect", "mines", 
+                           "roads", "rivers", 
+                           "cities", "elev", 
+                           "popdens", "poverty", 
+                           "ppt", "prot_status", 
+                           "slope", "soil", 
+                           "crop_suit", "field_res",
+                           "paddd", "non_all_land",
+                           "dist_ill_mines", "dist_ag",
+                           "dist_fires", "fire_dens",
+                           "dist_pr_rr",
+                           "dist_pr_dams",
+                           "agref_sett", "cattle")
+
+### Give it a uid
+bra_dat_all$uid <- luc_bra$uid
+
+### Merge with sf
+bra_dat_all <- merge(luc_bra,
+                     bra_dat_all,
+                     by = "uid")
+
+### Version without geometry
+bra_dat_all_simp <- bra_dat_all
+bra_dat_all_simp$geometry <- NULL
+
+### Drop incomplete rows
+bra_dat_all_simp <- bra_dat_all_simp[complete.cases(bra_dat_all_simp), ]
+
+### Drop rows where prot_status = 0 (??)
+bra_dat_all_simp <- bra_dat_all_simp %>%
+  filter(., !prot_status == "0")
+
+### Get uids
+uid_comp <- bra_dat_all_simp$uid
+
+### Add geom back to visualize
+# st_geometry(bol_dat_all) <- bol_dat_all$geometry
+bra_dat_all <- bra_dat_all %>%
+  filter(uid %in% uid_comp)
+
+### Write out sample pts
+st_write(bra_dat_all,
+         "D:/dinamica/sample_pts_model/brazil_f_data.shp")
+
+### Drop geom for regressions
+bra_dat <- bra_dat_all
+st_geometry(bra_dat) <- NULL
+
+### Make column for transition/none
+bra_dat <- bra_dat %>%
+  mutate(transition = ifelse(lc_2018 == "2",
+                             "no_change",
+                             ifelse(lc_2018 == "1",
+                                    "f_to_ag", 
+                                    "other_change")),
+         trans_rc = ifelse(transition == "no_change",
+                           "0", ifelse(transition == "f_to_ag",
+                                       "1", "2")))
+
+### Make columns factor
+fact_cols <- c("uid", "prot_status", 
+               "paddd", "agref_sett",
+               "lc_2018", "trans_rc")
+bra_dat <- bra_dat %>%
+  mutate_each_(funs(factor(.)), fact_cols)
+```
+
+### Check correlations
+```{r}
+### Make corr table
+cor_table_bra <- flattenSquareMatrix(cor.prob(bra_dat[, c(2,3, 
+                                                          7:15,
+                                                          17:20,
+                                                          22:28, 30)]))
+
+### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
+cor_table_bra <- subset(cor_table_bra, 
+                        abs(cor) > 0.66 & p <= 0.05)
+
+### Dist to cities and ppt (-0.7663484)
+### Dist to cities and dist to illegal mines (0.6991763)
+### Dist to cities and dist to proposed dams (0.9130546)
+### Dist to illegal mines and dist to proposed dams (0.8404068)
+### Dist to field research and dist to proposed railroads (0.6812415)
+### Latitude and distance to cities (-0.9157438)
+### Latitude and ppt (0.9009197)
+### Latitude and distance to illegal mines (-0.8292653)
+### Latitude and distance to proposed dams (-0.9992623)
+### Longitude and distance to proposed RR (-0.7091224)
+### Population density and % non-allocated land (0.9796182)
+### Poverty rate and cattle (-0.9879367)
+### ppt and distance to illegal mines (-0.8431194)
+### ppt and distance to proposed dams (-0.9076312)
+```
+
+### Model 1
+Standard LUC variables only
+
+
+#### Regression
+```{r}
+### Run regression
+fit_bol <- glm(trans_rc ~ aspect + slope + elev +
+                 roads + rivers + mines +
+                 crop_suit + popdens + poverty +
+                 # (1|uid) +
+                 lat + prot_status,
+               data = bol_dat_red,
+               family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_bol_summ <- summary(fit_bol)
+fit_bol_coeff <- as.data.frame(fit_bol_summ$coefficients)
+write.csv(fit_bol_coeff, 
+          file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/analyses_aag/fit_bol_model1.csv")
+```
+
+### Model 2
+Discourse analysis variables only
+
+#### Assemble datasets
+Extract values from rasterbricks to sample points
+```{r}
+# ### Open Bolivia rasterbrick, all layers
+# bol_layers_all <- brick("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bolivia_all_vars.tif")
+# 
+# ### Extract values to pts
+# bol_dat_2 <- extract(bol_layers_all, 
+#                       bol_pts_sp,
+#                       df = TRUE)
+# 
+# ### Rename columns
+# colnames(bol_dat_2) <- c("id", "aspect", "mines", 
+#                        "roads", "rivers", 
+#                        "cities", "elev", 
+#                        "popdens", "poverty", 
+#                        "ppt", "prot_status", 
+#                        "slope", "soil", 
+#                        "crop_suit", "dist_ag", 
+#                        "dist_fire", "fire_dens",
+#                        "ill_mine", "field_res",
+#                        "tourism", "pes")
+# 
+# ### Give it a uid
+# bol_dat_2$uid <- bol_pts_sp$uid
+# 
+# ### Merge with sf
+# bol_dat_2 <- merge(bol_dat_2, luc_bol_fa,
+#                  by = "uid")
+# 
+# ### Open cow raster (head of cattle per area)
+# cattle <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_cows.tif")
+# 
+# ### Extract cattle
+# bol_cattle <- extract(cattle, 
+#                       bol_pts_sp,
+#                       df = TRUE)
+# 
+# ### Give it a uid
+# bol_cattle$uid <- bol_pts_sp$uid
+# 
+# ### Merge with rest of data
+# bol_dat_2 <- merge(bol_dat_2, bol_cattle,
+#                  by = "uid")
+# 
+# ### Make column for transition/none
+# bol_dat_2 <- bol_dat_2 %>%
+#   mutate(transition = ifelse(lc_2018 == "2",
+#                              "no_change",
+#                              "change"),
+#          trans_rc = ifelse(transition == "no_change",
+#                            "0", "1"))
+# 
+# ### Make columns factor
+# fact_cols <- c("id", "prot_status", "pes", "lc_2008",
+#                "lc_2018", "trans_rc")
+# bol_dat_2 <- bol_dat_2 %>%
+#   mutate_each_(funs(factor(.)), fact_cols)
+# 
+# ### Drop variables I don't need for model 2
+# bol_dat_m2 <- bol_dat_2 %>%
+#   dplyr::select(-aspect, -slope, -elev,
+#                 -mines, -roads, -rivers,
+#                 -cities, -popdens, -poverty,
+#                 -ppt, -soil, -prot_status,
+#                 -crop_suit)
+```
+
+#### Check correlations
+Variables to include:
+```{r}
+### Make corr table
+cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat[, c(5, 16:21,
+                                                          25, 26, 28)]))
+
+### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
+cor_table_bol <- subset(cor_table_bol, 
+                        abs(cor) > 0.66 & p <= 0.05)
+
+### Highly correlated variables
+### Distance to illegal mines and longitude (0.9691501)
+### Distance to field research and latitude (0.7347974)
+
+### Drop lon and lat
+
+### Make updated dataset
+bol_dat_red_m2 <- bol_dat %>%
+  dplyr::select(-lon, -lat)
+```
+
+#### Regression
+```{r}
+### Run regression
+fit_bol_m2 <- glm(trans_rc ~ roads +
+                    dist_ag + dist_fire +
+                    fire_dens + field_res +
+                    ill_mine + tourism + pes +
+                    bol_cows,
+                  data = bol_dat_red_m2,
+                  family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_bol2_summ <- summary(fit_bol_m2)
+fit_bol2_coeff <- as.data.frame(fit_bol2_summ$coefficients)
+write.csv(fit_bol2_coeff, 
+          file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/analyses_aag/fit_bol_model2.csv")
+```
+
+### Model 3
+All standard variables and discourse analysis variables
+
+#### Check correlations
+Use df bol_dat_2
+```{r}
+### Make corr table
+cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat[, c(3:11, 
+                                                          13:21, 
+                                                          25, 26, 
+                                                          28)]))
+
+### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
+cor_table_bol <- subset(cor_table_bol, 
+                        abs(cor) > 0.66 & p <= 0.05)
+
+### Highly correlated variables
+### Distance to roads and cities (0.7254542)
+### Distance to roads and precip (0.6751290)
+### Poverty and soil moisture (0.7205976)
+### Poverty and distance to illegal mining (-0.8114084)
+### Soil moisture and distance to illegal mining (-0.9036921)
+### Elev and field research (-0.6948379)
+### Precip and field research (0.7440272)
+### Distance to mines and tourism (0.6684893)
+### Poverty and longitude (-0.7764958)
+### Soil moisture and longitude (-0.9706443)
+### Distance to illegal mining and longitude (0.9691501)
+### Precip and latitude (0.8522991)
+### Field research and latitude (0.7347974)
+
+### Drop distance to cities (distance to roads), precip (roads, latitude), poverty (soil moisture, illegal mining), soil moisture (illegal mining, longitude), distance to field research (elev, precip, latitude), distance to legal mines (tourism), longitude
+
+### Make updated dataset
+bol_dat_red_m3 <- bol_dat %>%
+  dplyr::select(-lon, -soil, -ppt,
+                -cities, -poverty,
+                -field_res, -mines)
+```
+
+#### Regression
+```{r}
+### Run regression
+fit_bol_m3 <- glm(trans_rc ~ aspect + slope + elev +
+                    roads + rivers +
+                    popdens + prot_status +
+                    crop_suit + 
+                    dist_ag + dist_fire +
+                    fire_dens + ill_mine + 
+                    tourism + pes +
+                    lat + bol_cows,
+                  data = bol_dat_red_m3,
+                  family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_bol3_summ <- summary(fit_bol_m3)
+fit_bol3_coeff <- as.data.frame(fit_bol3_summ$coefficients)
+write.csv(fit_bol3_coeff, 
+          file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/analyses_aag/fit_bol_model3.csv")
+```
+
+### Model 4
+Significant LUC variables + key DA variables:
+* crop suitability, poverty rate, latitude, protection status, slope, aspect, elevation, distance to roads, rivers, mines  
+* distance to northern and southern cities, fire perimeters, fire density, distance to roads, tourism, PES, cattle, land tenure
+
+
+### Assemble data and check for correlations
+```{r}
+### Select variables for this model
+bol_dat_4 <- bol_dat %>%
+  dplyr::select(uid, crop_suit, poverty, prot_status, slope, aspect,
+                elev, roads, mines, rivers, lat,
+                dist_fire, fire_dens, tourism, pes, bol_cows,
+                trans_rc)
+
+### Make corr table
+cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat_4[, c(2, 3, 5:14, 16)]))
+
+### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
+cor_table_bol <- subset(cor_table_bol, 
+                        abs(cor) > 0.66 & p <= 0.05)
+
+### Distance to legal mines correlated with distance to tourist sites (0.6684893)
+bol_dat_4 <- bol_dat_4 %>%
+  dplyr::select(-mines)
+```
+
+#### Regression
+```{r}
+### Run regression
+fit_bol_m4 <- glm(trans_rc ~ aspect + slope + elev +
+                    crop_suit + poverty +
+                    prot_status + roads + 
+                    rivers + lat +
+                    dist_fire +
+                    fire_dens + 
+                    tourism + pes +
+                    bol_cows,
+                  data = bol_dat_4,
+                  family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_bol4_summ <- summary(fit_bol_m4)
+fit_bol4_coeff <- as.data.frame(fit_bol4_summ$coefficients)
+write.csv(fit_bol4_coeff, 
+          file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/analyses_aag/fit_bol_model4.csv")
+```
+
+### Compare model performance
+```{r}
+### AIC
+AIC(fit_bol, fit_bol_m2,
+    fit_bol_m3, fit_bol_m4)
+
+### anova
+anova(fit_bol, fit_bol_m2,
+      fit_bol_m3, fit_bol_m4,
+      test = "Chisq")
+anova(fit_bol_m2, fit_bol_m3, test = "Chisq") ## 3 better than 2
+anova(fit_bol_m3, fit_bol_m4, test = "Chisq") ## 4 better than 3
+anova(fit_bol, fit_bol_m2, test = "Chisq")
+anova(fit_bol, fit_bol_m4, test = "Chisq")
+
+### Likelihood ratio test
+lrtest(fit_bol, fit_bol_m3)
+lrtest(fit_bol, fit_bol_m2)
+lrtest(fit_bol_m2, fit_bol)
+
+```
