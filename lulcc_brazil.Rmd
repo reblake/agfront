@@ -264,165 +264,97 @@ bra_dat <- bra_dat %>%
   mutate_each_(funs(factor(.)), fact_cols)
 ```
 
-### Check correlations
+### Check correlations 
+Restrict to points that did not change or points that converted to ag
 ```{r}
+### Restrict to transitions
+bra_dat_use <- bra_dat %>% 
+  filter(trans_rc == "1" | trans_rc == "0")
+
 ### Make corr table
-cor_table_bra <- flattenSquareMatrix(cor.prob(bra_dat[, c(2,3, 
-                                                          7:15,
-                                                          17:20,
-                                                          22:28, 30)]))
+cor_table_bra <- flattenSquareMatrix(cor.prob(bra_dat_use[, c(2, 3, 7:15, 17:20, 22:28, 30)]))
 
 ### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
 cor_table_bra <- subset(cor_table_bra, 
                         abs(cor) > 0.66 & p <= 0.05)
 
-### Dist to cities and ppt (-0.7663484)
-### Dist to cities and dist to illegal mines (0.6991763)
-### Dist to cities and dist to proposed dams (0.9130546)
-### Dist to illegal mines and dist to proposed dams (0.8404068)
-### Dist to field research and dist to proposed railroads (0.6812415)
-### Latitude and distance to cities (-0.9157438)
-### Latitude and ppt (0.9009197)
-### Latitude and distance to illegal mines (-0.8292653)
-### Latitude and distance to proposed dams (-0.9992623)
-### Longitude and distance to proposed RR (-0.7091224)
-### Population density and % non-allocated land (0.9796182)
-### Poverty rate and cattle (-0.9879367)
-### ppt and distance to illegal mines (-0.8431194)
-### ppt and distance to proposed dams (-0.9076312)
+### Dist to cities and ppt (-0.7652793)
+### Dist to cities and dist to illegal mines (0.6984386)
+### Dist to cities and dist to proposed dams (0.9130155)
+### Dist to illegal mines and dist to proposed dams (0.8400042)
+### Dist to field research and dist to proposed railroads (0.6804190)
+### Latitude and distance to cities (-0.9157189)
+### Latitude and ppt (0.9004597)
+### Latitude and distance to illegal mines (-0.8288546)
+### Latitude and distance to proposed dams (-0.9992643)
+### Longitude and distance to proposed RR (-0.7088395)
+### Population density and % non-allocated land (0.9796437)
+### Poverty rate and cattle (-0.9873546)
+### ppt and distance to illegal mines (-0.8428807)
+### ppt and distance to proposed dams (-0.9071610)
 ```
 
 ### Model 1
 Standard LUC variables only
 
-
 #### Regression
 ```{r}
+### Variables to drop due to correlations:
+### latitude
+### ppt
+
 ### Run regression
-fit_bol <- glm(trans_rc ~ aspect + slope + elev +
-                 roads + rivers + mines +
+fit_bra <- glm(trans_rc ~ aspect + slope + elev +
+                 roads + rivers + mines + cities +
                  crop_suit + popdens + poverty +
                  # (1|uid) +
-                 lat + prot_status,
-               data = bol_dat_red,
+                 soil + lon + prot_status,
+               data = bra_dat_use,
                family = binomial(link = "logit"))
 
 ### Write out coefficients
-fit_bol_summ <- summary(fit_bol)
-fit_bol_coeff <- as.data.frame(fit_bol_summ$coefficients)
-write.csv(fit_bol_coeff, 
-          file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/analyses_aag/fit_bol_model1.csv")
+fit_bra_summ <- summary(fit_bra)
+fit_bra_coeff <- as.data.frame(fit_bra_summ$coefficients)
+write.csv(fit_bra_coeff, 
+          file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/analyses_paper/fit_bra_model1.csv")
 ```
 
 ### Model 2
-Discourse analysis variables only
-
-#### Assemble datasets
-Extract values from rasterbricks to sample points
-```{r}
-# ### Open Bolivia rasterbrick, all layers
-# bol_layers_all <- brick("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bolivia_all_vars.tif")
-# 
-# ### Extract values to pts
-# bol_dat_2 <- extract(bol_layers_all, 
-#                       bol_pts_sp,
-#                       df = TRUE)
-# 
-# ### Rename columns
-# colnames(bol_dat_2) <- c("id", "aspect", "mines", 
-#                        "roads", "rivers", 
-#                        "cities", "elev", 
-#                        "popdens", "poverty", 
-#                        "ppt", "prot_status", 
-#                        "slope", "soil", 
-#                        "crop_suit", "dist_ag", 
-#                        "dist_fire", "fire_dens",
-#                        "ill_mine", "field_res",
-#                        "tourism", "pes")
-# 
-# ### Give it a uid
-# bol_dat_2$uid <- bol_pts_sp$uid
-# 
-# ### Merge with sf
-# bol_dat_2 <- merge(bol_dat_2, luc_bol_fa,
-#                  by = "uid")
-# 
-# ### Open cow raster (head of cattle per area)
-# cattle <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/discourse_analysis_final_layers/bol_cows.tif")
-# 
-# ### Extract cattle
-# bol_cattle <- extract(cattle, 
-#                       bol_pts_sp,
-#                       df = TRUE)
-# 
-# ### Give it a uid
-# bol_cattle$uid <- bol_pts_sp$uid
-# 
-# ### Merge with rest of data
-# bol_dat_2 <- merge(bol_dat_2, bol_cattle,
-#                  by = "uid")
-# 
-# ### Make column for transition/none
-# bol_dat_2 <- bol_dat_2 %>%
-#   mutate(transition = ifelse(lc_2018 == "2",
-#                              "no_change",
-#                              "change"),
-#          trans_rc = ifelse(transition == "no_change",
-#                            "0", "1"))
-# 
-# ### Make columns factor
-# fact_cols <- c("id", "prot_status", "pes", "lc_2008",
-#                "lc_2018", "trans_rc")
-# bol_dat_2 <- bol_dat_2 %>%
-#   mutate_each_(funs(factor(.)), fact_cols)
-# 
-# ### Drop variables I don't need for model 2
-# bol_dat_m2 <- bol_dat_2 %>%
-#   dplyr::select(-aspect, -slope, -elev,
-#                 -mines, -roads, -rivers,
-#                 -cities, -popdens, -poverty,
-#                 -ppt, -soil, -prot_status,
-#                 -crop_suit)
-```
-
-#### Check correlations
-Variables to include:
-```{r}
-### Make corr table
-cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat[, c(5, 16:21,
-                                                          25, 26, 28)]))
-
-### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
-cor_table_bol <- subset(cor_table_bol, 
-                        abs(cor) > 0.66 & p <= 0.05)
-
-### Highly correlated variables
-### Distance to illegal mines and longitude (0.9691501)
-### Distance to field research and latitude (0.7347974)
-
-### Drop lon and lat
-
-### Make updated dataset
-bol_dat_red_m2 <- bol_dat %>%
-  dplyr::select(-lon, -lat)
-```
+Discourse analysis variables only:
+* field research  
+* PADDD  
+* non-allocated land  
+* distance to illegal mining  
+* distance to ag  
+* distance to fires  
+* fire density  
+* distance to proposed railroads  
+* distance to proposed dams  
+* ag reform settlements  
+* head of cattle 
 
 #### Regression
+Need to drop some vars because of correlations:  
+* distance to field research (distance to proposed railroads)  
+* distance to proposed dams (distance to illegal mines)
 ```{r}
 ### Run regression
-fit_bol_m2 <- glm(trans_rc ~ roads +
-                    dist_ag + dist_fire +
-                    fire_dens + field_res +
-                    ill_mine + tourism + pes +
-                    bol_cows,
-                  data = bol_dat_red_m2,
+fit_bra_m2 <- glm(trans_rc ~ paddd + non_all_land +
+                    # field_res +
+                    dist_ill_mines +
+                    dist_ag + dist_fires +
+                    fire_dens + dist_pr_rr +
+                    # dist_pr_dams + 
+                    agref_sett +
+                    cattle,
+                  data = bra_dat_use,
                   family = binomial(link = "logit"))
 
 ### Write out coefficients
-fit_bol2_summ <- summary(fit_bol_m2)
-fit_bol2_coeff <- as.data.frame(fit_bol2_summ$coefficients)
-write.csv(fit_bol2_coeff, 
-          file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/analyses_aag/fit_bol_model2.csv")
+fit_bra2_summ <- summary(fit_bra_m2)
+fit_bra2_coeff <- as.data.frame(fit_bra2_summ$coefficients)
+write.csv(fit_bra2_coeff, 
+          file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/analyses_paper/fit_bra_model2.csv")
 ```
 
 ### Model 3
