@@ -1,0 +1,89 @@
+---
+title: "neighbor_pix"
+author: "Katherine Siegel"
+date: "January 26, 2021"
+output: html_document
+---
+
+## Description
+Calculate % of neighboring pixels that are a different land cover class. Use subset of Brazil first to figure it out.
+
+## Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Open packages
+library(tidyverse)
+library(sf)
+library(raster)
+library(sp)
+library(rgdal)
+# library(lulcc)
+# library(gsubfn)
+# library(caret)
+library(landscapemetrics)
+
+#### Function to check correlation
+cor.prob <- function (X, dfr = nrow(X) - 2) {
+  R <- cor(X, use="pairwise.complete.obs")
+  above <- row(R) < col(R)
+  r2 <- R[above]^2
+  Fstat <- r2 * dfr/(1 - r2)
+  R[above] <- 1 - pf(Fstat, 1, dfr)
+  R[row(R) == col(R)] <- NA
+  R
+}
+flattenSquareMatrix <- function(m) {
+  if( (class(m) != "matrix") | (nrow(m) != ncol(m))) stop("Must be a square matrix.") 
+  if(!identical(rownames(m), colnames(m))) stop("Row and column names must be equal.")
+  ut <- upper.tri(m)
+  data.frame(i = rownames(m)[row(m)[ut]],
+             j = rownames(m)[col(m)[ut]],
+             cor=t(m)[ut],
+             p=m[ut])
+}
+```
+
+### Try with sample data
+```{r}
+### Open data
+bra_samp <- raster("D:/dinamica/brazil_simple/data/bra_sample.tif")
+
+### Set moving window
+moving_window <- matrix(1, nrow = 3, ncol = 3)
+
+### Test
+test_result <- window_lsm(bra_samp,
+                          window = moving_window,
+                          what = c("lsm_l_pr"))
+### Where the lsm_l_pr value = 1, 100% of surrounding pixels are the same as the focal pixel 
+
+### Try adjacencies
+adj <- get_adjacencies(bra_samp, 8, "full")
+```
+
+#### Try ArcMap method in R
+```{r}
+### Make pt at center of each pixel
+pts <- rasterToPoints(bra_samp,
+                      fun = function(x){x==2},
+                      spatial = TRUE)
+
+### Convert to sf and set crs
+pts <- st_as_sf(pts)
+st_crs(pts) <- crs(bra_samp)
+
+### Make uid for pts
+pts$uid <- 1:nrow(pts)
+
+### Buffer pts
+pts_buff <- st_buffer(pts, 42.427)
+
+### Intersect pts
+pts_inter <- st_intersection(pts_buff, pts)
+
+### Drop rows where uid = uid.1, 1479914
+pts_inter <- pts_inter %>%
+  filter(!(uid == uid.1))
+```
+
