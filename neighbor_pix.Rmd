@@ -44,7 +44,36 @@ flattenSquareMatrix <- function(m) {
 }
 ```
 
-### Try with sample data
+### Owen's method
+```{r}
+### Open data
+bra_samp <- raster("bra_sample.tif")
+
+### Function to calculate % neighbors of different types
+percent_different_neighbors <- function(cell) {
+  # pull neighboring values
+  # see ?adjacent for the arguments used here
+  x <- getValues(bra_samp)[adjacent(bra_samp, 
+                                    cells = cell, 
+                                    directions = 8, 
+                                    pairs = F, 
+                                    include = T)]
+  # calculate the percent of them that are not equal to the focal cell (i.e., not equal to the first value of x)
+  perc_diff <- sum(x!=x[1])/(length(x)-1)*100
+  return(perc_diff)
+}
+
+### Run on sample matrix: apply function to each cell
+perc_diff_values <- map_dbl(1:ncell(bra_samp),
+                            ~percent_different_neighbors(.))
+
+# then make a new raster with the cells
+perc_diff_raster <- bra_samp %>% setValues(perc_diff_values)
+plot(bra_samp)
+plot(perc_diff_raster)
+```
+
+#### Try moving window method
 ```{r}
 ### Open data
 bra_samp <- raster("D:/dinamica/brazil_simple/data/bra_sample.tif")
@@ -64,9 +93,12 @@ adj <- get_adjacencies(bra_samp, 8, "full")
 
 #### Try ArcMap method in R
 ```{r}
+### Open data
+bra_samp <- raster("D:/dinamica/brazil_simple/data/bra_sample.tif")
+
 ### Make pt at center of each pixel
 pts <- rasterToPoints(bra_samp,
-                      fun = function(x){x==2},
+                      # fun = function(x){x<8},
                       spatial = TRUE)
 
 ### Convert to sf and set crs
@@ -82,8 +114,34 @@ pts_buff <- st_buffer(pts, 42.427)
 ### Intersect pts
 pts_inter <- st_intersection(pts_buff, pts)
 
-### Drop rows where uid = uid.1, 1479914
+### Drop rows where uid = uid.1, 1961398
 pts_inter <- pts_inter %>%
   filter(!(uid == uid.1))
+
+### Summarize
+pts_summ <- pts_inter
+st_geometry(pts_summ) <- NULL
+pts_summ <- pts_summ %>%
+  dplyr::select(uid, lc_pixel = bra_sample,
+                lc_surround = bra_sample.1,
+                uid.1)
+pts_summ <- pts_summ %>%
+  group_by(uid, lc_pixel, lc_surround) %>%
+  summarise(n_pixels = n())
+
+### Number of adjacent pixels per pixel
+pts_per_pix <- pts_summ %>%
+  group_by(uid) %>%
+  summarize(n_adj_pix = sum(n_pixels))
+
+### Merge in
+pts_summ <- merge(pts_summ, pts_per_pix,
+                  by = "uid")
+
+### Calc %
+pts_summ <- pts_summ %>%
+  mutate(pct_surround = n_pixels/n_adj_pix)
+
+
 ```
 

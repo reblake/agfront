@@ -240,6 +240,15 @@ bra_dat_all <- bra_dat_all %>%
 ### Write out sample pts
 st_write(bra_dat_all,
          "D:/dinamica/sample_pts_model/brazil_f_data.shp")
+```
+
+#### Add factor cols
+```{r}
+### Open file
+bra_dat_all <- st_read("D:/dinamica/sample_pts_model/brazil_f_data.shp")
+
+### Rename columns
+
 
 ### Drop geom for regressions
 bra_dat <- bra_dat_all
