@@ -21,7 +21,7 @@ library(rgdal)
 # library(lulcc)
 # library(gsubfn)
 # library(caret)
-library(landscapemetrics)
+# library(landscapemetrics)
 
 #### Function to check correlation
 cor.prob <- function (X, dfr = nrow(X) - 2) {
