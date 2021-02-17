@@ -21,7 +21,7 @@ library(rgdal)
 # library(lulcc)
 # library(gsubfn)
 # library(caret)
-library(landscapemetrics)
+# library(landscapemetrics)
 
 #### Function to check correlation
 cor.prob <- function (X, dfr = nrow(X) - 2) {
@@ -45,6 +45,7 @@ flattenSquareMatrix <- function(m) {
 ```
 
 ### Owen's method
+#### Brazil
 ```{r}
 ### Open data
 bra_samp <- raster("bra_sample.tif")
@@ -73,7 +74,42 @@ plot(bra_samp)
 plot(perc_diff_raster)
 ```
 
-#### Try moving window method
+#### Peru
+```{r}
+### Open raster
+peru_map <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/classi_per_dry_2008_102033.tif")
+
+### Open raster-->pt from ArcMap
+peru_pts <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/peru_pts.shp")
+
+### Function to calculate % neighbors of different types
+percent_different_neighbors <- function(cell) {
+  # pull neighboring values
+  # see ?adjacent for the arguments used here
+  x <- getValues(peru_map)[adjacent(peru_map, 
+                                    cells = cell, 
+                                    directions = 8, 
+                                    pairs = F, 
+                                    include = T)]
+  # calculate the percent of them that are not equal to the focal cell (i.e., not equal to the first value of x)
+  perc_diff <- sum(x!=x[1])/(length(x)-1)*100
+  return(perc_diff)
+}
+
+### Run on sample matrix: apply function to each cell
+perc_diff_values <- map_dbl(1:ncell(peru_map),
+                            ~percent_different_neighbors(.))
+  
+
+# then make a new raster with the cells
+perc_diff_raster <- bra_samp %>% setValues(perc_diff_values)
+plot(bra_samp)
+plot(perc_diff_raster)
+
+```
+
+
+### Try moving window method
 ```{r}
 ### Open data
 bra_samp <- raster("D:/dinamica/brazil_simple/data/bra_sample.tif")
@@ -91,7 +127,7 @@ test_result <- window_lsm(bra_samp,
 adj <- get_adjacencies(bra_samp, 8, "full")
 ```
 
-#### Try ArcMap method in R
+### Try ArcMap method in R
 ```{r}
 ### Open data
 bra_samp <- raster("D:/dinamica/brazil_simple/data/bra_sample.tif")
