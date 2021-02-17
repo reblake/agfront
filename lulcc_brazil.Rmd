@@ -18,9 +18,9 @@ library(sf)
 library(raster)
 library(sp)
 library(rgdal)
-library(lulcc)
-library(gsubfn)
-library(caret)
+# library(lulcc)
+# library(gsubfn)
+# library(caret)
 
 #### Function to check correlation
 cor.prob <- function (X, dfr = nrow(X) - 2) {
@@ -57,6 +57,24 @@ Create stack with 2008 and 2018 maps, read it in
 # obs_change <- crossTabulate(x = obs_lc,
 #                             times = c(0, 10))
 ```
+
+## Transition change prob
+```{r}
+### Open rasters
+bra08 <- raster("/nfs/agfrontiers-data/Remote Sensing/classified_layers/Classified_SR/BRA/classi_BRA_dry_2008.tif")
+bra18 <- raster("/nfs/agfrontiers-data/Remote Sensing/classified_layers/Classified_SR/BRA/classi_BRA_dry_2018.tif")
+
+### Change
+luc <- data.frame(lc08 = values(bra08),
+                  lc18 = values(bra18))
+
+### Raw tally matrix of change
+mat <- table(luc[, c('lc08', 'lc18')])
+
+### See as table
+kable(mat, format = "pandoc", caption = "Counts of land cover/use changes from 2018 (rows) to 2018 (columns)")
+```
+
 
 ## Steps from 2020 AAG Presentation
 Regression models for different sets of variables for Brazil
