@@ -3,6 +3,11 @@
 ### Load libraries
 library(tidyverse)
 library(raster)
+library(furrr) # For parallelization.
+
+# Set up parallel with furrr.
+options(mc.cores = 8) # There are eight cores on a slurm node.
+plan(multicore) # Specify that the job will be run in parallel across multiple cores.
 
 ### Open data
 boliv <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bol_dry_2008_102033.tif")
@@ -25,8 +30,9 @@ percent_different_neighbors <- function(cell, r, r_values) {
 }
 
 ### Run on sample matrix: apply function to each cell
-perc_diff_values <- map_dbl(1:ncell(boliv),
-                            ~percent_different_neighbors(., r = boliv, r_values = b_values))
+# map_dbl is replaced with its parallel version future_map_dbl.
+perc_diff_values <- future_map_dbl(1:ncell(boliv),
+                                   ~percent_different_neighbors(., r = boliv, r_values = b_values))
 
 ### Make a new raster with the cells
 perc_diff_raster <- boliv %>% setValues(perc_diff_values)
