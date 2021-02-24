@@ -370,6 +370,10 @@ st_geometry(bra_neigh_df) <- NULL
 bra_dat_all <- merge(bra_data_df, bra_neigh_df,
                      by = c("uid", "lon", "lat", "lc_2008", "lc_2018"),
                      all.x = TRUE)
+
+### Write out sample pts
+st_write(bra_dat_all,
+         "/nfs/agfrontiers-data/luc_model/brazil_data_for_model.shp")
 ```
 
 #### Add factor cols
@@ -432,15 +436,15 @@ Standard LUC variables only
 #### Regression
 ```{r}
 ### Variables to drop due to correlations:
-### latitude
+### latitude, longitude (dropped because don't have mechanism)
 ### ppt
 
 ### Run regression
 fit_bra <- glm(trans_rc ~ aspect + slope + elev +
                  roads + rivers + mines + cities +
                  crop_suit + popdens + poverty +
-                 # (1|uid) +
-                 soil + perc_diff + lon + prot_status,
+                 # (1|uid) + lon +
+                 soil + perc_diff + prot_status,
                data = bra_dat_use,
                family = binomial(link = "logit"))
 
@@ -496,8 +500,8 @@ All standard variables and discourse analysis variables
 fit_bra_m3 <- glm(trans_rc ~ aspect + slope + elev +
                  roads + rivers + mines + cities +
                  crop_suit + popdens + poverty +
-                 # (1|uid) +
-                 soil + perc_diff + lon + prot_status +
+                 # (1|uid) + lon +
+                 soil + perc_diff + prot_status +
                    paddd + non_all_land +
                     # field_res +
                     dist_ill_mines +
@@ -524,7 +528,7 @@ Model 2 vars: PADDD, non-allocated public land, dist to fire, fire density, prop
 ### Run regression
 fit_bra_m4 <- glm(trans_rc ~ slope + elev +
                  roads + rivers + mines + 
-                 crop_suit + soil + perc_diff + lon + prot_status +
+                 crop_suit + soil + perc_diff + prot_status +
                    paddd + non_all_land +
                     dist_ag + dist_fires +
                     fire_dens + dist_pr_rr +
@@ -538,131 +542,47 @@ fit_bra4_coeff <- as.data.frame(fit_bra4_summ$coefficients)
 write.csv(fit_bra3_coeff, 
           file = "/nfs/agfrontiers-data/luc_model/fit_bra_model4.csv")
 ```
-
-#### Check correlations
-Use df bol_dat_2
-```{r}
-### Make corr table
-cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat[, c(3:11, 
-                                                          13:21, 
-                                                          25, 26, 
-                                                          28)]))
-
-### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
-cor_table_bol <- subset(cor_table_bol, 
-                        abs(cor) > 0.66 & p <= 0.05)
-
-### Highly correlated variables
-### Distance to roads and cities (0.7254542)
-### Distance to roads and precip (0.6751290)
-### Poverty and soil moisture (0.7205976)
-### Poverty and distance to illegal mining (-0.8114084)
-### Soil moisture and distance to illegal mining (-0.9036921)
-### Elev and field research (-0.6948379)
-### Precip and field research (0.7440272)
-### Distance to mines and tourism (0.6684893)
-### Poverty and longitude (-0.7764958)
-### Soil moisture and longitude (-0.9706443)
-### Distance to illegal mining and longitude (0.9691501)
-### Precip and latitude (0.8522991)
-### Field research and latitude (0.7347974)
-
-### Drop distance to cities (distance to roads), precip (roads, latitude), poverty (soil moisture, illegal mining), soil moisture (illegal mining, longitude), distance to field research (elev, precip, latitude), distance to legal mines (tourism), longitude
-
-### Make updated dataset
-bol_dat_red_m3 <- bol_dat %>%
-  dplyr::select(-lon, -soil, -ppt,
-                -cities, -poverty,
-                -field_res, -mines)
-```
-
-#### Regression
-```{r}
-### Run regression
-fit_bol_m3 <- glm(trans_rc ~ aspect + slope + elev +
-                    roads + rivers +
-                    popdens + prot_status +
-                    crop_suit + 
-                    dist_ag + dist_fire +
-                    fire_dens + ill_mine + 
-                    tourism + pes +
-                    lat + bol_cows,
-                  data = bol_dat_red_m3,
-                  family = binomial(link = "logit"))
-
-### Write out coefficients
-fit_bol3_summ <- summary(fit_bol_m3)
-fit_bol3_coeff <- as.data.frame(fit_bol3_summ$coefficients)
-write.csv(fit_bol3_coeff, 
-          file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/analyses_aag/fit_bol_model3.csv")
-```
-
-### Model 4
-Significant LUC variables + key DA variables:
-* crop suitability, poverty rate, latitude, protection status, slope, aspect, elevation, distance to roads, rivers, mines  
-* distance to northern and southern cities, fire perimeters, fire density, distance to roads, tourism, PES, cattle, land tenure
-
-
-### Assemble data and check for correlations
-```{r}
-### Select variables for this model
-bol_dat_4 <- bol_dat %>%
-  dplyr::select(uid, crop_suit, poverty, prot_status, slope, aspect,
-                elev, roads, mines, rivers, lat,
-                dist_fire, fire_dens, tourism, pes, bol_cows,
-                trans_rc)
-
-### Make corr table
-cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat_4[, c(2, 3, 5:14, 16)]))
-
-### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
-cor_table_bol <- subset(cor_table_bol, 
-                        abs(cor) > 0.66 & p <= 0.05)
-
-### Distance to legal mines correlated with distance to tourist sites (0.6684893)
-bol_dat_4 <- bol_dat_4 %>%
-  dplyr::select(-mines)
-```
-
-#### Regression
-```{r}
-### Run regression
-fit_bol_m4 <- glm(trans_rc ~ aspect + slope + elev +
-                    crop_suit + poverty +
-                    prot_status + roads + 
-                    rivers + lat +
-                    dist_fire +
-                    fire_dens + 
-                    tourism + pes +
-                    bol_cows,
-                  data = bol_dat_4,
-                  family = binomial(link = "logit"))
-
-### Write out coefficients
-fit_bol4_summ <- summary(fit_bol_m4)
-fit_bol4_coeff <- as.data.frame(fit_bol4_summ$coefficients)
-write.csv(fit_bol4_coeff, 
-          file = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/analyses_aag/fit_bol_model4.csv")
-```
-
 ### Compare model performance
 ```{r}
 ### AIC
-AIC(fit_bol, fit_bol_m2,
-    fit_bol_m3, fit_bol_m4)
+AIC(fit_bra, fit_bra_m2,
+    fit_bra_m3, fit_bra_m4) ### Model 3 has lowest AIC
 
 ### anova
-anova(fit_bol, fit_bol_m2,
-      fit_bol_m3, fit_bol_m4,
+anova(fit_bra, fit_bra_m2,
+      fit_bra_m3, fit_bra_m4,
       test = "Chisq")
-anova(fit_bol_m2, fit_bol_m3, test = "Chisq") ## 3 better than 2
-anova(fit_bol_m3, fit_bol_m4, test = "Chisq") ## 4 better than 3
-anova(fit_bol, fit_bol_m2, test = "Chisq")
-anova(fit_bol, fit_bol_m4, test = "Chisq")
-
-### Likelihood ratio test
-lrtest(fit_bol, fit_bol_m3)
-lrtest(fit_bol, fit_bol_m2)
-lrtest(fit_bol_m2, fit_bol)
-
+anova(fit_bra_m2, fit_bra_m3, test = "Chisq") ## 3 better than 2
+anova(fit_bra_m3, fit_bra_m4, test = "Chisq") ## 4 better than 3
+anova(fit_bra, fit_bra_m2, test = "Chisq")
+anova(fit_bra, fit_bra_m4, test = "Chisq") ## 4 better than 1
 ```
+
+## Brick with 2018 neighbors
+```{r}
+### Open rasterbrick
+bra_layers_all <- brick("/nfs/agfrontiers-data/luc_model/brazil_all_layers.tif")
+
+### Rename columns
+names(bra_layers_all) <- c("aspect", "mines", 
+                           "roads", "rivers", 
+                           "cities", "elev", 
+                           "popdens", "poverty", 
+                           "ppt", "prot_status", 
+                           "slope", "soil", 
+                           "crop_suit", "field_res",
+                           "paddd", "non_all_land",
+                           "dist_ill_mines", "dist_ag",
+                           "dist_fires", "fire_dens",
+                           "dist_pr_rr",
+                           "dist_pr_dams",
+                           "agref_sett", "cattle")
+
+### Open 2018 percent of neighboring pixels raster
+neigh_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/bra18_perc_diff.tif")
+
+### Brick with the others
+bra_18_all <- addLayer(bra_layers_all, neigh_2018)
+names(bra_18_all)[25] <- "perc_diff"
+```
+
