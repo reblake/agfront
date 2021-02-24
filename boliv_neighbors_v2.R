@@ -7,7 +7,10 @@ library(raster)
 ### Open data
 # boliv <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bol_dry_2008_102033.tif")
 # brazi <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2008_102033.tif")
-peru <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2008_102033.tif")
+# peru <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2008_102033.tif")
+# peru18 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2018_102033.tif")
+# boliv18 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bol_dry_2018_102033.tif")
+brazi18 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2018_102033.tif")
 
 ### Define function taking the raster as input.
 # All mapping across cells is internal in the function so the function only needs to be run once.
@@ -43,11 +46,11 @@ percent_different_neighbors <- function(r) {
 
 ### Call the function on the boliv raster
 # perc_diff_values <- percent_different_neighbors(boliv)
-perc_diff_values <- percent_different_neighbors(peru)
+perc_diff_values <- percent_different_neighbors(brazi18)
 
 ### Make a new raster with the cells
 # perc_diff_raster <- setValues(boliv, perc_diff_values)
-perc_diff_raster <- setValues(peru, perc_diff_values)
+perc_diff_raster <- setValues(brazi18, perc_diff_values)
 
 # writeRaster(perc_diff_raster, 
 #             filename = "/nfs/agfrontiers-data/Remote Sensing/KS files/bol_perc_diff.tiff",
@@ -59,7 +62,22 @@ perc_diff_raster <- setValues(peru, perc_diff_values)
 #             format = "GTiff",
 #             overwrite = TRUE)
 
-writeRaster(perc_diff_raster, 
-            filename = "/nfs/agfrontiers-data/Remote Sensing/KS files/per_perc_diff.tiff",
+# writeRaster(perc_diff_raster, 
+#             filename = "/nfs/agfrontiers-data/Remote Sensing/KS files/per_perc_diff.tiff",
+#             format = "GTiff",
+#             overwrite = TRUE)
+
+# writeRaster(perc_diff_raster, 
+#             filename = "/nfs/agfrontiers-data/Remote Sensing/KS files/per18_perc_diff.tiff",
+#             format = "GTiff",
+#             overwrite = TRUE)
+
+# writeRaster(perc_diff_raster,
+#             filename = "/nfs/agfrontiers-data/Remote Sensing/KS files/bol18_perc_diff.tiff",
+#             format = "GTiff",
+#             overwrite = TRUE)
+
+writeRaster(perc_diff_raster,
+            filename = "/nfs/agfrontiers-data/Remote Sensing/KS files/bra18_perc_diff.tiff",
             format = "GTiff",
             overwrite = TRUE)
