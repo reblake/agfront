@@ -43,6 +43,9 @@ jambuf_pepe <- st_buffer(jambuf, dist = 3000)
 ### Open raster
 jm_2008 <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/classi_bra_dry_2008_102033.tif")
 
+### Open 4326 raster
+jm_2008_4326 <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/classi_BRA_dry_2008.tif")
+
 ### Municipios
 braz <- getData("GADM", country = "BRA", level = 2) %>%
   st_as_sf() %>%
@@ -494,29 +497,45 @@ writeRaster(dist_ill_min_resample,
 File from Eva (GEE), reprojected to 102033 in gdal
 ```{r}
 ### Open raster
-precip <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/ppt_jaman_102033.tif")
+# precip <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/ppt_jaman_102033.tif")
+precip <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/PPTJaman.tif")
 
 ### Resample to match ambcar raster
 precip_resample <- raster::resample(precip, 
-                                    jm_2008, 
+                                    jm_2008_4326, 
                                     "bilinear")
 
-### Save output rasters to folder
+### Save raster to reproject in gdal
 writeRaster(precip_resample,
-            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_ppt.tiff",
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/ppt_jaman_resamp.tiff",
             format = "GTiff",
             overwrite = TRUE)
+
+# ### Save output rasters to folder
+# writeRaster(precip_resample,
+#             filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/bra_ppt.tiff",
+#             format = "GTiff",
+#             overwrite = TRUE)
 ```
 
 ## Soil moisture
 ```{r}
 ### Open raster
-soil <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/sm_jaman_102033.tif")
+# soil <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/sm_jaman_102033.tif")
+soil <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/SMJaman.tif")
 
 ### Resample to match ambcar raster
 soil_resample <- raster::resample(soil, 
-                                  jm_2008, 
+                                  jm_2008_4326, 
                                   "bilinear")
+
+### Save output rasters to folder
+writeRaster(soil_resample,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/sm_jaman_resamp.tiff",
+            format = "GTiff",
+            overwrite = TRUE)
+
+sm_rpj
 
 ### Save output rasters to folder
 writeRaster(soil_resample,
@@ -999,9 +1018,9 @@ rivers <- raster("D:/dinamica/brazil_simple/data/bra_dist_rios_resample.tif")
 roads <- raster("D:/dinamica/brazil_simple/data/bra_osm_dist_resample.tif")
 popdens <- raster("D:/dinamica/brazil_simple/data/bra_pd_resample.tif")
 poverty <- raster("D:/dinamica/brazil_simple/data/bra_pov_rate.tif")
-ppt <- raster("D:/dinamica/brazil_simple/data/bra_ppt.tif")
+ppt <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/ppt_jaman_102033.tif")
 prot_status <- raster("D:/dinamica/brazil_simple/data/bra_prot_status.tif")
-soil <- raster("D:/dinamica/brazil_simple/data/bra_soil.tif")
+soil <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/sm_jaman_102033.tif")
 elev <- raster("D:/dinamica/brazil_simple/data/dem_jaman_102033.tif")
 slope <- raster("D:/dinamica/brazil_simple/data/slope_jaman.tif")
 
@@ -1104,3 +1123,51 @@ writeRaster(da_only,
             overwrite = TRUE, 
             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
 ```
+
+#### Redo for precip and soil moisture
+```{r}
+### Open resampled and projected precip and soil
+jm_precip <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/ppt_jaman_102033.tif")
+jm_soil <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/sm_jaman_102033.tif")
+
+### Open brick with all variables, plus % different neighboring pixels
+bra_all <- brick("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/analyses_paper/bra18_all_data_w_perc_diff.tif")
+
+### Name layers
+names(bra_all) <- c("aspect", "mines", 
+                    "roads", "rivers", 
+                    "cities", "elev", 
+                    "popdens", "poverty", 
+                    "ppt", "prot_status", 
+                    "slope", "soil", 
+                    "crop_suit", "field_res",
+                    "paddd", "non_all_land",
+                    "dist_ill_mines", "dist_ag",
+                    "dist_fires", "fire_dens",
+                    "dist_pr_rr",
+                    "dist_pr_dams",
+                    "agref_sett", "cattle",
+                    "perc_diff")
+
+### Drop precip and soil
+bra_all <- dropLayer(bra_all, c(9, 12))
+
+### Add soil to brick
+bra_all <- addLayer(bra_all, jm_soil)
+
+### Precip is highly correlated anyway, so drop it since can't get extents to match
+
+### Back to brick
+bra_all <- brick(bra_all)
+
+### Write out brick
+writeRaster(bra_all, 
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/brazil_da_vars_soil.tif", 
+            format = "GTiff",
+            overwrite = TRUE, 
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+
+
+```
+
