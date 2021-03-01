@@ -372,8 +372,8 @@ bra_dat_all <- merge(bra_data_df, bra_neigh_df,
                      all.x = TRUE)
 
 ### Write out sample pts
-st_write(bra_dat_all,
-         "/nfs/agfrontiers-data/luc_model/brazil_data_for_model.shp")
+write_csv(bra_dat_all,
+         "/nfs/agfrontiers-data/luc_model/brazil_data_for_model.csv")
 ```
 
 #### Add factor cols
