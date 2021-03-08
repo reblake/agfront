@@ -576,6 +576,53 @@ writeRaster(pes_resample,
             overwrite = TRUE)
 ```
 
+## Land tenure
+Files from Edwin
+
+### Fix invalid geoms in shapefiles
+```{r}
+### Open file
+file1 <- st_read("E:/bol_landtenure/INRA_2_1/tierra_fiscal_2013.shp")
+
+### Fix invalid geoms
+file1 <- st_make_valid(file1)
+
+### Open buffer
+buff <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/ambcar_4326.shp")
+
+### Fix projections
+buff <- st_transform(buff, 
+                     crs = st_crs(file1))
+
+### Crop
+file1 <- st_intersection(file1, buff)
+
+### Write out
+# st_write(file1, 
+#          "E:/bol_landtenure/INRA_1/TITULADOS_20_valid.shp")
+# st_write(file1, 
+#          "E:/bol_landtenure/INRA_2_1/a_Predios_Titulados_20_valid.shp")
+# st_write(file1, 
+#          "E:/bol_landtenure/INRA_2_1/cochabamba_valid.shp")
+# st_write(file1, 
+#          "E:/bol_landtenure/INRA_2_1/PANDO_Proceso_valid.shp")
+# st_write(file1,
+#          "E:/bol_landtenure/INRA_2_1/pred_proces_2013_valid.shp")
+# st_write(file1,
+#          "E:/bol_landtenure/INRA_2_1/pred_proces_ene_2012_valid.shp")
+# st_write(file1,
+#          "E:/bol_landtenure/INRA_2_1/PREDIOS_20_valid.shp")
+# st_write(file1,
+#          "E:/bol_landtenure/INRA_2_1/PROCESO_z20_dicimebre_2014_2_valid.shp")
+# st_write(file1,
+#          "E:/bol_landtenure/INRA_2_1/PROCESO_z20_dicimebre_2014_3_valid.shp")
+# st_write(file1,
+#          "E:/bol_landtenure/INRA_2_1/santacruz_valid.shp")
+st_write(file1,
+         "E:/bol_landtenure/INRA_2_1/tierra_fiscal_2013_valid.shp")
+
+```
+
 
 ## Raster stacks
 ### Bolivia simple
