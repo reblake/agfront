@@ -1,0 +1,505 @@
+---
+title: "lulcc_peru"
+output: html_document
+---
+## Description
+Play with LUC models in Brazil
+
+## Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Open packages
+library(tidyverse)
+library(sf)
+library(raster)
+library(sp)
+library(rgdal)
+# library(lulcc)
+# library(gsubfn)
+# library(caret)
+
+#### Function to check correlation
+cor.prob <- function (X, dfr = nrow(X) - 2) {
+  R <- cor(X, use="pairwise.complete.obs")
+  above <- row(R) < col(R)
+  r2 <- R[above]^2
+  Fstat <- r2 * dfr/(1 - r2)
+  R[above] <- 1 - pf(Fstat, 1, dfr)
+  R[row(R) == col(R)] <- NA
+  R
+}
+flattenSquareMatrix <- function(m) {
+  if( (class(m) != "matrix") | (nrow(m) != ncol(m))) stop("Must be a square matrix.") 
+  if(!identical(rownames(m), colnames(m))) stop("Row and column names must be equal.")
+  ut <- upper.tri(m)
+  data.frame(i = rownames(m)[row(m)[ut]],
+             j = rownames(m)[col(m)[ut]],
+             cor=t(m)[ut],
+             p=m[ut])
+}
+```
+
+## Transition change prob
+```{r}
+### Peru
+### Open rasters
+per08 <- raster("/nfs/agfrontiers-data/Remote Sensing/classified_layers/Classified_SR/PER/classi_PER_dry_2008.tif")
+per18 <- raster("/nfs/agfrontiers-data/Remote Sensing/classified_layers/Classified_SR/PER/classi_PER_dry_2018.tif")
+
+### Change
+luc <- data.frame(lc08 = values(per08),
+                  lc18 = values(per18))
+
+### Raw tally matrix of change
+mat <- table(luc[, c('lc08', 'lc18')])
+
+### See as table
+# kable(mat, format = "pandoc", caption = "Counts of land cover/use changes from 2018 (rows) to 2018 (columns)")
+
+### Calculate probabilities
+p_mat <- as.matrix(mat/rowSums(mat))
+p_mat <- round(p_mat, 3)
+# kable(p_mat, format = "pandoc", caption = "Transition probability matrix of land cover/use changes from 2018 (rows) to 2018 (columns)")
+p_mat_df <- as.data.frame(p_mat)
+write.csv(p_mat_df, 
+          "/nfs/agfrontiers-data/luc_model/peru_luc_matrix.csv")
+```
+
+## Sample on grid
+```{r}
+### Open buffer polygon
+per_buff <- st_read("/nfs/agfrontiers-data/Case Study Info/peru_buff_final.shp") %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+
+### Make sampling grid, point every 1 km
+per_samples <- per_buff %>%
+  
+  ### Make samples (every 300 m)
+  st_make_grid(cellsize = c(300, 300),
+               what = "centers") %>%
+  
+  ### Convert to sf
+  st_sf() %>%
+  
+  ### Add identifiers
+  mutate(lon = st_coordinates(.)[, 1],
+         lat = st_coordinates(.)[, 2])
+
+### Add UID
+per_samples$uid <- 1:nrow(per_samples)
+
+### Open brazil 2008 map
+per_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2008_102033.tif")
+
+### Extract land cover type to sample points
+per_samples_2008 <- raster::extract(per_2008, 
+                                    per_samples, 
+                                    df = TRUE)
+
+### See how many were forest in 2008
+p_2008_summ <- per_samples_2008 %>%
+  group_by(classi_per_dry_2008_102033) %>%
+  summarise(n_per_class = n())
+### 0 = no data, 1 = agriculture, 2 = forest, 3 = bare soil, 4 = urban, 5 = wetland, 6 = desert, and 7 = water
+### 246146 forested points in 2008
+
+### Add uid back in
+per_samples_2008$uid <- per_samples$uid
+
+### Merge bra_samples_2008 with bra_samples
+per_samples <- merge(per_samples, 
+                     per_samples_2008,
+                     by = "uid")
+rm(per_samples_2008)
+
+### Subset to forested points
+per_forest_samp <- per_samples %>%
+  subset(classi_per_dry_2008_102033 == "2")
+
+### Rename cols
+per_forest_samp <- per_forest_samp %>%
+  dplyr::select(uid, lon, lat, 
+                lc_2008 = classi_per_dry_2008_102033)
+
+### Open peru 2018 map
+per_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2018_102033.tif")
+
+### Extract 2018 land cover class
+luc_per <- raster::extract(per_2018, 
+                           per_forest_samp, 
+                           df = TRUE)
+
+### Add UID and merge with sf
+luc_per$uid <- per_forest_samp$uid
+luc_per <- merge(per_forest_samp, 
+                 luc_per,
+                 by = "uid")
+
+### Rename cols
+luc_per <- luc_per %>%
+  dplyr::select(uid, lon, lat, 
+                lc_2008,
+                lc_2018 = classi_per_dry_2018_102033,
+                geometry)
+
+### Write out sample pts
+st_write(luc_per,
+         "/nfs/agfrontiers-data/luc_model/per_sample_pts.shp")
+
+### Summarize transitions
+luc_per_summ <- luc_per %>%
+  group_by(lc_2018) %>%
+  summarise(n_transitions = n())
+luc_per_summ <- luc_per_summ %>%
+  mutate(portion_pts = n_transitions/246146*100)
+
+### 99.7% of forested points remained in forest cover
+### 0.13% converted from forest to ag
+### 0.07% converted from forest to bare soil
+### 0.02% converted from forest to urban
+### <0.01% converted from forest to wetland or desert
+### 0.10% converted from forest to water
+
+### Drop intermediate dfs/rasters
+rm(per_2008, per_2018, per_buff, per_samples)
+```
+
+### Extract neighborhood values to pts
+```{r}
+### Open sample pts
+per_pts <- st_read("/nfs/agfrontiers-data/luc_model/per_sample_pts.shp")
+
+### Open brazil neighbor pts raster
+per_neigh <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/per_perc_diff.tif")
+
+### Extract neighborhood pixel values to brazil pts
+per_neigh_dat <- extract(per_neigh, 
+                         per_pts,
+                         df = TRUE)
+
+### Give it a uid
+per_neigh_dat$uid <- per_pts$uid
+
+### Merge with sf
+per_neigh_dat <- merge(per_pts,
+                       per_neigh_dat,
+                       by = "uid")
+
+### Write it out
+st_write(per_neigh_dat,
+         "/nfs/agfrontiers-data/luc_model/per_forest_neighs.shp")
+```
+
+### UIDs of points with complete data
+```{r}
+# ### Open sample points
+# luc_bra <- st_read("D:/dinamica/sample_pts_model/bra_forest.shp")
+# 
+### Open rasterbrick, all layers
+# bra_layers_all <- brick("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/brazil_all_layers.tif")
+per_layers_all <- brick("/nfs/agfrontiers-data/luc_model/per_all_layers.tif")
+
+### Extract values to pts
+per_dat_all <- extract(per_layers_all, 
+                       per_neigh_dat,
+                       df = TRUE)
+
+### Rename columns
+colnames(bra_dat_all) <- c("id", "aspect", "cities",
+                           "crop_suit", "elev",
+                           "mines", "prot_status",
+                           "popdens", "poverty",
+                           "precip", "rivers",
+                           "roads", "slope",
+                           "soil", "dist_ag",
+                           "control", "commun",
+                           "fire", "forest",
+                           "illegal_mines", "minconc",
+                           "nonforconc", "npchg",
+                           "permprod", "protforest",
+                           "refor", "tourism")
+
+### Give it a uid
+bra_dat_all$uid <- luc_bra$uid
+
+### Merge with sf
+bra_dat_all <- merge(luc_bra,
+                     bra_dat_all,
+                     by = "uid")
+
+### Version without geometry
+bra_dat_all_simp <- bra_dat_all
+bra_dat_all_simp$geometry <- NULL
+
+### Drop incomplete rows
+bra_dat_all_simp <- bra_dat_all_simp[complete.cases(bra_dat_all_simp), ]
+
+### Drop rows where prot_status = 0 (??)
+bra_dat_all_simp <- bra_dat_all_simp %>%
+  filter(., !prot_status == "0")
+
+### Get uids
+uid_comp <- bra_dat_all_simp$uid
+
+### Add geom back to visualize
+# st_geometry(bol_dat_all) <- bol_dat_all$geometry
+bra_dat_all <- bra_dat_all %>%
+  filter(uid %in% uid_comp)
+
+### Write out sample pts
+st_write(bra_dat_all,
+         "D:/dinamica/sample_pts_model/brazil_f_data.shp")
+```
+
+#### Combine with neighbor pix values
+```{r}
+### Open brazil_f_data
+bra_data <- st_read("/nfs/agfrontiers-data/luc_model/brazil_f_data.shp")
+
+### Fix col names
+colnames(bra_data) <- c("uid", "lon", "lat", "lc_2008", "lc_2018",
+                        "id", "aspect", "mines", 
+                        "roads", "rivers", 
+                        "cities", "elev", 
+                        "popdens", "poverty", 
+                        "ppt", "prot_status", 
+                        "slope", "soil", 
+                        "crop_suit", "field_res",
+                        "paddd", "non_all_land",
+                        "dist_ill_mines", "dist_ag",
+                        "dist_fires", "fire_dens",
+                        "dist_pr_rr",
+                        "dist_pr_dams",
+                        "agref_sett", "cattle", "geometry")
+
+bra_neigh_dat <- bra_neigh_dat %>%
+  dplyr::select(uid, lon, lat, lc_2008, lc_2018, perc_diff = bra_perc_diff, geometry)
+
+### Versions wo geometry
+bra_data_df <- bra_data
+st_geometry(bra_data_df) <- NULL
+bra_neigh_df <- bra_neigh_dat
+st_geometry(bra_neigh_df) <- NULL
+
+### Merge with neighbors
+bra_dat_all <- merge(bra_data_df, bra_neigh_df,
+                     by = c("uid", "lon", "lat", "lc_2008", "lc_2018"),
+                     all.x = TRUE)
+
+### Write out sample pts
+write_csv(bra_dat_all,
+         "/nfs/agfrontiers-data/luc_model/brazil_data_for_model.csv")
+```
+
+#### Add factor cols
+```{r}
+# ### Open file
+# bra_dat_all <- st_read("D:/dinamica/sample_pts_model/brazil_f_data.shp")
+
+### Make column for transition/none
+bra_dat_all <- bra_dat_all %>%
+  mutate(transition = ifelse(lc_2018 == "2",
+                             "no_change",
+                             ifelse(lc_2018 == "1",
+                                    "f_to_ag", 
+                                    "other_change")),
+         trans_rc = ifelse(transition == "no_change",
+                           "0", ifelse(transition == "f_to_ag",
+                                       "1", "2")))
+
+### Make columns factor
+fact_cols <- c("uid", "prot_status", 
+               "paddd", "agref_sett",
+               "lc_2018", "trans_rc")
+bra_dat_all <- bra_dat_all %>%
+  mutate_each_(funs(factor(.)), fact_cols)
+```
+
+### Check correlations 
+Restrict to points that did not change or points that converted to ag
+```{r}
+### Restrict to transitions
+bra_dat_use <- bra_dat_all %>% 
+  filter(trans_rc == "1" | trans_rc == "0")
+
+### Make corr table
+cor_table_bra <- flattenSquareMatrix(cor.prob(bra_dat_use[, c(2, 3, 7:15, 17:20, 22:28, 30, 31)]))
+
+### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
+cor_table_bra <- subset(cor_table_bra, 
+                        abs(cor) > 0.66 & p <= 0.05)
+
+### Dist to cities and ppt (-0.7652793)
+### Dist to cities and dist to illegal mines (0.6984386)
+### Dist to cities and dist to proposed dams (0.9130155)
+### Dist to illegal mines and dist to proposed dams (0.8400042)
+### Dist to field research and dist to proposed railroads (0.6804190)
+### Latitude and distance to cities (-0.9157189)
+### Latitude and ppt (0.9004597)
+### Latitude and distance to illegal mines (-0.8288546)
+### Latitude and distance to proposed dams (-0.9992643)
+### Longitude and distance to proposed RR (-0.7088395)
+### Population density and % non-allocated land (0.9796437)
+### Poverty rate and cattle (-0.9873546)
+### ppt and distance to illegal mines (-0.8428807)
+### ppt and distance to proposed dams (-0.9071610)
+```
+
+### Model 1
+Standard LUC variables only
+
+#### Regression
+```{r}
+### Variables to drop due to correlations:
+### latitude, longitude (dropped because don't have mechanism)
+### ppt
+
+### Run regression
+fit_bra <- glm(trans_rc ~ aspect + slope + elev +
+                 roads + rivers + mines + cities +
+                 crop_suit + popdens + poverty +
+                 # (1|uid) + lon +
+                 soil + perc_diff + prot_status,
+               data = bra_dat_use,
+               family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_bra_summ <- summary(fit_bra)
+fit_bra_coeff <- as.data.frame(fit_bra_summ$coefficients)
+write.csv(fit_bra_coeff, 
+          file = "/nfs/agfrontiers-data/luc_model/fit_bra_model1.csv")
+```
+
+### Model 2
+Discourse analysis variables only:
+* field research  
+* PADDD  
+* non-allocated land  
+* distance to illegal mining  
+* distance to ag  
+* distance to fires  
+* fire density  
+* distance to proposed railroads  
+* distance to proposed dams  
+* ag reform settlements  
+* head of cattle 
+
+#### Regression
+Need to drop some vars because of correlations:  
+* distance to field research (distance to proposed railroads)  
+* distance to proposed dams (distance to illegal mines)
+```{r}
+### Run regression
+fit_bra_m2 <- glm(trans_rc ~ paddd + non_all_land +
+                    # field_res +
+                    dist_ill_mines +
+                    dist_ag + dist_fires +
+                    fire_dens + dist_pr_rr +
+                    # dist_pr_dams + 
+                    agref_sett +
+                    cattle,
+                  data = bra_dat_use,
+                  family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_bra2_summ <- summary(fit_bra_m2)
+fit_bra2_coeff <- as.data.frame(fit_bra2_summ$coefficients)
+write.csv(fit_bra2_coeff, 
+          file = "/nfs/agfrontiers-data/luc_model/fit_bra_model2.csv")
+```
+
+### Model 3
+All standard variables and discourse analysis variables
+```{r}
+### Run regression
+fit_bra_m3 <- glm(trans_rc ~ aspect + slope + elev +
+                 roads + rivers + mines + cities +
+                 crop_suit + popdens + poverty +
+                 # (1|uid) + lon +
+                 soil + perc_diff + prot_status +
+                   paddd + non_all_land +
+                    # field_res +
+                    dist_ill_mines +
+                    dist_ag + dist_fires +
+                    fire_dens + dist_pr_rr +
+                    # dist_pr_dams + 
+                    agref_sett +
+                    cattle,
+                  data = bra_dat_use,
+                  family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_bra3_summ <- summary(fit_bra_m3)
+fit_bra3_coeff <- as.data.frame(fit_bra3_summ$coefficients)
+write.csv(fit_bra3_coeff, 
+          file = "/nfs/agfrontiers-data/luc_model/fit_bra_model3.csv")
+```
+
+### Model 4
+Statistically significant variables from Model 1 + qualitatively significant variables from discourse analysis
+Model 1 vars: roads, perc_diff, lon, slope, mines, prot status 20, rivers, soil, prot status 10, crop suit, elev
+Model 2 vars: PADDD, non-allocated public land, dist to fire, fire density, proposed railroads, proposed dams, cattle
+```{r}
+### Run regression
+fit_bra_m4 <- glm(trans_rc ~ slope + elev +
+                 roads + rivers + mines + 
+                 crop_suit + soil + perc_diff + prot_status +
+                   paddd + non_all_land +
+                    dist_ag + dist_fires +
+                    fire_dens + dist_pr_rr +
+                    cattle,
+                  data = bra_dat_use,
+                  family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_bra4_summ <- summary(fit_bra_m4)
+fit_bra4_coeff <- as.data.frame(fit_bra4_summ$coefficients)
+write.csv(fit_bra3_coeff, 
+          file = "/nfs/agfrontiers-data/luc_model/fit_bra_model4.csv")
+```
+### Compare model performance
+```{r}
+### AIC
+AIC(fit_bra, fit_bra_m2,
+    fit_bra_m3, fit_bra_m4) ### Model 3 has lowest AIC
+
+### anova
+anova(fit_bra, fit_bra_m2,
+      fit_bra_m3, fit_bra_m4,
+      test = "Chisq")
+anova(fit_bra_m2, fit_bra_m3, test = "Chisq") ## 3 better than 2
+anova(fit_bra_m3, fit_bra_m4, test = "Chisq") ## 4 better than 3
+anova(fit_bra, fit_bra_m2, test = "Chisq")
+anova(fit_bra, fit_bra_m4, test = "Chisq") ## 4 better than 1
+```
+
+## Brick with 2018 neighbors
+```{r}
+### Open rasterbrick
+bra_layers_all <- brick("/nfs/agfrontiers-data/luc_model/brazil_all_layers.tif")
+
+### Rename columns
+names(bra_layers_all) <- c("aspect", "mines", 
+                           "roads", "rivers", 
+                           "cities", "elev", 
+                           "popdens", "poverty", 
+                           "ppt", "prot_status", 
+                           "slope", "soil", 
+                           "crop_suit", "field_res",
+                           "paddd", "non_all_land",
+                           "dist_ill_mines", "dist_ag",
+                           "dist_fires", "fire_dens",
+                           "dist_pr_rr",
+                           "dist_pr_dams",
+                           "agref_sett", "cattle")
+
+### Open 2018 percent of neighboring pixels raster
+neigh_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/bra18_perc_diff.tif")
+
+### Brick with the others
+bra_18_all <- addLayer(bra_layers_all, neigh_2018)
+names(bra_18_all)[25] <- "perc_diff"
+```
+
