@@ -130,7 +130,7 @@ Regression models for different sets of variables for Brazil
 ### Sample on grid
 ```{r}
 ### Open buffer polygon
-bra_buff <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/JamanBuffer/JamanBuffer_reproj.shp") %>%
+bra_buff <- st_read("/nfs/agfrontiers-data/Remote Sensing/KS files/JamanBuffer_reproj.shp") %>%
   st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
 +ellps=aust_SA +units=m +no_defs")
 
@@ -152,7 +152,7 @@ bra_samples <- bra_buff %>%
 bra_samples$uid <- 1:nrow(bra_samples)
 
 ### Open brazil 2008 map
-bra_2008 <- raster("D:/dinamica/brazil_simple/data/classi_bra_dry_2008_102033.tif")
+bra_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2008_102033.tif")
 
 ### Extract land cover type to sample points
 bra_samples_2008 <- raster::extract(bra_2008, 
@@ -189,7 +189,7 @@ bra_forest_samp <- bra_forest_samp %>%
 #          "D:/dinamica/sample_pts_model/bra_forest.shp")
 
 ### Open brazil 2018 map
-bra_2018 <- raster("D:/dinamica/brazil_simple/data/classi_bra_dry_2018_102033.tif")
+bra_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2018_102033.tif")
 
 ### Extract 2018 land cover class
 luc_bra <- raster::extract(bra_2018, 
@@ -211,7 +211,7 @@ luc_bra <- luc_bra %>%
 
 ### Write out sample pts
 st_write(luc_bra,
-         "D:/dinamica/sample_pts_model/bra_forest.shp")
+         "/nfs/agfrontiers-data/luc_model/bra_forest.shp")
 
 # ### Summarize transitions
 # luc_bra_summ <- luc_bra %>%
@@ -277,12 +277,15 @@ st_write(bra_neigh_dat,
 
 ### UIDs of points with complete data
 ```{r}
-# ### Open sample points
-# luc_bra <- st_read("D:/dinamica/sample_pts_model/bra_forest.shp")
-# 
+### Open sample points
+bra_neigh_dat <- st_read("/nfs/agfrontiers-data/luc_model/bra_forest_neighs.shp")
+
 ### Open rasterbrick, all layers
 # bra_layers_all <- brick("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/brazil/discourse_analysis_final_layers/brazil_all_layers.tif")
 bra_layers_all <- brick("/nfs/agfrontiers-data/luc_model/brazil_all_layers.tif")
+
+## Convert NAs to 0 in ag reform layer
+bra_layers_all[[23]][is.na(bra_layers_all[[23]][])] <- 0
 
 ### Extract values to pts
 bra_dat_all <- extract(bra_layers_all, 
@@ -333,7 +336,7 @@ bra_dat_all <- bra_dat_all %>%
 
 ### Write out sample pts
 st_write(bra_dat_all,
-         "D:/dinamica/sample_pts_model/brazil_f_data.shp")
+         "/nfs/agfrontiers-data/luc_model/brazil_f_data.shp")
 ```
 
 #### Combine with neighbor pix values
@@ -358,7 +361,7 @@ colnames(bra_data) <- c("uid", "lon", "lat", "lc_2008", "lc_2018",
                         "agref_sett", "cattle", "geometry")
 
 bra_neigh_dat <- bra_neigh_dat %>%
-  dplyr::select(uid, lon, lat, lc_2008, lc_2018, perc_diff = bra_perc_diff, geometry)
+  dplyr::select(uid, lon, lat, lc_2008, lc_2018, perc_diff = br_prc_, geometry)
 
 ### Versions wo geometry
 bra_data_df <- bra_data
@@ -378,9 +381,6 @@ write_csv(bra_dat_all,
 
 #### Add factor cols
 ```{r}
-# ### Open file
-# bra_dat_all <- st_read("D:/dinamica/sample_pts_model/brazil_f_data.shp")
-
 ### Make column for transition/none
 bra_dat_all <- bra_dat_all %>%
   mutate(transition = ifelse(lc_2018 == "2",
@@ -414,20 +414,26 @@ cor_table_bra <- flattenSquareMatrix(cor.prob(bra_dat_use[, c(2, 3, 7:15, 17:20,
 cor_table_bra <- subset(cor_table_bra, 
                         abs(cor) > 0.66 & p <= 0.05)
 
-### Dist to cities and ppt (-0.7652793)
-### Dist to cities and dist to illegal mines (0.6984386)
-### Dist to cities and dist to proposed dams (0.9130155)
-### Dist to illegal mines and dist to proposed dams (0.8400042)
-### Dist to field research and dist to proposed railroads (0.6804190)
-### Latitude and distance to cities (-0.9157189)
-### Latitude and ppt (0.9004597)
-### Latitude and distance to illegal mines (-0.8288546)
-### Latitude and distance to proposed dams (-0.9992643)
-### Longitude and distance to proposed RR (-0.7088395)
-### Population density and % non-allocated land (0.9796437)
-### Poverty rate and cattle (-0.9873546)
-### ppt and distance to illegal mines (-0.8428807)
-### ppt and distance to proposed dams (-0.9071610)
+write.csv(cor_table_bra,
+          file = "/nfs/agfrontiers-data/luc_model/brazil_correlations.csv")
+
+### Dist to cities and dist to proposed dams (0.901895817)
+### Dist to illegal mines and dist to proposed dams (0.687864047)
+### Dist to field research and dist to proposed railroads (0.751940629998678)
+### Latitude and distance to cities (-0.906809952881162)
+### Latitude and ppt (0.721263744)
+### Latitude and distance to illegal mines (-0.703078025923246)
+### Latitude and distance to proposed dams (-0.997039325865242)
+### Longitude and distance to illegal mines (0.78014565492577)
+### Longitude and distance to proposed RR (-0.899933806697024)
+### Non allocated land and cattle (-0.994488132)
+### Pop density and poverty (0.987581678)
+### Population density and % non-allocated land (0.998261478)
+### Pop density and cattle (-0.992973607)
+### Poverty and non-allocated public land (0.989114865)
+### Poverty rate and cattle (-0.99890119)
+### ppt and distance to illegal mines (-0.854715014)
+### ppt and distance to proposed dams (-0.722421364)
 ```
 
 ### Model 1
@@ -584,5 +590,109 @@ neigh_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/bra18_perc_d
 ### Brick with the others
 bra_18_all <- addLayer(bra_layers_all, neigh_2018)
 names(bra_18_all)[25] <- "perc_diff"
+```
+
+## Analyze Monte Carlo simulations
+Output from predict_luc.R
+```{r}
+### Model 1
+m1_mc <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_1_project/brazil_projected_loss.csv") 
+
+### Make long, add value in sq km
+m1_mc <- m1_mc %>%
+  gather(simulation, value, 'X1206650788.19651':'X1206128094.78375') 
+m1_mc <- m1_mc %>%
+  mutate(value_km2 = value/1000000)
+
+### Take mean
+mean(m1_mc$value_km2)
+
+### Histogram
+options(scipen=10000)
+m1_hist <- ggplot(m1_mc, aes(x = value_km2)) + 
+  geom_histogram() +
+  xlab("Square km of forest loss") +
+  ylab("Number of simulations")
+
+### Model 2
+m2_mc <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_2_project/brazil_2_projected_loss.csv") 
+
+### Make long, add value in sq km
+m2_mc <- m2_mc %>%
+  gather(simulation, value, 'X1286505026.92842':'X1287753733.3947') 
+m2_mc <- m2_mc %>%
+  mutate(value_km2 = value/1000000)
+
+### Take mean
+mean(m2_mc$value_km2)
+sd(m2_mc$value_km2)
+
+### Histogram
+options(scipen=10000)
+m2_hist <- ggplot(m2_mc, aes(x = value_km2)) + 
+  geom_histogram() +
+  xlab("Square km of forest loss") +
+  ylab("Number of simulations")
+  
+### Model 3
+m3_mc <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_3_project/brazil_3_projected_loss.csv") 
+
+### Make long, add value in sq km
+m3_mc <- m3_mc %>%
+  gather(simulation, value, 'X1278826561.73412':'X1279344756.92473.1') 
+m3_mc <- m3_mc %>%
+  mutate(value_km2 = value/1000000)
+
+### Take mean
+mean(m3_mc$value_km2)
+sd(m3_mc$value_km2)
+
+### Histogram
+options(scipen=10000)
+m3_hist <- ggplot(m3_mc, aes(x = value_km2)) + 
+  geom_histogram() +
+  xlab("Square km of forest loss") +
+  ylab("Number of simulations")
+
+### Model 4
+m4_mc <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_4_project/brazil_4_projected_loss.csv") 
+
+### Make long, add value in sq km
+m4_mc <- m4_mc %>%
+  gather(simulation, value, 'X1275409712.19598':'X1275732684.54569') 
+m4_mc <- m4_mc %>%
+  mutate(value_km2 = value/1000000)
+
+### Take mean
+mean(m4_mc$value_km2)
+sd(m4_mc$value_km2)
+
+### Histogram
+options(scipen=10000)
+m4_hist <- ggplot(m4_mc, aes(x = value_km2)) + 
+  geom_histogram() +
+  xlab("Square km of forest loss") +
+  ylab("Number of simulations")
+
+### Add columns to dfs
+m1_mc <- m1_mc %>%
+  mutate(model = "model1")
+m2_mc <- m2_mc %>%
+  mutate(model = "model2")
+m3_mc <- m3_mc %>%
+  mutate(model = "model3")
+m4_mc <- m4_mc %>%
+  mutate(model = "model4")
+
+### rbind
+all_models <- rbind(m1_mc, m2_mc, 
+                    m3_mc, m4_mc)
+
+### Plot
+ggplot(all_models, aes(x = value_km2, color = model)) +
+  geom_density() +
+  xlab("Square km of forest converted to agriculture") +
+  ylab("Density")
+ggsave("/nfs/agfrontiers-data/luc_model/brazil_allmodels_area_defor.png")
 ```
 
