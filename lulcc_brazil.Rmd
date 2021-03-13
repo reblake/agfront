@@ -695,4 +695,18 @@ ggplot(all_models, aes(x = value_km2, color = model)) +
   ylab("Density")
 ggsave("/nfs/agfrontiers-data/luc_model/brazil_allmodels_area_defor.png")
 ```
+## Original forest cover
+```{r}
+### 2008
+forest_08 <- as.data.frame(bra_2008) %>%
+    group_by(classi_bra_dry_2008_102033) %>%
+    tally() %>%
+    mutate(area = n * res(bra_2008)[1] * res(bra_2008)[2])
+
+### 2018
+forest_18 <- as.data.frame(bra_2018) %>%
+    group_by(classi_bra_dry_2018_102033) %>%
+    tally() %>%
+    mutate(area = n * res(bra_2018)[1] * res(bra_2018)[2])
+```
 

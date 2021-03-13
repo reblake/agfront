@@ -207,7 +207,7 @@ per_dat_all <- extract(per_layers_all,
                        df = TRUE)
 
 ### Rename columns
-colnames(bra_dat_all) <- c("id", "aspect", "cities",
+colnames(per_dat_all) <- c("id", "aspect", "cities",
                            "crop_suit", "elev",
                            "mines", "prot_status",
                            "popdens", "poverty",
@@ -222,84 +222,84 @@ colnames(bra_dat_all) <- c("id", "aspect", "cities",
                            "refor", "tourism")
 
 ### Give it a uid
-bra_dat_all$uid <- luc_bra$uid
+per_dat_all$uid <- luc_per$uid
 
 ### Merge with sf
-bra_dat_all <- merge(luc_bra,
-                     bra_dat_all,
+per_dat_all <- merge(luc_per,
+                     per_dat_all,
                      by = "uid")
 
 ### Version without geometry
-bra_dat_all_simp <- bra_dat_all
-bra_dat_all_simp$geometry <- NULL
+per_dat_all_simp <- per_dat_all
+per_dat_all_simp$geometry <- NULL
 
 ### Drop incomplete rows
-bra_dat_all_simp <- bra_dat_all_simp[complete.cases(bra_dat_all_simp), ]
+per_dat_all_simp <- per_dat_all_simp[complete.cases(per_dat_all_simp), ]
 
 ### Drop rows where prot_status = 0 (??)
-bra_dat_all_simp <- bra_dat_all_simp %>%
+per_dat_all_simp <- per_dat_all_simp %>%
   filter(., !prot_status == "0")
 
 ### Get uids
-uid_comp <- bra_dat_all_simp$uid
+uid_comp <- per_dat_all_simp$uid
 
 ### Add geom back to visualize
 # st_geometry(bol_dat_all) <- bol_dat_all$geometry
-bra_dat_all <- bra_dat_all %>%
+per_dat_all <- per_dat_all %>%
   filter(uid %in% uid_comp)
 
 ### Write out sample pts
-st_write(bra_dat_all,
-         "D:/dinamica/sample_pts_model/brazil_f_data.shp")
+st_write(per_dat_all,
+         "D:/dinamica/sample_pts_model/peru_f_data.shp")
 ```
 
 #### Combine with neighbor pix values
 ```{r}
 ### Open brazil_f_data
-bra_data <- st_read("/nfs/agfrontiers-data/luc_model/brazil_f_data.shp")
+per_data <- st_read("/nfs/agfrontiers-data/luc_model/per_f_data.shp")
 
 ### Fix col names
-colnames(bra_data) <- c("uid", "lon", "lat", "lc_2008", "lc_2018",
-                        "id", "aspect", "mines", 
-                        "roads", "rivers", 
-                        "cities", "elev", 
-                        "popdens", "poverty", 
-                        "ppt", "prot_status", 
-                        "slope", "soil", 
-                        "crop_suit", "field_res",
-                        "paddd", "non_all_land",
-                        "dist_ill_mines", "dist_ag",
-                        "dist_fires", "fire_dens",
-                        "dist_pr_rr",
-                        "dist_pr_dams",
-                        "agref_sett", "cattle", "geometry")
+colnames(per_data) <- c("uid", "lon", "lat", "lc_2008", "lc_2018",
+                        "id", "aspect", "cities",
+                        "crop_suit", "elev",
+                        "mines", "prot_status",
+                        "popdens", "poverty",
+                        "precip", "rivers",
+                        "roads", "slope",
+                        "soil", "dist_ag",
+                        "control", "commun",
+                        "fire", "forest",
+                        "illegal_mines", "minconc",
+                        "nonforconc", "npchg",
+                        "permprod", "protforest",
+                        "refor", "tourism")
 
-bra_neigh_dat <- bra_neigh_dat %>%
-  dplyr::select(uid, lon, lat, lc_2008, lc_2018, perc_diff = bra_perc_diff, geometry)
+per_neigh_dat <- per_neigh_dat %>%
+  dplyr::select(uid, lon, lat, lc_2008, lc_2018, perc_diff = per_perc_diff, geometry)
 
 ### Versions wo geometry
-bra_data_df <- bra_data
-st_geometry(bra_data_df) <- NULL
-bra_neigh_df <- bra_neigh_dat
-st_geometry(bra_neigh_df) <- NULL
+per_data_df <- per_data
+st_geometry(per_data_df) <- NULL
+per_neigh_df <- per_neigh_dat
+st_geometry(per_neigh_df) <- NULL
 
 ### Merge with neighbors
-bra_dat_all <- merge(bra_data_df, bra_neigh_df,
+per_dat_all <- merge(per_data_df, per_neigh_df,
                      by = c("uid", "lon", "lat", "lc_2008", "lc_2018"),
                      all.x = TRUE)
 
 ### Write out sample pts
-write_csv(bra_dat_all,
-         "/nfs/agfrontiers-data/luc_model/brazil_data_for_model.csv")
+write_csv(per_dat_all,
+         "/nfs/agfrontiers-data/luc_model/peru_data_for_model.csv")
 ```
 
 #### Add factor cols
 ```{r}
 # ### Open file
-# bra_dat_all <- st_read("D:/dinamica/sample_pts_model/brazil_f_data.shp")
+# per_dat_all <- st_read("D:/dinamica/sample_pts_model/peru_f_data.shp")
 
 ### Make column for transition/none
-bra_dat_all <- bra_dat_all %>%
+per_dat_all <- per_dat_all %>%
   mutate(transition = ifelse(lc_2018 == "2",
                              "no_change",
                              ifelse(lc_2018 == "1",
@@ -311,9 +311,12 @@ bra_dat_all <- bra_dat_all %>%
 
 ### Make columns factor
 fact_cols <- c("uid", "prot_status", 
-               "paddd", "agref_sett",
+               "minconc",
+               "nonforconc", "npchg",
+               "permprod", "protforest",
+               "refor",
                "lc_2018", "trans_rc")
-bra_dat_all <- bra_dat_all %>%
+per_dat_all <- per_dat_all %>%
   mutate_each_(funs(factor(.)), fact_cols)
 ```
 
@@ -321,30 +324,17 @@ bra_dat_all <- bra_dat_all %>%
 Restrict to points that did not change or points that converted to ag
 ```{r}
 ### Restrict to transitions
-bra_dat_use <- bra_dat_all %>% 
+per_dat_use <- per_dat_all %>% 
   filter(trans_rc == "1" | trans_rc == "0")
 
 ### Make corr table
-cor_table_bra <- flattenSquareMatrix(cor.prob(bra_dat_use[, c(2, 3, 7:15, 17:20, 22:28, 30, 31)]))
+cor_table_per <- flattenSquareMatrix(cor.prob(per_dat_use[, c(2, 3, 7:15, 17:20, 22:28, 30, 31)]))
 
 ### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
-cor_table_bra <- subset(cor_table_bra, 
+cor_table_per <- subset(cor_table_per, 
                         abs(cor) > 0.66 & p <= 0.05)
 
-### Dist to cities and ppt (-0.7652793)
-### Dist to cities and dist to illegal mines (0.6984386)
-### Dist to cities and dist to proposed dams (0.9130155)
-### Dist to illegal mines and dist to proposed dams (0.8400042)
-### Dist to field research and dist to proposed railroads (0.6804190)
-### Latitude and distance to cities (-0.9157189)
-### Latitude and ppt (0.9004597)
-### Latitude and distance to illegal mines (-0.8288546)
-### Latitude and distance to proposed dams (-0.9992643)
-### Longitude and distance to proposed RR (-0.7088395)
-### Population density and % non-allocated land (0.9796437)
-### Poverty rate and cattle (-0.9873546)
-### ppt and distance to illegal mines (-0.8428807)
-### ppt and distance to proposed dams (-0.9071610)
+
 ```
 
 ### Model 1
@@ -357,34 +347,20 @@ Standard LUC variables only
 ### ppt
 
 ### Run regression
-fit_bra <- glm(trans_rc ~ aspect + slope + elev +
-                 roads + rivers + mines + cities +
-                 crop_suit + popdens + poverty +
-                 # (1|uid) + lon +
-                 soil + perc_diff + prot_status,
-               data = bra_dat_use,
+fit_per <- glm(trans_rc ~ ,
+               data = per_dat_use,
                family = binomial(link = "logit"))
 
 ### Write out coefficients
-fit_bra_summ <- summary(fit_bra)
-fit_bra_coeff <- as.data.frame(fit_bra_summ$coefficients)
-write.csv(fit_bra_coeff, 
-          file = "/nfs/agfrontiers-data/luc_model/fit_bra_model1.csv")
+fit_per_summ <- summary(fit_per)
+fit_per_coeff <- as.data.frame(fit_per_summ$coefficients)
+write.csv(fit_per_coeff, 
+          file = "/nfs/agfrontiers-data/luc_model/fit_per_model1.csv")
 ```
 
 ### Model 2
 Discourse analysis variables only:
-* field research  
-* PADDD  
-* non-allocated land  
-* distance to illegal mining  
-* distance to ag  
-* distance to fires  
-* fire density  
-* distance to proposed railroads  
-* distance to proposed dams  
-* ag reform settlements  
-* head of cattle 
+* 
 
 #### Regression
 Need to drop some vars because of correlations:  
@@ -392,73 +368,49 @@ Need to drop some vars because of correlations:
 * distance to proposed dams (distance to illegal mines)
 ```{r}
 ### Run regression
-fit_bra_m2 <- glm(trans_rc ~ paddd + non_all_land +
-                    # field_res +
-                    dist_ill_mines +
-                    dist_ag + dist_fires +
-                    fire_dens + dist_pr_rr +
-                    # dist_pr_dams + 
-                    agref_sett +
-                    cattle,
-                  data = bra_dat_use,
+fit_per_m2 <- glm(trans_rc ~ ,
+                  data = per_dat_use,
                   family = binomial(link = "logit"))
 
 ### Write out coefficients
-fit_bra2_summ <- summary(fit_bra_m2)
-fit_bra2_coeff <- as.data.frame(fit_bra2_summ$coefficients)
-write.csv(fit_bra2_coeff, 
-          file = "/nfs/agfrontiers-data/luc_model/fit_bra_model2.csv")
+fit_per2_summ <- summary(fit_per_m2)
+fit_per2_coeff <- as.data.frame(fit_per2_summ$coefficients)
+write.csv(fit_per2_coeff, 
+          file = "/nfs/agfrontiers-data/luc_model/fit_per_model2.csv")
 ```
 
 ### Model 3
 All standard variables and discourse analysis variables
 ```{r}
 ### Run regression
-fit_bra_m3 <- glm(trans_rc ~ aspect + slope + elev +
-                 roads + rivers + mines + cities +
-                 crop_suit + popdens + poverty +
-                 # (1|uid) + lon +
-                 soil + perc_diff + prot_status +
-                   paddd + non_all_land +
-                    # field_res +
-                    dist_ill_mines +
-                    dist_ag + dist_fires +
-                    fire_dens + dist_pr_rr +
-                    # dist_pr_dams + 
-                    agref_sett +
-                    cattle,
-                  data = bra_dat_use,
+fit_per_m3 <- glm(trans_rc ~ ,
+                  data = per_dat_use,
                   family = binomial(link = "logit"))
 
 ### Write out coefficients
-fit_bra3_summ <- summary(fit_bra_m3)
-fit_bra3_coeff <- as.data.frame(fit_bra3_summ$coefficients)
-write.csv(fit_bra3_coeff, 
-          file = "/nfs/agfrontiers-data/luc_model/fit_bra_model3.csv")
+fit_per3_summ <- summary(fit_per_m3)
+fit_per3_coeff <- as.data.frame(fit_per3_summ$coefficients)
+write.csv(fit_per3_coeff, 
+          file = "/nfs/agfrontiers-data/luc_model/fit_per_model3.csv")
 ```
 
 ### Model 4
 Statistically significant variables from Model 1 + qualitatively significant variables from discourse analysis
-Model 1 vars: roads, perc_diff, lon, slope, mines, prot status 20, rivers, soil, prot status 10, crop suit, elev
-Model 2 vars: PADDD, non-allocated public land, dist to fire, fire density, proposed railroads, proposed dams, cattle
+Model 1 vars: 
+Model 2 vars: 
 ```{r}
 ### Run regression
-fit_bra_m4 <- glm(trans_rc ~ slope + elev +
-                 roads + rivers + mines + 
-                 crop_suit + soil + perc_diff + prot_status +
-                   paddd + non_all_land +
-                    dist_ag + dist_fires +
-                    fire_dens + dist_pr_rr +
-                    cattle,
-                  data = bra_dat_use,
+fit_per_m4 <- glm(trans_rc ~ ,
+                  data = per_dat_use,
                   family = binomial(link = "logit"))
 
 ### Write out coefficients
-fit_bra4_summ <- summary(fit_bra_m4)
-fit_bra4_coeff <- as.data.frame(fit_bra4_summ$coefficients)
-write.csv(fit_bra3_coeff, 
-          file = "/nfs/agfrontiers-data/luc_model/fit_bra_model4.csv")
+fit_per4_summ <- summary(fit_per_m4)
+fit_per4_coeff <- as.data.frame(fit_per4_summ$coefficients)
+write.csv(fit_per3_coeff, 
+          file = "/nfs/agfrontiers-data/luc_model/fit_per_model4.csv")
 ```
+
 ### Compare model performance
 ```{r}
 ### AIC
