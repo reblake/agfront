@@ -123,6 +123,25 @@ writeRaster(nonforest_conc,
             format = "GTiff",
             overwrite = TRUE)
 ```
+### Precip
+```{r}
+### Read in
+ppt <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/ppt_tambo_new.tif")
+
+### Crop file
+ppt_crop <- crop(ppt, extent(peru_luc))
+
+### Resample
+ppt_res <- raster::resample(ppt_crop, 
+                            peru_luc, 
+                            "bilinear")
+
+### Write out
+writeRaster(ppt_res,
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_precip_new.tif",
+            format = "GTiff",
+            overwrite = TRUE)
+```
 
 
 ## Classic model layers
@@ -139,7 +158,7 @@ peru_luc <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_s
 ### Soil
 ################################  
 ### Open soil raster
-soil <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/ClassicModel/soil_102033.tif")
+soil <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_soilm.tif")
 
 ### Resample soil raster to match Peru raster
 soil_resample <- raster::resample(soil, peru_luc, "bilinear")
@@ -344,7 +363,7 @@ rm(slope)
 ```{r}
 ### Open resampled layers
 prot_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_prot_status.tif")
-soil_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_soilm.tif")
+soil_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/peru/sm_peru_102033.tif")
 aspect_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_aspect.tif")
 cropsuit_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_cropsuit.tif")
 mines_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_mines.tif")
@@ -354,8 +373,13 @@ cities_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/p
 elev_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_elev.tif")
 pd_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_popdens.tif")
 pov_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_poverty.tif")
-precip_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_precip.tif")
+precip_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_precip_new.tif")
 slope_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_slope.tif")
+
+### Make soil extent match the others
+soil_resample <- raster::resample(soil_resample, 
+                                  slope_resample,
+                                  "bilinear")
 
 ### Make brick
 peru_brick <- raster::brick(aspect_resample, 
@@ -617,6 +641,13 @@ protforest_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinami
 refor_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_reforest.tif")
 tourism_resample <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/per_tourism.tif")
 
+### Convert NAs to 0 in concession layers
+nonforconc_resample[is.na(nonforconc_resample[])] <- 0 
+npchg_resample[is.na(npchg_resample[])] <- 0 
+permprod_resample[is.na(permprod_resample[])] <- 0 
+protforest_resample[is.na(protforest_resample[])] <- 0 
+refor_resample[is.na(refor_resample[])] <- 0 
+
 ### Make brick
 da_only_brick <- raster::brick(ag_resample,
                                control_resample,
@@ -673,7 +704,7 @@ all_layer_brick <- raster::brick(aspect_resample,
 
 ### Write out brick
 writeRaster(all_layer_brick, 
-            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/peru_all_layers.tif", 
+            filename = "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/peru_dinamica/data/peru_all_layers_new.tif", 
             format = "GTiff",
             overwrite = TRUE, 
             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
