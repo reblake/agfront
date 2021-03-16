@@ -13,141 +13,131 @@ library(spatialEco)
 ### Data prep
 #############
 
-# ### Open sample points
-# bra_dat_all <- st_read("/nfs/agfrontiers-data/luc_model/brazil_data_for_model.shp")
-# 
-# ### Rename columns
-# colnames(bra_dat_all) <- c("uid", "lon", "lat", "lc_2008", "lc_2018",
-#                         "id", "aspect", "mines", 
-#                         "roads", "rivers", 
-#                         "cities", "elev", 
-#                         "popdens", "poverty", 
-#                         "ppt", "prot_status", 
-#                         "slope", "soil", 
-#                         "crop_suit", "field_res",
-#                         "paddd", "non_all_land",
-#                         "dist_ill_mines", "dist_ag",
-#                         "dist_fires", "fire_dens",
-#                         "dist_pr_rr",
-#                         "dist_pr_dams",
-#                         "agref_sett", "cattle", 
-#                         "perc_diff", "geometry")
-# 
-# ### Remove geom
-# st_geometry(bra_dat_all) <- NULL
-# 
-# ### Make column for transition/none
-# bra_dat_all <- bra_dat_all %>%
-#   mutate(transition = ifelse(lc_2018 == "2",
-#                              "no_change",
-#                              ifelse(lc_2018 == "1",
-#                                     "f_to_ag", 
-#                                     "other_change")),
-#          trans_rc = ifelse(transition == "no_change",
-#                            "0", ifelse(transition == "f_to_ag",
-#                                        "1", "2")))
-# 
-# ### Make columns factor
-# fact_cols <- c("uid", "prot_status", 
-#                "paddd", "agref_sett",
-#                "lc_2018", "trans_rc")
-# bra_dat_all <- bra_dat_all %>%
-#   mutate_each_(funs(factor(.)), fact_cols)
-# 
-# ### Restrict to transitions
-# bra_dat_use <- bra_dat_all %>% 
-#   filter(trans_rc == "1" | trans_rc == "0")
-# 
-# ### Model 1
-# ###########
-# 
+### Open sample points
+bra_dat_all <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_data_for_model.csv")
+
+### Rename columns
+colnames(bra_dat_all) <- c("uid", "lon", "lat", "lc_2008", "lc_2018",
+                        "id", "aspect", "mines",
+                        "roads", "rivers",
+                        "cities", "elev",
+                        "popdens", "poverty",
+                        "ppt", "prot_status",
+                        "slope", "soil",
+                        "crop_suit", "field_res",
+                        "paddd", "non_all_land",
+                        "dist_ill_mines", "dist_ag",
+                        "dist_fires", "fire_dens",
+                        "dist_pr_rr",
+                        "dist_pr_dams",
+                        "agref_sett", "cattle",
+                        "perc_diff")
+
+### Make column for transition/none
+bra_dat_all <- bra_dat_all %>%
+  mutate(transition = ifelse(lc_2018 == "2",
+                             "no_change",
+                             ifelse(lc_2018 == "1",
+                                    "f_to_ag",
+                                    "other_change")),
+         trans_rc = ifelse(transition == "no_change",
+                           "0", ifelse(transition == "f_to_ag",
+                                       "1", "2")))
+
+### Make columns factor
+fact_cols <- c("uid", "prot_status",
+               "paddd", "agref_sett",
+               "lc_2018", "trans_rc")
+bra_dat_all <- bra_dat_all %>%
+  mutate_each_(funs(factor(.)), fact_cols)
+
+### Restrict to transitions
+bra_dat_use <- bra_dat_all %>%
+  filter(trans_rc == "1" | trans_rc == "0")
+
+### Model 1
+###########
+
 # ### Run regression
-# # fit_bra <- glm(trans_rc ~ aspect + slope + elev +
-# #                  roads + rivers + mines + cities +
-# #                  crop_suit + popdens + poverty +
-# #                  # (1|uid) + lon +
-# #                  soil + perc_diff + prot_status,
-# #                data = bra_dat_use,
-# #                family = binomial(link = "logit"))
 # fit_bra <- glm(trans_rc ~ aspect + slope + elev +
 #                  roads + rivers + mines + cities +
-#                  crop_suit + popdens + poverty +
+#                  crop_suit + popdens + #poverty +
 #                  # (1|uid) + lon +
 #                  soil + perc_diff + prot_status,
 #                data = bra_dat_use,
 #                family = binomial())
-# 
-# ### 2018 data
-# #############
-# 
-# ### Open rasterbrick
-# bra_layers_all <- brick("/nfs/agfrontiers-data/luc_model/brazil_all_layers.tif")
-# 
-# ### Rename columns
-# names(bra_layers_all) <- c("aspect", "mines", 
-#                            "roads", "rivers", 
-#                            "cities", "elev", 
-#                            "popdens", "poverty", 
-#                            "ppt", "prot_status", 
-#                            "slope", "soil", 
-#                            "crop_suit", "field_res",
-#                            "paddd", "non_all_land",
-#                            "dist_ill_mines", "dist_ag",
-#                            "dist_fires", "fire_dens",
-#                            "dist_pr_rr",
-#                            "dist_pr_dams",
-#                            "agref_sett", "cattle")
-# 
-# ### Open 2018 percent of neighboring pixels raster
-# neigh_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/bra18_perc_diff.tif")
-# 
-# ### Add to other layers
-# bra_18_all <- addLayer(bra_layers_all, neigh_2018)
-# names(bra_18_all)[25] <- "perc_diff"
-# # writeRaster(bra_18_all, 
-# #             filename="/nfs/agfrontiers-data/Remote Sensing/KS files/bra18_all_data_w_perc_diff.tif", 
-# #             options="INTERLEAVE=BAND", overwrite=TRUE)
-# 
-# ### Convert NAs to 0 in ag reform layer
-# bra_18_all[[23]][is.na(bra_18_all[[23]][])] <- 0 
-# 
-# ### Drop precip and soil layers because of issue with extent
-# bra_18_all <- dropLayer(bra_18_all, c(9, 12))
-# 
-# ### Open fixed soil layer
-# soil <- raster("/nfs/agfrontiers-data/luc_model/sm_jaman_102033.tif")
-# 
-# ### Add to stack
-# bra_18_all <- addLayer(bra_18_all, soil)
-# names(bra_18_all)[24] <- "soil"
-# 
-# ### Open distance to ag in 2018 layer
-# d_ag_18 <- raster("/nfs/agfrontiers-data/luc_model/bra_ag_dist_re_2018.tif")
-# 
-# ### Drop 2008 distance to ag, replace with 2018 distance to ag
-# bra_18_all <- dropLayer(bra_18_all, 16)
-# bra_18_all <- addLayer(bra_18_all, d_ag_18)
-# names(bra_18_all)[24] <- "dist_ag"
-# 
-# ### Run prediction
-# ##################
-# 
+
+### 2018 data
+#############
+
+### Open rasterbrick
+bra_layers_all <- brick("/nfs/agfrontiers-data/luc_model/brazil_all_layers.tif")
+
+### Rename columns
+names(bra_layers_all) <- c("aspect", "mines",
+                           "roads", "rivers",
+                           "cities", "elev",
+                           "popdens", "poverty",
+                           "ppt", "prot_status",
+                           "slope", "soil",
+                           "crop_suit", "field_res",
+                           "paddd", "non_all_land",
+                           "dist_ill_mines", "dist_ag",
+                           "dist_fires", "fire_dens",
+                           "dist_pr_rr",
+                           "dist_pr_dams",
+                           "agref_sett", "cattle")
+
+### Open 2018 percent of neighboring pixels raster
+neigh_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/bra18_perc_diff.tif")
+
+### Add to other layers
+bra_18_all <- addLayer(bra_layers_all, neigh_2018)
+names(bra_18_all)[25] <- "perc_diff"
+# writeRaster(bra_18_all,
+#             filename="/nfs/agfrontiers-data/Remote Sensing/KS files/bra18_all_data_w_perc_diff.tif",
+#             options="INTERLEAVE=BAND", overwrite=TRUE)
+
+### Convert NAs to 0 in ag reform layer
+bra_18_all[[23]][is.na(bra_18_all[[23]][])] <- 0
+
+### Drop precip and soil layers because of issue with extent
+bra_18_all <- dropLayer(bra_18_all, c(9, 12))
+
+### Open fixed soil layer
+soil <- raster("/nfs/agfrontiers-data/luc_model/sm_jaman_102033.tif")
+
+### Add to stack
+bra_18_all <- addLayer(bra_18_all, soil)
+names(bra_18_all)[24] <- "soil"
+
+### Open distance to ag in 2018 layer
+d_ag_18 <- raster("/nfs/agfrontiers-data/luc_model/bra_ag_dist_re_2018.tif")
+
+### Drop 2008 distance to ag, replace with 2018 distance to ag
+bra_18_all <- dropLayer(bra_18_all, 16)
+bra_18_all <- addLayer(bra_18_all, d_ag_18)
+names(bra_18_all)[24] <- "dist_ag"
+
+### Run prediction
+##################
+
 # ### Run prediction
 # pp_brazil <- raster::predict(bra_18_all, fit_bra,
 #                              na.rm = TRUE,
 #                              type = "response",
 #                              filename = "/nfs/agfrontiers-data/luc_model/brazil_pp_m1_logit.tif",
 #                              overwrite = TRUE)
-# 
-# ### Open 2018 LUC map
-# brazi18 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2018_102033.tif")
-# 
-# ### Mask cells that were not forested in 2018
-# pp_brazil_mask <- mask(pp_brazil, brazi18, 
-#                        # filename = "/nfs/agfrontiers-data/luc_model/brazil_pp_m1_mask.tif", 
-#                        inverse= TRUE, 
-#                        maskvalue = 2)
 
+### Open 2018 LUC map
+brazi18 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2018_102033.tif")
+
+# ### Mask cells that were not forested in 2018
+# pp_brazil_mask <- mask(pp_brazil, brazi18,
+#                        # filename = "/nfs/agfrontiers-data/luc_model/brazil_pp_m1_mask.tif",
+#                        inverse= TRUE,
+#                        maskvalue = 2)
+# 
 # writeRaster(pp_brazil_mask,
 #             filename = "/nfs/agfrontiers-data/luc_model/brazil_pp_masked.tif",
 #                         format = "GTiff",
@@ -155,22 +145,22 @@ library(spatialEco)
 #                         options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
 
 ##################
-### Brazil model 2 
+### Brazil model 2
 ##################
 # ### Run regression
 # fit_bra_2 <- glm(trans_rc ~ paddd + non_all_land +
+#                    # cattle +
 #                     # field_res +
 #                     dist_ill_mines +
 #                     dist_ag + dist_fires +
 #                     fire_dens + dist_pr_rr +
-#                     # dist_pr_dams + 
-#                     agref_sett +
-#                     cattle,
+#                     # dist_pr_dams +
+#                     agref_sett,
 #                   data = bra_dat_use,
 #                   family = binomial(link = "logit"))
-# 
-# ### Run prediction
-# ##################
+
+### Run prediction
+##################
 # pp_brazil_2 <- raster::predict(bra_18_all, fit_bra_2,
 #                              na.rm = TRUE,
 #                              type = "response")
@@ -178,8 +168,8 @@ library(spatialEco)
 #                              # overwrite = TRUE)
 # 
 # ### Mask cells that were not forested in 2018
-# pp_brazil_2_mask <- mask(pp_brazil_2, brazi18, 
-#                        inverse= TRUE, 
+# pp_brazil_2_mask <- mask(pp_brazil_2, brazi18,
+#                        inverse= TRUE,
 #                        maskvalue = 2)
 # 
 # writeRaster(pp_brazil_2_mask,
@@ -191,31 +181,31 @@ library(spatialEco)
 ##################
 ### Brazil model 3 
 ##################
-### Run regression
+# ### Run regression
 # fit_bra_3 <- glm(trans_rc ~ paddd + non_all_land +
 #                    # field_res +
 #                    dist_ill_mines +
 #                    dist_ag + dist_fires +
 #                    fire_dens + dist_pr_rr +
-#                    # dist_pr_dams + 
-#                    agref_sett + cattle +
+#                    # dist_pr_dams +
+#                    agref_sett + #cattle +
 #                    aspect + slope + elev +
 #                    roads + rivers + mines + cities +
-#                    crop_suit + popdens + poverty +
+#                    crop_suit + popdens + #poverty +
 #                    # (1|uid) + lon +
 #                    soil + perc_diff + prot_status,
 #                  data = bra_dat_use,
 #                  family = binomial(link = "logit"))
-
-### Run prediction
-##################
+# 
+# ### Run prediction
+# ##################
 # pp_brazil_3 <- raster::predict(bra_18_all, fit_bra_3,
 #                                na.rm = TRUE,
 #                                type = "response")
 # 
 # ### Mask cells that were not forested in 2018
-# pp_brazil_3_mask <- mask(pp_brazil_3, brazi18, 
-#                          inverse= TRUE, 
+# pp_brazil_3_mask <- mask(pp_brazil_3, brazi18,
+#                          inverse= TRUE,
 #                          maskvalue = 2)
 # 
 # writeRaster(pp_brazil_3_mask,
@@ -228,61 +218,61 @@ library(spatialEco)
 ### Brazil model 4 
 ##################
 ### Run regression
-# fit_bra_4 <- glm(trans_rc ~ slope + elev +
-#                    roads + rivers + mines + 
-#                    crop_suit + soil + perc_diff + prot_status +
-#                    paddd + non_all_land +
-#                    dist_ag + dist_fires +
-#                    fire_dens + dist_pr_rr +
-#                    cattle,
-#                  data = bra_dat_use,
-#                  family = binomial(link = "logit"))
+fit_bra_4 <- glm(trans_rc ~ slope + elev + 
+                   roads + cities + mines +
+                   crop_suit + soil + perc_diff + prot_status +
+                   paddd + non_all_land +
+                   dist_ag + dist_fires +
+                   fire_dens + dist_pr_rr +
+                   agref_sett,
+                 data = bra_dat_use,
+                 family = binomial(link = "logit"))
 
 ### Run prediction
 ##################
-# pp_brazil_4 <- raster::predict(bra_18_all, fit_bra_4,
-#                                na.rm = TRUE,
-#                                type = "response")
-# 
-# ### Mask cells that were not forested in 2018
-# pp_brazil_4_mask <- mask(pp_brazil_4, brazi18, 
-#                          inverse= TRUE, 
-#                          maskvalue = 2)
-# 
-# writeRaster(pp_brazil_4_mask,
-#             filename = "/nfs/agfrontiers-data/luc_model/brazil_pp_4_masked.tif",
-#             format = "GTiff",
-#             overwrite = TRUE,
-#             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+pp_brazil_4 <- raster::predict(bra_18_all, fit_bra_4,
+                               na.rm = TRUE,
+                               type = "response")
+
+### Mask cells that were not forested in 2018
+pp_brazil_4_mask <- mask(pp_brazil_4, brazi18,
+                         inverse= TRUE,
+                         maskvalue = 2)
+
+writeRaster(pp_brazil_4_mask,
+            filename = "/nfs/agfrontiers-data/luc_model/brazil_pp_4_masked.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
 
 
 ######################
 ### Save model outputs 
 ######################
 
-# ### Model 1
+# # ### Model 1
 # fit_bra_summ <- summary(fit_bra)
 # fit_bra_coeff <- as.data.frame(fit_bra_summ$coefficients)
-# write.csv(fit_bra_coeff, 
+# write.csv(fit_bra_coeff,
 #           file = "/nfs/agfrontiers-data/luc_model/fit_bra_model1.csv")
 # 
 # ### Model 2
 # fit_bra_summ2 <- summary(fit_bra_2)
 # fit_bra_coeff2 <- as.data.frame(fit_bra_summ2$coefficients)
-# write.csv(fit_bra_coeff2, 
+# write.csv(fit_bra_coeff2,
 #           file = "/nfs/agfrontiers-data/luc_model/fit_bra_model2.csv")
 # 
 # ### Model 3
 # fit_bra_summ3 <- summary(fit_bra_3)
 # fit_bra_coeff3 <- as.data.frame(fit_bra_summ3$coefficients)
-# write.csv(fit_bra_coeff3, 
+# write.csv(fit_bra_coeff3,
 #           file = "/nfs/agfrontiers-data/luc_model/fit_bra_model3.csv")
-# 
-# ### Model 4
-# fit_bra_summ4 <- summary(fit_bra_4)
-# fit_bra_coeff4 <- as.data.frame(fit_bra_summ4$coefficients)
-# write.csv(fit_bra_coeff4, 
-#           file = "/nfs/agfrontiers-data/luc_model/fit_bra_model4.csv")
+
+### Model 4
+fit_bra_summ4 <- summary(fit_bra_4)
+fit_bra_coeff4 <- as.data.frame(fit_bra_summ4$coefficients)
+write.csv(fit_bra_coeff4,
+          file = "/nfs/agfrontiers-data/luc_model/fit_bra_model4.csv")
 
 ##################
 ### Compare models 
@@ -318,32 +308,32 @@ library(spatialEco)
 # area_vec <- rep("", times = 1000)
 # 
 # for (i in 1:length(area_vec)) {
-#   
+# 
 #   ### Make blank Jamanxim raster, fill with random values
 #   j_blank <- random.raster(pp_brazil_mask,
-#                            min = 0, 
+#                            min = 0,
 #                            max = 1,
 #                            distribution = "random")
-#   
+# 
 #   ### Set CRS
 #   j_crs <- crs(pp_brazil_mask)
 #   crs(j_blank) <- j_crs
-#   
+# 
 #   ### Set extent
 #   extent(j_blank) <- extent(pp_brazil_mask)
-#   
+# 
 #   ### Combine with model 1 PP map
 #   j_blank <- crop(j_blank, pp_brazil_mask)
 #   j_stack <- stack(j_blank, pp_brazil_mask)
-#   
+# 
 #   ### Reclassification function (1 = forest converts, 2 = forest stays forest)
 #   rc <- function(x1, x2) {
 #     ifelse(x1 < x2, 1, 0)
 #   }
-#   
+# 
 #   ### Make output raster
 #   j_classified <- overlay(j_stack, fun = rc)
-#   
+# 
 #   ### Save raster
 #   writeRaster(j_classified,
 #               filename = paste0("/nfs/agfrontiers-data/luc_model/brazil_1_project/brazil_projected_",
@@ -351,14 +341,14 @@ library(spatialEco)
 #               format = "GTiff",
 #               overwrite = TRUE,
 #               options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
-#   
+# 
 #   ### Calculate area that converts
 #   area_change <- as.data.frame(j_classified) %>%
 #     group_by(layer) %>%
 #     tally() %>%
 #     mutate(area = n * res(j_classified)[1] * res(j_classified)[2],
 #            iteration = i)
-#   
+# 
 #   ### Subset to area that converted
 #   forest_loss <- area_change[2, 3]
 # 
@@ -381,23 +371,86 @@ library(spatialEco)
 # area_vec <- rep("", times = 1000)
 # 
 # for (i in 1:length(area_vec)) {
-#   
+# 
 #   ### Make blank Jamanxim raster, fill with random values
 #   j_blank <- random.raster(pp2_brazil_mask,
+#                            min = 0,
+#                            max = 1,
+#                            distribution = "random")
+# 
+#   ### Set CRS
+#   j_crs <- crs(pp2_brazil_mask)
+#   crs(j_blank) <- j_crs
+# 
+#   ### Set extent
+#   extent(j_blank) <- extent(pp2_brazil_mask)
+# 
+#   ### Combine with model 1 PP map
+#   j_blank <- crop(j_blank, pp2_brazil_mask)
+#   j_stack <- stack(j_blank, pp2_brazil_mask)
+# 
+#   ### Reclassification function (1 = forest converts, 2 = forest stays forest)
+#   rc <- function(x1, x2) {
+#     ifelse(x1 < x2, 1, 0)
+#   }
+# 
+#   ### Make output raster
+#   j_classified <- overlay(j_stack, fun = rc)
+# 
+#   ### Save raster
+#   writeRaster(j_classified,
+#               filename = paste0("/nfs/agfrontiers-data/luc_model/brazil_2_project/brazil_2_projected_",
+#                                 i, ".tif"),
+#               format = "GTiff",
+#               overwrite = TRUE,
+#               options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+# 
+#   ### Calculate area that converts
+#   area_change <- as.data.frame(j_classified) %>%
+#     group_by(layer) %>%
+#     tally() %>%
+#     mutate(area = n * res(j_classified)[1] * res(j_classified)[2],
+#            iteration = i)
+# 
+#   ### Subset to area that converted
+#   forest_loss <- area_change[2, 3]
+# 
+#   ### Add to vector
+#   area_vec[i] <- forest_loss
+# }
+# 
+# ### Save vector of area lost
+# write.csv(area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/brazil_2_project/brazil_2_projected_loss.csv",
+#           row.names=FALSE)
+
+######################
+### Model 3 projection
+######################
+# ### Open PP3 map
+# pp3_brazil_mask <- raster("/nfs/agfrontiers-data/luc_model/brazil_pp_3_masked.tif")
+# 
+# ### Vector for area converted from forest to ag
+# area_vec <- rep("", times = 1000)
+# 
+# for (i in 1:length(area_vec)) {
+#   
+#   ### Make blank Jamanxim raster, fill with random values
+#   j_blank <- random.raster(pp3_brazil_mask,
 #                            min = 0, 
 #                            max = 1,
 #                            distribution = "random")
 #   
 #   ### Set CRS
-#   j_crs <- crs(pp2_brazil_mask)
+#   j_crs <- crs(pp3_brazil_mask)
 #   crs(j_blank) <- j_crs
 #   
 #   ### Set extent
-#   extent(j_blank) <- extent(pp2_brazil_mask)
+#   extent(j_blank) <- extent(pp3_brazil_mask)
 #   
 #   ### Combine with model 1 PP map
-#   j_blank <- crop(j_blank, pp2_brazil_mask)
-#   j_stack <- stack(j_blank, pp2_brazil_mask)
+#   j_blank <- crop(j_blank, pp3_brazil_mask)
+#   j_stack <- stack(j_blank, pp3_brazil_mask)
 #   
 #   ### Reclassification function (1 = forest converts, 2 = forest stays forest)
 #   rc <- function(x1, x2) {
@@ -409,7 +462,7 @@ library(spatialEco)
 #   
 #   ### Save raster
 #   writeRaster(j_classified,
-#               filename = paste0("/nfs/agfrontiers-data/luc_model/brazil_2_project/brazil_2_projected_", 
+#               filename = paste0("/nfs/agfrontiers-data/luc_model/brazil_3_project/brazil_3_projected_", 
 #                                 i, ".tif"),
 #               format = "GTiff",
 #               overwrite = TRUE,
@@ -431,71 +484,8 @@ library(spatialEco)
 # 
 # ### Save vector of area lost
 # write.csv(area_vec, 
-#           file = "/nfs/agfrontiers-data/luc_model/brazil_2_project/brazil_2_projected_loss.csv", 
+#           file = "/nfs/agfrontiers-data/luc_model/brazil_3_project/brazil_3_projected_loss.csv", 
 #           row.names=FALSE)
-
-######################
-### Model 3 projection
-######################
-### Open PP3 map
-pp3_brazil_mask <- raster("/nfs/agfrontiers-data/luc_model/brazil_pp_3_masked.tif")
-
-### Vector for area converted from forest to ag
-area_vec <- rep("", times = 1000)
-
-for (i in 1:length(area_vec)) {
-  
-  ### Make blank Jamanxim raster, fill with random values
-  j_blank <- random.raster(pp3_brazil_mask,
-                           min = 0, 
-                           max = 1,
-                           distribution = "random")
-  
-  ### Set CRS
-  j_crs <- crs(pp3_brazil_mask)
-  crs(j_blank) <- j_crs
-  
-  ### Set extent
-  extent(j_blank) <- extent(pp3_brazil_mask)
-  
-  ### Combine with model 1 PP map
-  j_blank <- crop(j_blank, pp3_brazil_mask)
-  j_stack <- stack(j_blank, pp3_brazil_mask)
-  
-  ### Reclassification function (1 = forest converts, 2 = forest stays forest)
-  rc <- function(x1, x2) {
-    ifelse(x1 < x2, 1, 0)
-  }
-  
-  ### Make output raster
-  j_classified <- overlay(j_stack, fun = rc)
-  
-  ### Save raster
-  writeRaster(j_classified,
-              filename = paste0("/nfs/agfrontiers-data/luc_model/brazil_3_project/brazil_3_projected_", 
-                                i, ".tif"),
-              format = "GTiff",
-              overwrite = TRUE,
-              options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
-  
-  ### Calculate area that converts
-  area_change <- as.data.frame(j_classified) %>%
-    group_by(layer) %>%
-    tally() %>%
-    mutate(area = n * res(j_classified)[1] * res(j_classified)[2],
-           iteration = i)
-  
-  ### Subset to area that converted
-  forest_loss <- area_change[2, 3]
-  
-  ### Add to vector
-  area_vec[i] <- forest_loss
-}
-
-### Save vector of area lost
-write.csv(area_vec, 
-          file = "/nfs/agfrontiers-data/luc_model/brazil_3_project/brazil_3_projected_loss.csv", 
-          row.names=FALSE)
 
 
 ######################
