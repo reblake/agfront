@@ -576,6 +576,42 @@ writeRaster(pes_resample,
             overwrite = TRUE)
 ```
 
+## North-South Line
+Tablas Monte to El Torno
+```{r}
+### Open raster
+south_rast <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_south.tif")
+
+### Open shapefile of actual dividing line
+south_shp <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_south_section.shp")
+
+### Crop raster to shp
+south_rast <- mask(south_rast, south_shp)
+
+### Resample to match other rasters
+south_rast_resamp <- raster::resample(south_rast,
+                                      ambcar_rast,
+                                      "ngb")
+
+### NA to 0
+south_rast_resamp[is.na(south_rast_resamp)] <- 1
+
+### 0 = Southern section
+### 1 = Northern section
+
+### Open buffer
+ac_buff <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/ambcar_buffer_updated.shp")
+
+### Crop raster to shp
+south_rast_resamp <- mask(south_rast_resamp,
+                          ac_buff)
+
+### write out
+writeRaster(south_rast_resamp,
+            "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_south_north.tif")
+```
+
+
 ## Land tenure
 Files from Edwin
 
