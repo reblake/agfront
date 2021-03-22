@@ -659,6 +659,25 @@ st_write(file1,
 
 ```
 
+## Fix precip
+```{r}
+### Open raster with enlarged buffer
+precip <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/ppt_bol_102033.tif")
+
+### Resample
+precip_resamp <- raster::resample(precip,
+                                  ambcar_rast,
+                                  "bilinear")
+
+### Crop raster to shp
+precip_resamp <- mask(precip_resamp,
+                      ac_buff)
+
+### write out
+writeRaster(precip_resamp,
+            "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_precip_use.tif")
+```
+
 
 ## Raster stacks
 ### Bolivia simple

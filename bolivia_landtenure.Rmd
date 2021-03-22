@@ -1,0 +1,40 @@
+---
+title: "bolivia_landtenure"
+author: "Katherine Siegel"
+date: "March 22, 2021"
+output: html_document
+---
+
+## Description
+Process layers from Edwin
+
+## Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Packages
+library(tidyverse)
+library(raster)
+library(sf)
+library(lwgeom)
+library(sp)
+library(lubridate)
+library(rgdal)
+# library(stars)
+```
+
+## Raw data
+```{r}
+### Open files
+cochabamba <- st_read("E:/bol_landtenure/INRA/cochabamba_valid.shp")
+santac <- st_read("E:/bol_landtenure/INRA/santacruz_valid.shp")
+apt <- st_read("E:/bol_landtenure/INRA/a_Predios_Titulados_20_valid.shp")
+
+### Check for intersections
+cocha_sc <- st_intersection(santac, cochabamba)
+cocha_apt <- st_intersection(cochabamba, apt)
+
+### If no intersections, rm object
+rm(cocha_sc)
+```
+
