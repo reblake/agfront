@@ -23,18 +23,305 @@ library(rgdal)
 # library(stars)
 ```
 
-## Raw data
+## Fix invalid geoms in shapefiles, crop to buffer
 ```{r}
-### Open files
-cochabamba <- st_read("E:/bol_landtenure/INRA/cochabamba_valid.shp")
-santac <- st_read("E:/bol_landtenure/INRA/santacruz_valid.shp")
-apt <- st_read("E:/bol_landtenure/INRA/a_Predios_Titulados_20_valid.shp")
+### Open buffer
+buff <- st_read("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/case_study_shp/AmbCar/ambcar_buffer_updated.shp")
 
-### Check for intersections
-cocha_sc <- st_intersection(santac, cochabamba)
-cocha_apt <- st_intersection(cochabamba, apt)
+####### File 1
+### Open apt
+apt <- st_read("E:/bol_landtenure/INRA_files/a_Predios_Titulados_20_.shp")
 
-### If no intersections, rm object
-rm(cocha_sc)
+### Fix invalid geoms
+apt <- st_make_valid(apt)
+
+### Fix projections
+buff <- st_transform(buff, 
+                     crs = st_crs(apt))
+
+### Crop
+apt <- st_intersection(apt, buff)
+
+####### File 2
+### Open 
+cochabamba <- st_read("E:/bol_landtenure/INRA_files/COCHABAMBA.shp")
+
+### Fix invalid geoms
+cochabamba <- st_make_valid(cochabamba)
+
+### Fix projections
+buff <- st_transform(buff, 
+                     crs = st_crs(cochabamba))
+
+### Crop
+cochabamba <- st_intersection(cochabamba, buff)
+
+####### File 3
+### Open 
+santac <- st_read("E:/bol_landtenure/INRA_files/SANTA_CRUZ.shp")
+
+### Fix invalid geoms
+santac <- st_make_valid(santac)
+
+### Fix projections
+buff <- st_transform(buff, 
+                     crs = st_crs(santac))
+
+### Crop
+santac <- st_intersection(santac, buff)
+
+####### File 4
+### Open 
+pandop <- st_read("E:/bol_landtenure/INRA_files/PANDO_Proceso.shp")
+
+### Fix invalid geoms
+pandop <- st_make_valid(pandop)
+
+### Fix projections
+buff <- st_transform(buff, 
+                     crs = st_crs(pandop))
+
+### Crop
+pandop <- st_intersection(pandop, buff)
+
+####### File 5
+### Open 
+predproc <- st_read("E:/bol_landtenure/INRA_files/pred_proces_2013.shp")
+
+### Fix invalid geoms
+predproc <- st_make_valid(predproc)
+
+### Fix projections
+buff <- st_transform(buff, 
+                     crs = st_crs(predproc))
+
+### Crop
+predproc <- st_intersection(predproc, buff)
+
+####### File 6
+### Open 
+predproc12 <- st_read("E:/bol_landtenure/INRA_files/pred_proces_ene_2012.shp")
+
+### Fix invalid geoms
+predproc12 <- st_make_valid(predproc12)
+
+### Fix projections
+buff <- st_transform(buff, 
+                     crs = st_crs(predproc12))
+
+### Crop
+predproc12 <- st_intersection(predproc12, buff)
+
+####### File 7
+### Open 
+pred20 <- st_read("E:/bol_landtenure/INRA_files/PREDIOS_20.shp")
+
+### Fix invalid geoms
+pred20 <- st_make_valid(pred20)
+
+### Fix projections
+buff <- st_transform(buff, 
+                     crs = st_crs(pred20))
+
+### Crop
+pred20 <- st_intersection(pred20, buff)
+
+####### File 8
+### Open 
+predz20 <- st_read("E:/bol_landtenure/INRA_files/PROCESO_z20_diciembre_2014_.shp")
+
+### Fix invalid geoms
+predz20 <- st_make_valid(predz20)
+
+### Fix projections
+buff <- st_transform(buff, 
+                     crs = st_crs(predz20))
+
+### Crop
+predz20 <- st_intersection(predz20, buff)
+
+####### File 9
+predz202 <- st_read("E:/bol_landtenure/INRA_files/PROCESO_z20_diciembre_2014_2.shp")
+
+### Fix invalid geoms
+predz202 <- st_make_valid(predz202)
+
+### Fix projections
+buff <- st_transform(buff, 
+                     crs = st_crs(predz202))
+
+### Crop
+predz202 <- st_intersection(predz202, buff)
+
+####### File 10
+predz203 <- st_read("E:/bol_landtenure/INRA/PROCESO_z20_dicimebre_2014_3_valid.shp") 
+
+### Fix invalid geoms
+predz203 <- st_make_valid(predz203)
+
+### Fix projections
+buff <- st_transform(buff, 
+                     crs = st_crs(predz203))
+
+### Crop
+predz203 <- st_intersection(predz203, buff)
+
+####### File 11
+tierra_fiscal <- st_read("E:/bol_landtenure/INRA_files/tierra_fiscal_2013.shp") 
+
+### Fix invalid geoms
+tierra_fiscal <- st_make_valid(tierra_fiscal)
+
+### Fix projections
+buff <- st_transform(buff, 
+                     crs = st_crs(tierra_fiscal))
+
+### Crop
+tierra_fiscal <- st_intersection(tierra_fiscal, buff)
+
+####### File 12
+tf_sc <- st_read("E:/bol_landtenure/INRA_files/TIERRA_FISCAL_SC.shp")
+
+### Fix invalid geoms
+tf_sc <- st_make_valid(tf_sc)
+
+### Fix projections
+buff <- st_transform(buff, 
+                     crs = st_crs(tf_sc))
+
+### Crop
+tf_sc <- st_intersection(tf_sc, buff)
+
+####### File 13
+titulados <- st_read("E:/bol_landtenure/INRA_files/TITULADOS_20.shp")
+
+### Fix invalid geoms
+titulados <- st_make_valid(titulados)
+
+### Fix projections
+buff <- st_transform(buff, 
+                     crs = st_crs(titulados))
+
+### Crop
+titulados <- st_intersection(titulados, buff)
+
+### Transform incorrect crs
+titulados <- titulados %>%
+  st_transform(crs = st_crs(cochabamba))
+```
+
+## Combine files
+```{r}
+### Essential columns
+cochabamba <- cochabamba %>%
+  dplyr::select(IDPREDIO, geometry)
+
+santac <- santac %>%
+  dplyr::select(geometry) %>%
+  mutate(., IDPREDIO = "unknown")
+santac <- santac %>% 
+  dplyr::select(IDPREDIO, geometry)
+
+apt <- apt %>%
+  dplyr::select(IDPREDIO, geometry)
+
+pandop <- pandop %>%
+  dplyr::select(geometry) %>%
+  mutate(., IDPREDIO = "unknown")
+pandop <- pandop %>% 
+  dplyr::select(IDPREDIO, geometry) 
+
+predproc <- predproc %>%
+  dplyr::select(geometry) %>%
+  mutate(., IDPREDIO = "unknown")
+predproc <- predproc %>%
+  dplyr::select(IDPREDIO, geometry) 
+
+predproc12 <- predproc12 %>%
+  dplyr::select(IDPREDIO, geometry)
+
+pred20 <- pred20 %>%
+  dplyr::select(IDPREDIO, geometry)
+
+predz20 <- predz20 %>%
+  dplyr::select(IDPREDIO, geometry)
+
+predz202 <- predz202 %>%
+  dplyr::select(IDPREDIO, geometry)
+
+predz203 <- predz203 %>%
+  dplyr::select(geometry) %>%
+  mutate(IDPREDIO = "unknown")
+predz203 <- predz203 %>% 
+  dplyr::select(IDPREDIO, geometry) 
+
+tierra_fiscal <- tierra_fiscal %>%
+  dplyr::select(geometry) %>%
+  mutate(IDPREDIO = "unknown")
+tierra_fiscal <- tierra_fiscal %>% 
+  dplyr::select(IDPREDIO, geometry)
+
+tf_sc <- tf_sc %>%
+  dplyr::select(IDPREDIO, geometry)
+
+titulados <- titulados %>%
+  dplyr::select(IDPREDIO, geometry)
+
+### rbind
+all_files <- rbind(cochabamba, apt, predproc12,
+                   pred20, predz20, predz202,
+                   tf_sc, titulados)
+
+### Remove duplicate IDs
+all_files_red <- unique(all_files[, 1])
+rm(all_files, cochabamba, apt, 
+   predproc12, pred20, 
+   predz20, predz202,
+   tf_sc, titulados)
+
+### Combine shps missing IDPREDIO
+na_files <- rbind(santac, pandop,
+                  predproc, predz203,
+                  tierra_fiscal)
+
+### Try removing duplicates based on geom
+na_files_unique <- unique(na_files)
+
+### Combine
+all_files_red <- rbind(all_files_red,
+                       na_files_unique)
+
+### Change IDPREDIOS
+all_files_red$IDPREDIO <- 1
+
+### Remove dups
+all_files_unique <- unique(all_files_red)
+
+### Write out
+st_write(all_files_unique,
+         "E:/bol_landtenure/INRA_files/all_combined.shp")
+```
+
+## gdal code
+ogr2ogr -t_srs EPSG:102033 all_combined_102033.shp all_combined.shp
+
+gdal_rasterize -a IDPREDIO -tr 30 30 all_combined_102033.shp land_tenure.tiff
+
+## Resample raster
+```{r}
+### Open Amboro Carrasco raster
+ambcar_rast <- raster("C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/remote_sensing/classi_bol_dry_2008_102033.tif")
+
+### Open land tenure raster
+landten <- raster("E:/bol_landtenure/INRA_files/land_tenure.tiff")
+
+### Resample to match
+landten_resample <- raster::resample(landten, 
+                                     ambcar_rast, 
+                                     "ngb")
+### Write out raster
+writeRaster(landten_resample,
+            "C:/Users/Katherine Siegel/Documents/SESYNC/dinamica/new_dinamica_layers/bolivia/bol_landtenure.tif")
+
 ```
 
