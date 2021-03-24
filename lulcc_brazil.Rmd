@@ -592,7 +592,10 @@ bra_18_all <- addLayer(bra_layers_all, neigh_2018)
 names(bra_18_all)[25] <- "perc_diff"
 ```
 
-## Analyze Monte Carlo simulations
+# ANALYZE MODEL OUTPUT
+Analyze outputs from predict_luc.R
+
+## Analyze Monte Carlo simulations for buffer
 Output from predict_luc.R
 ```{r}
 ### Model 1
@@ -695,7 +698,7 @@ ggplot(all_models, aes(x = value_km2, color = model)) +
   ylab("Density")
 ggsave("/nfs/agfrontiers-data/luc_model/brazil_allmodels_area_defor.png")
 ```
-## Original forest cover
+## Original forest cover in buffer + park
 ```{r}
 ### 2008
 forest_08 <- as.data.frame(bra_2008) %>%
@@ -708,5 +711,233 @@ forest_18 <- as.data.frame(bra_2018) %>%
     group_by(classi_bra_dry_2018_102033) %>%
     tally() %>%
     mutate(area = n * res(bra_2018)[1] * res(bra_2018)[2])
+```
+## Analyze Monte Carlo simulations for JNF
+Output from predict_luc.R
+```{r}
+##############
+### Model 1
+##############
+m1_mc_1 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m1_jamanxim_forestloss_1.csv") 
+m1_mc_2 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m1_jamanxim_forestloss_2.csv") 
+m1_mc_3 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m1_jamanxim_forestloss_3.csv") 
+m1_mc_4 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m1_jamanxim_forestloss_4.csv") 
+m1_mc_5 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m1_jamanxim_forestloss_5.csv") 
+
+### Combine
+m1_mc_jnf <- rbind(m1_mc_1, m1_mc_2, 
+                   m1_mc_3, m1_mc_4,
+                   m1_mc_5)
+
+### Value in sq km
+m1_mc_jnf <- m1_mc_jnf %>%
+  mutate(value_km2 = x/1000000)
+
+### Take mean
+mean(m1_mc_jnf$value_km2)
+sd(m1_mc_jnf$value_km2)
+
+##############
+### Model 2
+##############
+m2_mc_1 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m2_jamanxim_forestloss_1.csv") 
+m2_mc_2 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m2_jamanxim_forestloss_2.csv") 
+m2_mc_3 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m2_jamanxim_forestloss_3.csv") 
+m2_mc_4 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m2_jamanxim_forestloss_4.csv") 
+m2_mc_5 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m2_jamanxim_forestloss_5.csv") 
+
+### Combine
+m2_mc_jnf <- rbind(m2_mc_1, m2_mc_2, 
+                   m2_mc_3, m2_mc_4,
+                   m2_mc_5)
+
+### Value in sq km
+m2_mc_jnf <- m2_mc_jnf %>%
+  mutate(value_km2 = x/1000000)
+
+### Take mean
+mean(m2_mc_jnf$value_km2)
+sd(m2_mc_jnf$value_km2)
+
+  
+##############
+### Model 3
+##############
+m3_mc_1 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m3_jamanxim_forestloss_1.csv") 
+m3_mc_2 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m3_jamanxim_forestloss_2.csv") 
+m3_mc_3 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m3_jamanxim_forestloss_3.csv") 
+m3_mc_4 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m3_jamanxim_forestloss_4.csv") 
+m3_mc_5 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m3_jamanxim_forestloss_5.csv") 
+
+### Combine
+m3_mc_jnf <- rbind(m3_mc_1, m3_mc_2, 
+                   m3_mc_3, m3_mc_4,
+                   m3_mc_5)
+
+### Value in sq km
+m3_mc_jnf <- m3_mc_jnf %>%
+  mutate(value_km2 = x/1000000)
+
+### Take mean
+mean(m3_mc_jnf$value_km2)
+sd(m3_mc_jnf$value_km2)
+
+##############
+### Model 4
+##############
+m4_mc_1 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m4_jamanxim_forestloss_1.csv") 
+m4_mc_2 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m4_jamanxim_forestloss_2.csv") 
+m4_mc_3 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m4_jamanxim_forestloss_3.csv") 
+m4_mc_4 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m4_jamanxim_forestloss_4.csv") 
+m4_mc_5 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_m4_jamanxim_forestloss_5.csv") 
+
+### Combine
+m4_mc_jnf <- rbind(m4_mc_1, m4_mc_2, 
+                   m4_mc_3, m4_mc_4,
+                   m4_mc_5)
+
+### Value in sq km
+m4_mc_jnf <- m4_mc_jnf %>%
+  mutate(value_km2 = x/1000000)
+
+### Take mean
+mean(m4_mc_jnf$value_km2)
+sd(m4_mc_jnf$value_km2)
+
+### Add columns to dfs
+m1_mc_jnf <- m1_mc_jnf %>%
+  mutate(model = "model1")
+m2_mc_jnf <- m2_mc_jnf %>%
+  mutate(model = "model2")
+m3_mc_jnf <- m3_mc_jnf %>%
+  mutate(model = "model3")
+m4_mc_jnf <- m4_mc_jnf %>%
+  mutate(model = "model4")
+
+### rbind
+all_models_jnf <- rbind(m1_mc_jnf, m2_mc_jnf, 
+                        m3_mc_jnf, m4_mc_jnf)
+
+### Plot
+ggplot(all_models_jnf, aes(x = value_km2, color = model)) +
+  geom_density() +
+  xlab("Square km of forest converted to agriculture") +
+  ylab("Density")
+ggsave("/nfs/agfrontiers-data/luc_model/brazil_allmodels_area_defor_jaman.png")
+```
+##### Compare to observed forest loss in JNF
+```{r}
+### Open brazil 2008 map
+bra_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2008_102033.tif")
+
+### Open brazil 2018 map
+bra_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2018_102033.tif")
+
+### Open JNF without buffer
+jaman <- st_read("/nfs/agfrontiers-data/Case Study Info/Brazil/JamanBuffer/jamanxim_wdpa_march21_102033.shp")
+
+### Crop LUC maps
+jaman_08 <- crop(bra_2008, jaman)
+jaman_08 <- mask(jaman_08, jaman)
+jaman_18 <- crop(bra_2018, jaman)
+jaman_18 <- mask(jaman_18, jaman)
+
+### Forest in 2008
+forest_08_jaman <- as.data.frame(jaman_08) %>%
+    group_by(classi_bra_dry_2008_102033) %>%
+    tally() %>%
+    mutate(area = n * res(jaman_08)[1] * res(jaman_08)[2])
+
+### Forest in 2018
+forest_18_jaman <- as.data.frame(jaman_18) %>%
+    group_by(classi_bra_dry_2018_102033) %>%
+    tally() %>%
+    mutate(area = n * res(jaman_18)[1] * res(jaman_18)[2])
+
+### Calculate forested area lost 
+f_lost_jaman <- (12557664259-12238130351)/1000000
+```
+## Add Simulations
+Add up simulated maps
+```{r}
+#############
+### Model 1
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m1_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m1_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m1_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m1_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m1_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/brazil_m1_stacked_all.tif")
+
+#############
+### Model 2
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m2_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m2_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m2_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m2_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m2_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/brazil_m2_stacked_all.tif")
+
+#############
+### Model 3
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m3_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m3_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m3_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m3_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m3_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/brazil_m3_stacked_all.tif")
+
+#############
+### Model 4
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m4_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m4_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m4_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m4_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m4_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/brazil_m4_stacked_all.tif")
 ```
 

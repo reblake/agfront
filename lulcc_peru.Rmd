@@ -484,32 +484,309 @@ pR2(fit_per_m2)
 pR2(fit_per_m3)
 pR2(fit_per_m4)
 ```
+# ANALYZE MODEL OUTPUT
+Analyze outputs from predict_luc_peru.R
 
-## Brick with 2018 neighbors
+## Analyze Monte Carlo simulations for buffer
+Output from predict_luc_peru.R
 ```{r}
-### Open rasterbrick
-bra_layers_all <- brick("/nfs/agfrontiers-data/luc_model/brazil_all_layers.tif")
+### Model 1, whole extent
+m1_mc <- read.csv("/nfs/agfrontiers-data/luc_model/peru_1_project/peru_projected_loss.csv")
 
-### Rename columns
-names(bra_layers_all) <- c("aspect", "mines", 
-                           "roads", "rivers", 
-                           "cities", "elev", 
-                           "popdens", "poverty", 
-                           "ppt", "prot_status", 
-                           "slope", "soil", 
-                           "crop_suit", "field_res",
-                           "paddd", "non_all_land",
-                           "dist_ill_mines", "dist_ag",
-                           "dist_fires", "fire_dens",
-                           "dist_pr_rr",
-                           "dist_pr_dams",
-                           "agref_sett", "cattle")
+### Add columns for model and extent
+m1_mc <- m1_mc %>%
+  mutate(model = "model1",
+         extent = "whole_area",
+         value_km2 = x/1000000)
 
-### Open 2018 percent of neighboring pixels raster
-neigh_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/bra18_perc_diff.tif")
+### Model 1, Tambo
+m1_tambo <- read.csv("/nfs/agfrontiers-data/luc_model/peru_1_project/peru_projected_loss_tambopata.csv")
+m1_tambo <- m1_tambo %>%
+  mutate(model = "model1",
+         extent = "tambopata",
+         value_km2 = x/1000000)
 
-### Brick with the others
-bra_18_all <- addLayer(bra_layers_all, neigh_2018)
-names(bra_18_all)[25] <- "perc_diff"
+### Model 1, B-S
+m1_bahua <- read.csv("/nfs/agfrontiers-data/luc_model/peru_1_project/peru_projected_loss_bahuaja.csv")
+m1_bahua <- m1_bahua %>%
+  mutate(model = "model1",
+         extent = "bahuaja_sonene",
+         value_km2 = x/1000000)
+
+### Model 2, whole extent
+m2_mc <- read.csv("/nfs/agfrontiers-data/luc_model/peru_2_project/peru_2_projected_loss.csv")
+### Add columns for model and extent
+m2_mc <- m2_mc %>%
+  mutate(model = "model2",
+         extent = "whole_area",
+         value_km2 = x/1000000)
+
+### Model 2, Tambo
+m2_tambo <- read.csv("/nfs/agfrontiers-data/luc_model/peru_2_project/peru_2_projected_loss_tambopata.csv")
+m2_tambo <- m2_tambo %>%
+  mutate(model = "model2",
+         extent = "tambopata",
+         value_km2 = x/1000000)
+
+### Model 2, B-S
+m2_bahua <- read.csv("/nfs/agfrontiers-data/luc_model/peru_2_project/peru_2_projected_loss_bahuaja.csv")
+m2_bahua <- m2_bahua %>%
+  mutate(model = "model2",
+         extent = "bahuaja_sonene",
+         value_km2 = x/1000000)
+
+### Model 3, whole extent
+m3_mc <- read.csv("/nfs/agfrontiers-data/luc_model/peru_3_project/peru_3_projected_loss.csv")
+### Add columns for model and extent
+m3_mc <- m3_mc %>%
+  mutate(model = "model3",
+         extent = "whole_area",
+         value_km2 = x/1000000)
+
+### Model 3, Tambo
+m3_tambo <- read.csv("/nfs/agfrontiers-data/luc_model/peru_3_project/peru_3_projected_loss_tambopata.csv")
+m3_tambo <- m3_tambo %>%
+  mutate(model = "model3",
+         extent = "tambopata",
+         value_km2 = x/1000000)
+
+### Model 3, B-S
+m3_bahua <- read.csv("/nfs/agfrontiers-data/luc_model/peru_3_project/peru_3_projected_loss_bahuaja.csv")
+m3_bahua <- m3_bahua %>%
+  mutate(model = "model3",
+         extent = "bahuaja_sonene",
+         value_km2 = x/1000000)
+
+### Model 4, whole extent
+m4_mc <- read.csv("/nfs/agfrontiers-data/luc_model/peru_4_project/peru_4_projected_loss.csv")
+### Add columns for model and extent
+m4_mc <- m4_mc %>%
+  mutate(model = "model4",
+         extent = "whole_area",
+         value_km2 = x/1000000)
+
+### Model 4, Tambo
+m4_tambo <- read.csv("/nfs/agfrontiers-data/luc_model/peru_4_project/peru_4_projected_loss_tambopata.csv")
+m4_tambo <- m4_tambo %>%
+  mutate(model = "model4",
+         extent = "tambopata",
+         value_km2 = x/1000000)
+
+### Model 4, B-S
+m4_bahua <- read.csv("/nfs/agfrontiers-data/luc_model/peru_4_project/peru_4_projected_loss_bahuaja.csv")
+m4_bahua <- m4_bahua %>%
+  mutate(model = "model4",
+         extent = "bahuaja_sonene",
+         value_km2 = x/1000000)
+
+### Take means and sds of whole extent
+mean(m1_tambo$value_km2)
+sd(m1_tambo$value_km2)
+mean(m2_tambo$value_km2)
+sd(m2_tambo$value_km2)
+mean(m3_tambo$value_km2)
+sd(m3_tambo$value_km2)
+mean(m4_tambo$value_km2)
+sd(m4_tambo$value_km2)
+
+### Take means and sds of whole extent
+mean(m1_bahua$value_km2)
+sd(m1_bahua$value_km2)
+mean(m2_bahua$value_km2)
+sd(m2_bahua$value_km2)
+mean(m3_bahua$value_km2)
+sd(m3_bahua$value_km2)
+mean(m4_bahua$value_km2)
+sd(m4_bahua$value_km2)
+
+### Take means and sds of entire extent
+mean(m1_mc$value_km2)
+sd(m1_mc$value_km2)
+mean(m2_mc$value_km2)
+sd(m2_mc$value_km2)
+mean(m3_mc$value_km2)
+sd(m3_mc$value_km2)
+mean(m4_mc$value_km2)
+sd(m4_mc$value_km2)
+
+### rbind
+all_models <- rbind(m1_mc, m2_mc, 
+                    m3_mc, m4_mc)
+all_model_tambo <- rbind(m1_tambo, m2_tambo,
+                         m3_tambo, m4_tambo)
+all_model_bs <- rbind(m1_bahua, m2_bahua, 
+                      m3_bahua, m4_bahua)
+
+### Plot for full extent
+ggplot(all_models, aes(x = value_km2, color = model)) +
+  geom_density() +
+  xlab("Square km of forest converted to agriculture") +
+  ylab("Density")
+ggsave("/nfs/agfrontiers-data/luc_model/peru_allmodels_area_defor.png")
+
+### Plot for Tambopata
+ggplot(all_model_tambo, aes(x = value_km2, color = model)) +
+  geom_density() +
+  xlab("Square km of forest converted to agriculture") +
+  ylab("Density")
+ggsave("/nfs/agfrontiers-data/luc_model/peru_allmodels_area_defor_tambopata.png")
+
+### Plot for Bahuaja-Sonene
+ggplot(all_model_bs, aes(x = value_km2, color = model)) +
+  geom_density() +
+  xlab("Square km of forest converted to agriculture") +
+  ylab("Density")
+ggsave("/nfs/agfrontiers-data/luc_model/peru_allmodels_area_defor_bahuaja.png")
 ```
+### Observed forest loss, 2008-2018
+```{r}
+### Whole region
+per_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2008_102033.tif")
+per_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2018_102033.tif")
 
+### 2008
+forest_08 <- as.data.frame(per_2008) %>%
+    group_by(classi_per_dry_2008_102033) %>%
+    tally() %>%
+    mutate(area = n * res(per_2008)[1] * res(per_2008)[2])
+
+### 2018
+forest_18 <- as.data.frame(per_2018) %>%
+    group_by(classi_per_dry_2018_102033) %>%
+    tally() %>%
+    mutate(area = n * res(per_2018)[1] * res(per_2018)[2])
+
+### Calculate forested area lost 
+f_lost <- (22152369600-22131216000)/1000000
+```
+#### Observed forest loss w/in parks
+```{r}
+### Open shps
+tambo <- st_read("/nfs/agfrontiers-data/Case Study Info/Peru/wdpa_mar2021_tambo_102033.shp")
+bahua <- st_read("/nfs/agfrontiers-data/Case Study Info/Peru/wdpa_mar2021_bahuaja_102033.shp")
+
+### Crop LUC maps
+tambo_08 <- crop(per_2008, tambo)
+tambo_08 <- mask(tambo_08, tambo)
+tambo_18 <- crop(per_2018, tambo)
+tambo_18 <- mask(tambo_18, tambo)
+bahua_08 <- crop(per_2008, bahua)
+bahua_08 <- mask(bahua_08, bahua)
+bahua_18 <- crop(per_2018, bahua)
+bahua_18 <- mask(bahua_18, bahua)
+
+### Tambopata forest loss
+### 2008
+forest_08_tambo <- as.data.frame(tambo_08) %>%
+    group_by(classi_per_dry_2008_102033) %>%
+    tally() %>%
+    mutate(area = n * res(tambo_08)[1] * res(tambo_08)[2])
+
+### 2018
+forest_18_tambo <- as.data.frame(tambo_18) %>%
+    group_by(classi_per_dry_2018_102033) %>%
+    tally() %>%
+    mutate(area = n * res(tambo_18)[1] * res(tambo_18)[2])
+
+### Calculate forested area lost 
+f_lost_tambo <- (2736436500-2733995700)/1000000
+
+### Bahuaja-Sonene forest loss
+### 2008
+forest_08_bahua <- as.data.frame(bahua_08) %>%
+    group_by(classi_per_dry_2008_102033) %>%
+    tally() %>%
+    mutate(area = n * res(bahua_08)[1] * res(bahua_08)[2])
+
+### 2018
+forest_18_bahua <- as.data.frame(bahua_18) %>%
+    group_by(classi_per_dry_2018_102033) %>%
+    tally() %>%
+    mutate(area = n * res(bahua_18)[1] * res(bahua_18)[2])
+
+### Calculate forested area lost 
+f_lost_bahua <- (10792656900-10782045900)/1000000
+```
+## Add Simulations
+Add up simulated maps
+```{r}
+#############
+### Model 1
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/peru_m1_stacked_all.tif")
+
+#############
+### Model 2
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/peru_m2_stacked_all.tif")
+
+#############
+### Model 3
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/peru_m3_stacked_all.tif")
+
+#############
+### Model 4
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/peru_m4_stacked_all.tif")
+```

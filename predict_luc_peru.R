@@ -286,8 +286,8 @@ library(spatialEco)
 ######################
 
 ### Open PA shps
-tambo <- st_read("/nfs/agfrontiers-data/Case Study Info/Peru/wdpa_mar2021_tambo_102033.shp")
-bahua <- st_read("/nfs/agfrontiers-data/Case Study Info/Peru/wdpa_mar2021_bahuaja_102033.shp")
+# tambo <- st_read("/nfs/agfrontiers-data/Case Study Info/Peru/wdpa_mar2021_tambo_102033.shp")
+# bahua <- st_read("/nfs/agfrontiers-data/Case Study Info/Peru/wdpa_mar2021_bahuaja_102033.shp")
 
 # ### Open PP1 map
 # pp_peru_mask <- raster("/nfs/agfrontiers-data/luc_model/peru_pp_masked.tif")
@@ -391,117 +391,123 @@ bahua <- st_read("/nfs/agfrontiers-data/Case Study Info/Peru/wdpa_mar2021_bahuaj
 ### Model 2 projection
 ######################
 ### Open PP2 map
-pp2_peru_mask <- raster("/nfs/agfrontiers-data/luc_model/peru_pp_2_masked.tif")
+# pp2_peru_mask <- raster("/nfs/agfrontiers-data/luc_model/peru_pp_2_masked.tif")
 
-### Vector for area converted from forest to ag
-area_vec <- rep("", times = 1000)
-
-### Vector for area converted from forest to ag within Tambo
-tambo_area_vec <- rep("", times = 1000)
-
-### Vector for area converted from forest to ag within Bahuaja
-bahua_area_vec <- rep("", times = 1000)
-
-for (i in 1:length(area_vec)) {
-  
-  ### Make blank Jamanxim raster, fill with random values
-  j_blank <- random.raster(pp2_peru_mask,
-                           min = 0,
-                           max = 1,
-                           distribution = "random")
-  
-  ### Set CRS
-  j_crs <- crs(pp2_peru_mask)
-  crs(j_blank) <- j_crs
-  
-  ### Set extent
-  extent(j_blank) <- extent(pp2_peru_mask)
-  
-  ### Combine with model 1 PP map
-  j_blank <- crop(j_blank, pp2_peru_mask)
-  j_stack <- stack(j_blank, pp2_peru_mask)
-  
-  ### Reclassification function (1 = forest converts, 2 = forest stays forest)
-  rc <- function(x1, x2) {
-    ifelse(x1 < x2, 1, 0)
-  }
-  
-  ### Make output raster
-  j_classified <- overlay(j_stack, fun = rc)
-  
-  ### Save raster
-  writeRaster(j_classified,
-              filename = paste0("/nfs/agfrontiers-data/luc_model/peru_2_project/peru_2_projected_",
-                                i, ".tif"),
-              format = "GTiff",
-              overwrite = TRUE,
-              options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
-  
-  ### Calculate area that converts
-  area_change <- freq(j_classified, value = 1)
-  forest_loss <- area_change * res(j_classified)[1] * res(j_classified)[2]
-  
-  ### Add to vector
-  area_vec[i] <- forest_loss
-  
-  #######################
-  ### Tambopata
-  #######################
-  ### Clip raster to shapefile
-  rast_tambo <- crop(j_classified, tambo)
-  rast_tambo <- mask(rast_tambo, tambo)
-  
-  ### Calculate # pixels that convert
-  forest_loss_tambo <- freq(rast_tambo, value = 1)
-  
-  ### Calculate area that converts
-  forest_loss_tambo <- forest_loss_tambo * res(rast_tambo)[1] * res(rast_tambo)[2]
-  
-  ### Add to vector
-  tambo_area_vec[i] <- forest_loss_tambo
-  
-  #######################
-  ### Bahuaja
-  #######################
-  ### Clip raster to shapefile
-  rast_bahua <- crop(j_classified, bahua)
-  rast_bahua <- mask(rast_bahua, bahua)
-  
-  ### Calculate # pixels that convert
-  forest_loss_bahua <- freq(rast_bahua, value = 1)
-  
-  ### Calculate area that converts
-  forest_loss_bahua <- forest_loss_bahua * res(rast_bahua)[1] * res(rast_bahua)[2]
-  
-  ### Add to vector
-  bahua_area_vec[i] <- forest_loss_bahua
-}
-
-### Save vector of area lost
-write.csv(area_vec,
-          file = "/nfs/agfrontiers-data/luc_model/peru_2_project/peru_2_projected_loss.csv",
-          row.names=FALSE)
-write.csv(tambo_area_vec,
-          file = "/nfs/agfrontiers-data/luc_model/peru_2_project/peru_2_projected_loss_tambopata.csv",
-          row.names=FALSE)
-write.csv(bahua_area_vec,
-          file = "/nfs/agfrontiers-data/luc_model/peru_2_project/peru_2_projected_loss_bahuaja.csv",
-          row.names=FALSE)
+# ### Vector for area converted from forest to ag
+# area_vec <- rep("", times = 1000)
+# 
+# ### Vector for area converted from forest to ag within Tambo
+# tambo_area_vec <- rep("", times = 1000)
+# 
+# ### Vector for area converted from forest to ag within Bahuaja
+# bahua_area_vec <- rep("", times = 1000)
+# 
+# for (i in 1:length(area_vec)) {
+#   
+#   ### Make blank Jamanxim raster, fill with random values
+#   j_blank <- random.raster(pp2_peru_mask,
+#                            min = 0,
+#                            max = 1,
+#                            distribution = "random")
+#   
+#   ### Set CRS
+#   j_crs <- crs(pp2_peru_mask)
+#   crs(j_blank) <- j_crs
+#   
+#   ### Set extent
+#   extent(j_blank) <- extent(pp2_peru_mask)
+#   
+#   ### Combine with model 1 PP map
+#   j_blank <- crop(j_blank, pp2_peru_mask)
+#   j_stack <- stack(j_blank, pp2_peru_mask)
+#   
+#   ### Reclassification function (1 = forest converts, 2 = forest stays forest)
+#   rc <- function(x1, x2) {
+#     ifelse(x1 < x2, 1, 0)
+#   }
+#   
+#   ### Make output raster
+#   j_classified <- overlay(j_stack, fun = rc)
+#   
+#   ### Save raster
+#   writeRaster(j_classified,
+#               filename = paste0("/nfs/agfrontiers-data/luc_model/peru_2_project/peru_2_projected_",
+#                                 i, ".tif"),
+#               format = "GTiff",
+#               overwrite = TRUE,
+#               options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+#   
+#   ### Calculate area that converts
+#   area_change <- freq(j_classified, value = 1)
+#   forest_loss <- area_change * res(j_classified)[1] * res(j_classified)[2]
+#   
+#   ### Add to vector
+#   area_vec[i] <- forest_loss
+#   
+#   #######################
+#   ### Tambopata
+#   #######################
+#   ### Clip raster to shapefile
+#   rast_tambo <- crop(j_classified, tambo)
+#   rast_tambo <- mask(rast_tambo, tambo)
+#   
+#   ### Calculate # pixels that convert
+#   forest_loss_tambo <- freq(rast_tambo, value = 1)
+#   
+#   ### Calculate area that converts
+#   forest_loss_tambo <- forest_loss_tambo * res(rast_tambo)[1] * res(rast_tambo)[2]
+#   
+#   ### Add to vector
+#   tambo_area_vec[i] <- forest_loss_tambo
+#   
+#   #######################
+#   ### Bahuaja
+#   #######################
+#   ### Clip raster to shapefile
+#   rast_bahua <- crop(j_classified, bahua)
+#   rast_bahua <- mask(rast_bahua, bahua)
+#   
+#   ### Calculate # pixels that convert
+#   forest_loss_bahua <- freq(rast_bahua, value = 1)
+#   
+#   ### Calculate area that converts
+#   forest_loss_bahua <- forest_loss_bahua * res(rast_bahua)[1] * res(rast_bahua)[2]
+#   
+#   ### Add to vector
+#   bahua_area_vec[i] <- forest_loss_bahua
+# }
+# 
+# ### Save vector of area lost
+# write.csv(area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/peru_2_project/peru_2_projected_loss.csv",
+#           row.names=FALSE)
+# write.csv(tambo_area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/peru_2_project/peru_2_projected_loss_tambopata.csv",
+#           row.names=FALSE)
+# write.csv(bahua_area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/peru_2_project/peru_2_projected_loss_bahuaja.csv",
+#           row.names=FALSE)
 
 ######################
 ### Model 3 projection
 ######################
-# ### Open PP3 map
+### Open PP3 map
 # pp3_peru_mask <- raster("/nfs/agfrontiers-data/luc_model/peru_pp_3_masked.tif")
-# 
+
 # ### Vector for area converted from forest to ag
 # area_vec <- rep("", times = 1000)
+# 
+# ### Vector for area converted from forest to ag within Tambo
+# tambo_area_vec <- rep("", times = 1000)
+# 
+# ### Vector for area converted from forest to ag within Bahuaja
+# bahua_area_vec <- rep("", times = 1000)
 # 
 # for (i in 1:length(area_vec)) {
 #   
 #   ### Make blank Jamanxim raster, fill with random values
 #   j_blank <- random.raster(pp3_peru_mask,
-#                            min = 0, 
+#                            min = 0,
 #                            max = 1,
 #                            distribution = "random")
 #   
@@ -526,31 +532,62 @@ write.csv(bahua_area_vec,
 #   
 #   ### Save raster
 #   writeRaster(j_classified,
-#               filename = paste0("/nfs/agfrontiers-data/luc_model/peru_3_project/peru_3_projected_", 
+#               filename = paste0("/nfs/agfrontiers-data/luc_model/peru_3_project/peru_3_projected_",
 #                                 i, ".tif"),
 #               format = "GTiff",
 #               overwrite = TRUE,
 #               options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
 #   
 #   ### Calculate area that converts
-#   area_change <- as.data.frame(j_classified) %>%
-#     group_by(layer) %>%
-#     tally() %>%
-#     mutate(area = n * res(j_classified)[1] * res(j_classified)[2],
-#            iteration = i)
-#   
-#   ### Subset to area that converted
-#   forest_loss <- area_change[2, 3]
+#   area_change <- freq(j_classified, value = 1)
+#   forest_loss <- area_change * res(j_classified)[1] * res(j_classified)[2]
 #   
 #   ### Add to vector
 #   area_vec[i] <- forest_loss
+#   
+#   #######################
+#   ### Tambopata
+#   #######################
+#   ### Clip raster to shapefile
+#   rast_tambo <- crop(j_classified, tambo)
+#   rast_tambo <- mask(rast_tambo, tambo)
+#   
+#   ### Calculate # pixels that convert
+#   forest_loss_tambo <- freq(rast_tambo, value = 1)
+#   
+#   ### Calculate area that converts
+#   forest_loss_tambo <- forest_loss_tambo * res(rast_tambo)[1] * res(rast_tambo)[2]
+#   
+#   ### Add to vector
+#   tambo_area_vec[i] <- forest_loss_tambo
+#   
+#   #######################
+#   ### Bahuaja
+#   #######################
+#   ### Clip raster to shapefile
+#   rast_bahua <- crop(j_classified, bahua)
+#   rast_bahua <- mask(rast_bahua, bahua)
+#   
+#   ### Calculate # pixels that convert
+#   forest_loss_bahua <- freq(rast_bahua, value = 1)
+#   
+#   ### Calculate area that converts
+#   forest_loss_bahua <- forest_loss_bahua * res(rast_bahua)[1] * res(rast_bahua)[2]
+#   
+#   ### Add to vector
+#   bahua_area_vec[i] <- forest_loss_bahua
 # }
 # 
 # ### Save vector of area lost
-# write.csv(area_vec, 
-#           file = "/nfs/agfrontiers-data/luc_model/peru_3_project/peru_3_projected_loss.csv", 
+# write.csv(area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/peru_3_project/peru_3_projected_loss.csv",
 #           row.names=FALSE)
-
+# write.csv(tambo_area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/peru_3_project/peru_3_projected_loss_tambopata.csv",
+#           row.names=FALSE)
+# write.csv(bahua_area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/peru_3_project/peru_3_projected_loss_bahuaja.csv",
+#           row.names=FALSE)
 
 ######################
 ### Model 4 projection
@@ -561,11 +598,17 @@ write.csv(bahua_area_vec,
 # ### Vector for area converted from forest to ag
 # area_vec <- rep("", times = 1000)
 # 
+# ### Vector for area converted from forest to ag within Tambo
+# tambo_area_vec <- rep("", times = 1000)
+# 
+# ### Vector for area converted from forest to ag within Bahuaja
+# bahua_area_vec <- rep("", times = 1000)
+# 
 # for (i in 1:length(area_vec)) {
 #   
 #   ### Make blank Jamanxim raster, fill with random values
 #   j_blank <- random.raster(pp4_peru_mask,
-#                            min = 0, 
+#                            min = 0,
 #                            max = 1,
 #                            distribution = "random")
 #   
@@ -590,27 +633,226 @@ write.csv(bahua_area_vec,
 #   
 #   ### Save raster
 #   writeRaster(j_classified,
-#               filename = paste0("/nfs/agfrontiers-data/luc_model/peru_4_project/peru_4_projected_", 
+#               filename = paste0("/nfs/agfrontiers-data/luc_model/peru_4_project/peru_4_projected_",
 #                                 i, ".tif"),
 #               format = "GTiff",
 #               overwrite = TRUE,
 #               options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
 #   
 #   ### Calculate area that converts
-#   area_change <- as.data.frame(j_classified) %>%
-#     group_by(layer) %>%
-#     tally() %>%
-#     mutate(area = n * res(j_classified)[1] * res(j_classified)[2],
-#            iteration = i)
-#   
-#   ### Subset to area that converted
-#   forest_loss <- area_change[2, 3]
+#   area_change <- freq(j_classified, value = 1)
+#   forest_loss <- area_change * res(j_classified)[1] * res(j_classified)[2]
 #   
 #   ### Add to vector
 #   area_vec[i] <- forest_loss
+#   
+#   #######################
+#   ### Tambopata
+#   #######################
+#   ### Clip raster to shapefile
+#   rast_tambo <- crop(j_classified, tambo)
+#   rast_tambo <- mask(rast_tambo, tambo)
+#   
+#   ### Calculate # pixels that convert
+#   forest_loss_tambo <- freq(rast_tambo, value = 1)
+#   
+#   ### Calculate area that converts
+#   forest_loss_tambo <- forest_loss_tambo * res(rast_tambo)[1] * res(rast_tambo)[2]
+#   
+#   ### Add to vector
+#   tambo_area_vec[i] <- forest_loss_tambo
+#   
+#   #######################
+#   ### Bahuaja
+#   #######################
+#   ### Clip raster to shapefile
+#   rast_bahua <- crop(j_classified, bahua)
+#   rast_bahua <- mask(rast_bahua, bahua)
+#   
+#   ### Calculate # pixels that convert
+#   forest_loss_bahua <- freq(rast_bahua, value = 1)
+#   
+#   ### Calculate area that converts
+#   forest_loss_bahua <- forest_loss_bahua * res(rast_bahua)[1] * res(rast_bahua)[2]
+#   
+#   ### Add to vector
+#   bahua_area_vec[i] <- forest_loss_bahua
 # }
 # 
 # ### Save vector of area lost
-# write.csv(area_vec, 
-#           file = "/nfs/agfrontiers-data/luc_model/peru_4_project/peru_4_projected_loss.csv", 
+# write.csv(area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/peru_4_project/peru_4_projected_loss.csv",
 #           row.names=FALSE)
+# write.csv(tambo_area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/peru_4_project/peru_4_projected_loss_tambopata.csv",
+#           row.names=FALSE)
+# write.csv(bahua_area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/peru_4_project/peru_4_projected_loss_bahuaja.csv",
+#           row.names=FALSE)
+
+##################################################################
+### Stack layers
+
+###################
+########## Model 1
+###################
+# ### Try on subset of layers in Peru Model 1
+# test_layers <- list.files(path = "/nfs/agfrontiers-data/luc_model/peru_1_project",
+#                           pattern = "*.tif",
+#                           full.names = TRUE)
+# 
+# # test_layers_1 <- test_layers[1:200]
+# # test_layers_2 <- test_layers[201:400]
+# # test_layers_3 <- test_layers[401:600]
+# # test_layers_4 <- test_layers[601:800]
+# test_layers_5 <- test_layers[801:1000]
+# 
+# ### Blank raster for adding all rasters
+# raster_fill <- raster(test_layers[1])
+# raster_fill[raster_fill > 0] <- 0
+# 
+# ### Write loop
+# for (i in 1:length(test_layers_5)) {
+# 
+#   ### Open raster
+#   ch_rast <- raster(test_layers_5[i])
+# 
+#   ###################################
+#   ### Add raster values
+#   ###################################
+#   ### Stack with raster_fill
+#   raster_fill <- stack(raster_fill, ch_rast)
+# 
+#   ### Add raster values
+#   raster_fill <- calc(raster_fill, sum)
+# }
+# 
+# ### Write out sum raster
+# writeRaster(raster_fill,
+#             filename = "/nfs/agfrontiers-data/luc_model/peru_m1_stacked_5.tif",
+#             format = "GTiff",
+#             overwrite = TRUE,
+#             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+# ###################
+# ########## Model 2
+# ###################
+# ### Try on subset of layers in Peru Model 2
+# test_layers <- list.files(path = "/nfs/agfrontiers-data/luc_model/peru_2_project",
+#                           pattern = "*.tif",
+#                           full.names = TRUE)
+# 
+# # test_layers_1 <- test_layers[1:200]
+# # test_layers_2 <- test_layers[201:400]
+# # test_layers_3 <- test_layers[401:600]
+# # test_layers_4 <- test_layers[601:800]
+# test_layers_5 <- test_layers[801:1000]
+# 
+# ### Blank raster for adding all rasters
+# raster_fill <- raster(test_layers[1])
+# raster_fill[raster_fill > 0] <- 0
+# 
+# ### Write loop
+# for (i in 1:length(test_layers_5)) {
+#   
+#   ### Open raster
+#   ch_rast <- raster(test_layers_5[i])
+#   
+#   ###################################
+#   ### Add raster values
+#   ###################################
+#   ### Stack with raster_fill
+#   raster_fill <- stack(raster_fill, ch_rast)
+#   
+#   ### Add raster values
+#   raster_fill <- calc(raster_fill, sum)
+# }
+# 
+# ### Write out sum raster
+# writeRaster(raster_fill,
+#             filename = "/nfs/agfrontiers-data/luc_model/peru_m2_stacked_5.tif",
+#             format = "GTiff",
+#             overwrite = TRUE,
+#             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+# ###################
+# ########## Model 3
+# ###################
+# ### Try on subset of layers in Peru Model 3
+# test_layers <- list.files(path = "/nfs/agfrontiers-data/luc_model/peru_3_project",
+#                           pattern = "*.tif",
+#                           full.names = TRUE)
+# 
+# # test_layers_1 <- test_layers[1:200]
+# # test_layers_2 <- test_layers[201:400]
+# test_layers_3 <- test_layers[401:600]
+# # test_layers_4 <- test_layers[601:800]
+# # test_layers_5 <- test_layers[801:1000]
+# 
+# ### Blank raster for adding all rasters
+# raster_fill <- raster(test_layers[1])
+# raster_fill[raster_fill > 0] <- 0
+# 
+# ### Write loop
+# for (i in 1:length(test_layers_3)) {
+#   
+#   ### Open raster
+#   ch_rast <- raster(test_layers_3[i])
+#   
+#   ###################################
+#   ### Add raster values
+#   ###################################
+#   ### Stack with raster_fill
+#   raster_fill <- stack(raster_fill, ch_rast)
+#   
+#   ### Add raster values
+#   raster_fill <- calc(raster_fill, sum)
+# }
+# 
+# ### Write out sum raster
+# writeRaster(raster_fill,
+#             filename = "/nfs/agfrontiers-data/luc_model/peru_m3_stacked_3.tif",
+#             format = "GTiff",
+#             overwrite = TRUE,
+#             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+###################
+########## Model 4
+###################
+### Try on subset of layers in Peru Model 4
+test_layers <- list.files(path = "/nfs/agfrontiers-data/luc_model/peru_4_project",
+                          pattern = "*.tif",
+                          full.names = TRUE)
+
+# test_layers_1 <- test_layers[1:200]
+# test_layers_2 <- test_layers[201:400]
+# test_layers_3 <- test_layers[401:600]
+test_layers_4 <- test_layers[601:800]
+# test_layers_5 <- test_layers[801:1000]
+
+### Blank raster for adding all rasters
+raster_fill <- raster(test_layers[1])
+raster_fill[raster_fill > 0] <- 0
+
+### Write loop
+for (i in 1:length(test_layers_4)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_4[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_m4_stacked_4.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
