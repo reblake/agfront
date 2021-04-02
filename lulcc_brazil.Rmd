@@ -941,3 +941,253 @@ writeRaster(r_add,
             "/nfs/agfrontiers-data/luc_model/brazil_m4_stacked_all.tif")
 ```
 
+## Projected loss (PAs only)
+Based on stacked simulations
+### Jamanxim
+JNF lost 319.534 km2 forest from 2008-2018
+```{r}
+### Calculate forest loss as # pixels
+### Open brazil 2008 map
+bra_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2008_102033.tif")
+
+### Open brazil 2018 map
+bra_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2018_102033.tif")
+
+### Open JNF without buffer
+jaman <- st_read("/nfs/agfrontiers-data/Case Study Info/Brazil/JamanBuffer/jamanxim_wdpa_march21_102033.shp")
+
+### Crop LUC maps
+jaman_08 <- crop(bra_2008, jaman)
+jaman_08 <- mask(jaman_08, jaman)
+jaman_18 <- crop(bra_2018, jaman)
+jaman_18 <- mask(jaman_18, jaman)
+
+### Forest in 2008
+forest_08_jaman <- as.data.frame(jaman_08) %>%
+    group_by(classi_bra_dry_2008_102033) %>%
+    tally()
+### 13958475
+
+### Forest in 2018
+forest_18_jaman <- as.data.frame(jaman_18) %>%
+    group_by(classi_bra_dry_2018_102033) %>%
+    tally()
+### 13603297
+
+### Calculate forest loss
+pix_lost <- 13958475-13603297
+### 355178 pixels
+```
+
+#### Model 1
+```{r}
+### Open stacked raster
+j_m1 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m1_stacked_all.tif")
+
+### Restrict to JNF
+j_m1 <- crop(j_m1, jaman)
+j_m1 <- mask(j_m1, jaman)
+
+### Convert to df
+j_m1_df <- as.data.frame(j_m1)
+
+### To vector
+j_m1_df <- dplyr::pull(j_m1_df, brazil_m1_stacked_all)
+
+### Descending order
+j_m1_df <- sort(j_m1_df, decreasing = TRUE)
+
+### Get top values
+j_m1_top <- head(j_m1_df, 355178)
+
+### Get range of those values
+range(j_m1_top)
+### 104-999
+
+### So if the value is >= 104, it converts to agriculture
+
+### Stack 2018 jaman and PP 
+j_m1_stack <- stack(jaman_18, j_m1)
+
+### Reclassification function
+rc_m1 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= 104), 1, x1)
+}
+
+## Make output raster
+j_m1_projected <- overlay(j_m1_stack, fun = rc_m1)
+  
+### Save raster
+writeRaster(j_m1_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/brazil_1_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Plot 
+my_col = c('darkgoldenrod1','darkgreen','beige','red', 'blue', 'cyan')
+plot(j_m1_projected, legend = FALSE, col = my_col)
+legend(x = 'bottomleft', legend = c("Ag", "Forest", "Bare", "Urban", "Water", "Wetlands"), 
+       fill = my_col)
+
+```
+
+#### Model 2
+```{r}
+### Open stacked raster
+j_m2 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m2_stacked_all.tif")
+
+### Restrict to JNF
+j_m2 <- crop(j_m2, jaman)
+j_m2 <- mask(j_m2, jaman)
+
+### Convert to df
+j_m2_df <- as.data.frame(j_m2)
+
+### To vector
+j_m2_df <- dplyr::pull(j_m2_df, brazil_m2_stacked_all)
+
+### Descending order
+j_m2_df <- sort(j_m2_df, decreasing = TRUE)
+
+### Get top values
+j_m2_top <- head(j_m2_df, 355178)
+
+### Get range of those values
+range(j_m2_top)
+### 322-999
+
+### So if the value is >= 322, it converts to agriculture
+
+### Stack 2018 jaman and PP 
+j_m2_stack <- stack(jaman_18, j_m2)
+
+### Reclassification function
+rc_m2 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= 322), 1, x1)
+}
+
+## Make output raster
+j_m2_projected <- overlay(j_m2_stack, fun = rc_m2)
+  
+### Save raster
+writeRaster(j_m2_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/brazil_2_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Plot 
+# my_col = c('darkgoldenrod1','darkgreen','beige','red', 'blue', 'cyan')
+plot(j_m2_projected, legend = FALSE, col = my_col)
+legend(x = 'bottomleft', legend = c("Ag", "Forest", "Bare", "Urban", "Water", "Wetlands"), 
+       fill = my_col)
+
+```
+
+#### Model 3
+```{r}
+### Open stacked raster
+j_m3 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m3_stacked_all.tif")
+
+### Restrict to JNF
+j_m3 <- crop(j_m3, jaman)
+j_m3 <- mask(j_m3, jaman)
+
+### Convert to df
+j_m3_df <- as.data.frame(j_m3)
+
+### To vector
+j_m3_df <- dplyr::pull(j_m3_df, brazil_m3_stacked_all)
+
+### Descending order
+j_m3_df <- sort(j_m3_df, decreasing = TRUE)
+
+### Get top values
+j_m3_top <- head(j_m3_df, 355178)
+
+### Get range of those values
+range(j_m3_top)
+### 338-999
+
+### So if the value is >= 338, it converts to agriculture
+
+### Stack 2018 jaman and PP 
+j_m3_stack <- stack(jaman_18, j_m3)
+
+### Reclassification function
+rc_m3 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= 338), 1, x1)
+}
+
+## Make output raster
+j_m3_projected <- overlay(j_m3_stack, fun = rc_m3)
+  
+### Save raster
+writeRaster(j_m3_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/brazil_3_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Plot 
+# my_col = c('darkgoldenrod1','darkgreen','beige','red', 'blue', 'cyan')
+plot(j_m3_projected, legend = FALSE, col = my_col)
+legend(x = 'bottomleft', legend = c("Ag", "Forest", "Bare", "Urban", "Water", "Wetlands"), 
+       fill = my_col)
+
+```
+
+#### Model 4
+```{r}
+### Open stacked raster
+j_m4 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m4_stacked_all.tif")
+
+### Restrict to JNF
+j_m4 <- crop(j_m4, jaman)
+j_m4 <- mask(j_m4, jaman)
+
+### Convert to df
+j_m4_df <- as.data.frame(j_m4)
+
+### To vector
+j_m4_df <- dplyr::pull(j_m4_df, brazil_m4_stacked_all)
+
+### Descending order
+j_m4_df <- sort(j_m4_df, decreasing = TRUE)
+
+### Get top values
+j_m4_top <- head(j_m4_df, 355178)
+
+### Get range of those values
+range(j_m4_top)
+### 339-999
+
+### So if the value is >= 339, it converts to agriculture
+
+### Stack 2018 jaman and PP 
+j_m4_stack <- stack(jaman_18, j_m4)
+
+### Reclassification function
+rc_m4 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= 339), 1, x1)
+}
+
+## Make output raster
+j_m4_projected <- overlay(j_m4_stack, fun = rc_m4)
+  
+### Save raster
+writeRaster(j_m4_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/brazil_4_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Plot 
+# my_col = c('darkgoldenrod1','darkgreen','beige','red', 'blue', 'cyan')
+plot(j_m4_projected, legend = FALSE, col = my_col)
+legend(x = 'bottomleft', legend = c("Ag", "Forest", "Bare", "Urban", "Water", "Wetlands"), 
+       fill = my_col)
+
+```
+

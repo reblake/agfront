@@ -1,0 +1,857 @@
+---
+title: "lulcc_bolivia"
+output: html_document
+---
+
+## Description
+Play with LUC models in Bolivia
+
+## Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Open packages
+library(tidyverse)
+library(sf)
+library(raster)
+library(sp)
+library(rgdal)
+# library(lulcc)
+# library(gsubfn)
+# library(caret)
+
+#### Function to check correlation
+cor.prob <- function (X, dfr = nrow(X) - 2) {
+  R <- cor(X, use="pairwise.complete.obs")
+  above <- row(R) < col(R)
+  r2 <- R[above]^2
+  Fstat <- r2 * dfr/(1 - r2)
+  R[above] <- 1 - pf(Fstat, 1, dfr)
+  R[row(R) == col(R)] <- NA
+  R
+}
+flattenSquareMatrix <- function(m) {
+  if( (class(m) != "matrix") | (nrow(m) != ncol(m))) stop("Must be a square matrix.") 
+  if(!identical(rownames(m), colnames(m))) stop("Row and column names must be equal.")
+  ut <- upper.tri(m)
+  data.frame(i = rownames(m)[row(m)[ut]],
+             j = rownames(m)[col(m)[ut]],
+             cor=t(m)[ut],
+             p=m[ut])
+}
+```
+
+## Transition change prob
+```{r}
+### Bolivia
+### Open rasters
+bol08 <- raster("/nfs/agfrontiers-data/Remote Sensing/classified_layers/Classified_SR/BOL/classi_BOL_dry_2008.tif")
+bol18 <- raster("/nfs/agfrontiers-data/Remote Sensing/classified_layers/Classified_SR/BOL/classi_BOL_dry_2018.tif")
+
+### Change
+luc <- data.frame(lc08 = values(bol08),
+                  lc18 = values(bol18))
+
+### Raw tally matrix of change
+mat <- table(luc[, c('lc08', 'lc18')])
+
+### See as table
+# kable(mat, format = "pandoc", caption = "Counts of land cover/use changes from 2018 (rows) to 2018 (columns)")
+
+### Calculate probabilities
+p_mat <- as.matrix(mat/rowSums(mat))
+p_mat <- round(p_mat, 3)
+# kable(p_mat, format = "pandoc", caption = "Transition probability matrix of land cover/use changes from 2018 (rows) to 2018 (columns)")
+p_mat_df <- as.data.frame(p_mat)
+write.csv(p_mat_df, 
+          "/nfs/agfrontiers-data/luc_model/bolivia_luc_matrix.csv")
+```
+
+## Sample on grid
+```{r}
+### Open buffer polygon
+bol_buff <- st_read("/nfs/agfrontiers-data/Case Study Info/ambcar_buffer_updated.shp") %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+
+### Make sampling grid, point every 1 km
+bol_samples <- bol_buff %>%
+  
+  ### Make samples (every 300 m)
+  st_make_grid(cellsize = c(300, 300),
+               what = "centers") %>%
+  
+  ### Convert to sf
+  st_sf() %>%
+  
+  ### Add identifiers
+  mutate(lon = st_coordinates(.)[, 1],
+         lat = st_coordinates(.)[, 2])
+
+### Add UID
+bol_samples$uid <- 1:nrow(bol_samples)
+
+### Open brazil 2008 map
+bol_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bol_dry_2008_102033.tif")
+
+### Extract land cover type to sample points
+bol_samples_2008 <- raster::extract(bol_2008, 
+                                    bol_samples, 
+                                    df = TRUE)
+
+### See how many were forest in 2008
+b_2008_summ <- bol_samples_2008 %>%
+  group_by(classi_bol_dry_2008_102033) %>%
+  summarise(n_per_class = n())
+### 0 = no data, 1 = agriculture, 2 = forest, 3 = bare soil, 4 = urban, 5 = wetland, 6 = desert, and 7 = water
+### 219943 forested points in 2008
+
+### Add uid back in
+bol_samples_2008$uid <- bol_samples$uid
+
+### Merge bra_samples_2008 with bra_samples
+bol_samples <- merge(bol_samples, 
+                     bol_samples_2008,
+                     by = "uid")
+rm(bol_samples_2008)
+
+### Subset to forested points
+bol_forest_samp <- bol_samples %>%
+  subset(classi_bol_dry_2008_102033 == "2")
+
+### Rename cols
+bol_forest_samp <- bol_forest_samp %>%
+  dplyr::select(uid, lon, lat, 
+                lc_2008 = classi_bol_dry_2008_102033)
+
+### Open peru 2018 map
+bol_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bol_dry_2018_102033.tif")
+
+### Extract 2018 land cover class
+luc_bol <- raster::extract(bol_2018, 
+                           bol_forest_samp, 
+                           df = TRUE)
+
+### Add UID and merge with sf
+luc_bol$uid <- bol_forest_samp$uid
+luc_bol <- merge(bol_forest_samp, 
+                 luc_bol,
+                 by = "uid")
+
+### Rename cols
+luc_bol <- luc_bol %>%
+  dplyr::select(uid, lon, lat, 
+                lc_2008,
+                lc_2018 = classi_bol_dry_2018_102033,
+                geometry)
+
+### Write out sample pts
+st_write(luc_bol,
+         "/nfs/agfrontiers-data/luc_model/bol_sample_pts.shp")
+
+### Summarize transitions
+luc_bol_summ <- luc_bol %>%
+  group_by(lc_2018) %>%
+  summarise(n_transitions = n())
+luc_bol_summ <- luc_bol_summ %>%
+  mutate(portion_pts = n_transitions/219943*100)
+
+### 92.61% of forested points remained in forest cover
+### 5.43% converted from forest to ag
+### 0.30% converted from forest to bare soil
+### 0.09% converted from forest to urban
+### <0.01% converted from forest to wetland
+### 1.37% converted from forest to desert
+### 0.18% converted from forest to water
+
+### Drop intermediate dfs/rasters
+rm(bol_2008, bol_2018, bol_buff, bol_samples)
+```
+
+### Extract neighborhood values to pts
+```{r}
+### Open sample pts
+bol_pts <- st_read("/nfs/agfrontiers-data/luc_model/bol_sample_pts.shp")
+
+### Open brazil neighbor pts raster
+bol_neigh <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/bol_perc_diff.tif")
+
+### Extract neighborhood pixel values to brazil pts
+bol_neigh_dat <- extract(bol_neigh, 
+                         bol_pts,
+                         df = TRUE)
+
+### Give it a uid
+bol_neigh_dat$uid <- bol_pts$uid
+
+### Merge with sf
+bol_neigh_dat <- merge(bol_pts,
+                       bol_neigh_dat,
+                       by = "uid")
+
+### Write it out
+st_write(bol_neigh_dat,
+         "/nfs/agfrontiers-data/luc_model/bol_forest_neighs.shp")
+```
+
+### UIDs of points with complete data
+```{r}
+### Open rasterbrick, all layers
+bol_layers_all <- brick("/nfs/agfrontiers-data/luc_model/bolivia_all_vars.tif")
+names(bol_layers_all) <- c("aspect", "mines", "roads", "rivers",
+                           "cities", "elev", "popdens", "poverty", 
+                           "ppt", "prot_status", "slope", "soil", 
+                           "crop_suit", "dist_ag", "dist_fire", "fire_dens",
+                           "ill_mine", "field_res", "tourism", "pes")
+
+### Replace precip layer
+bol_layers_all <- dropLayer(bol_layers_all, 9)
+
+### Open new precip layer
+bol_precip <- raster("/nfs/agfrontiers-data/DINAMICA/Simple Model/Bolivia/Processed Data/bol_precip_use.tif")
+
+### Add new precip layer
+bol_layers_all <- addLayer(bol_layers_all, bol_precip)
+
+### Drop old soil moisture layer
+bol_layers_all <- dropLayer(bol_layers_all, 11)
+
+### Open new soil moisture layer
+bol_sm <- raster("/nfs/agfrontiers-data/DINAMICA/Simple Model/Bolivia/Processed Data/sm_bol_use.tif")
+bol_sm <- raster::resample(bol_sm, bol_precip, "bilinear")
+
+### Add new precip layer
+bol_layers_all <- addLayer(bol_layers_all, bol_sm)
+
+### Add north-south layer
+bol_ns <- raster("/nfs/agfrontiers-data/DINAMICA/Simple Model/Bolivia/Processed Data/bol_south_north.tif")
+bol_layers_all <- addLayer(bol_layers_all, bol_ns)
+
+### Add land tenure layer
+bol_landten <- raster("/nfs/agfrontiers-data/DINAMICA/Simple Model/Bolivia/Processed Data/bol_landtenure.tif")
+bol_layers_all <- addLayer(bol_layers_all, bol_landten)
+
+### Drop DEM layers (wrong extent)
+bol_layers_all <- dropLayer(bol_layers_all, c(1, 6, 10))
+
+### Replace DEM layers
+bol_elev <- raster("/nfs/agfrontiers-data/DINAMICA/Simple Model/Bolivia/Processed Data/bol_elev_326.tif")
+bol_slope <- raster("/nfs/agfrontiers-data/DINAMICA/Simple Model/Bolivia/Processed Data/bol_slope_326.tif")
+bol_aspect <- raster("/nfs/agfrontiers-data/DINAMICA/Simple Model/Bolivia/Processed Data/bol_asp_326.tif")
+
+### Add DEM layers
+bol_layers_all <- addLayer(bol_layers_all, bol_elev)
+bol_layers_all <- addLayer(bol_layers_all, bol_slope)
+bol_layers_all <- addLayer(bol_layers_all, bol_aspect)
+
+### Add cattle
+bol_cattle <- raster("/nfs/agfrontiers-data/DINAMICA/Simple Model/Bolivia/Processed Data/cattle_ambcar.tiff")
+bol_cattle_res <- raster::resample(bol_cattle, bol_precip, "ngb")
+bol_layers_all <- addLayer(bol_layers_all, bol_cattle_res)
+
+### Rename layers
+names(bol_layers_all) <- c("mines", "roads", "rivers", "cities", 
+                           "popdens", "poverty", "prot_status", "crop_suit", 
+                           "dist_ag", "dist_fire", "fire_dens", "ill_mine", 
+                           "field_res", "tourism", "pes", "precip", 
+                           "soil", "south_north", "landtenure", "elev",
+                           "slope", "aspect", "cattle")
+
+## Convert NAs to 0 in PES layer
+bol_layers_all[[15]][is.na(bol_layers_all[[15]][])] <- 0
+
+### Extract values to pts
+bol_dat_all <- extract(bol_layers_all, 
+                       bol_neigh_dat,
+                       df = TRUE)
+
+### Rename columns
+colnames(bol_dat_all) <- c("id", "mines", "roads", "rivers", "cities", 
+                           "popdens", "poverty", "prot_status", "crop_suit", 
+                           "dist_ag", "dist_fire", "fire_dens", "ill_mine", 
+                           "field_res", "tourism", "pes", "precip", 
+                           "soil", "south_north", "landtenure", "elev",
+                           "slope", "aspect", "cattle")
+
+### Give it a uid
+bol_dat_all$uid <- luc_bol$uid
+
+### Merge with sf
+bol_dat_all <- merge(luc_bol,
+                     bol_dat_all,
+                     by = "uid")
+
+### Version without geometry
+bol_dat_all_simp <- bol_dat_all
+bol_dat_all_simp$geometry <- NULL
+
+### Drop incomplete rows
+bol_dat_all_simp <- bol_dat_all_simp[complete.cases(bol_dat_all_simp), ]
+
+### Drop rows where prot_status = 0 (??)
+bol_dat_all_simp <- bol_dat_all_simp %>%
+  filter(., !prot_status == "0")
+
+### Get uids
+uid_comp <- bol_dat_all_simp$uid
+
+### Add geom back to visualize
+bol_dat_all <- bol_dat_all %>%
+  filter(uid %in% uid_comp)
+
+### Write out sample pts
+st_write(bol_dat_all,
+         "/nfs/agfrontiers-data/luc_model/boli_f_data.shp",
+         append = FALSE)
+```
+
+#### Combine with neighbor pix values
+```{r}
+### Open boli_f_data
+bol_data <- st_read("/nfs/agfrontiers-data/luc_model/boli_f_data.shp")
+
+### Fix col names
+colnames(bol_data) <- c("uid", "lon", "lat", "lc_2008", "lc_2018",
+                        "id", "mines", "roads", "rivers", "cities", 
+                        "popdens", "poverty", "prot_status", "crop_suit", 
+                        "dist_ag", "dist_fire", "fire_dens", "ill_mine", 
+                        "field_res", "tourism", "pes", "precip", 
+                        "soil", "south_north", "landtenure", "elev",
+                        "slope", "aspect", "cattle", "geometry")
+
+bol_neigh_dat <- bol_neigh_dat %>%
+  dplyr::select(uid, lon, lat, lc_2008, lc_2018, perc_diff = bl_prc_, geometry)
+
+### Versions wo geometry
+bol_data_df <- bol_data
+st_geometry(bol_data_df) <- NULL
+bol_neigh_df <- bol_neigh_dat
+st_geometry(bol_neigh_df) <- NULL
+
+### Merge with neighbors
+bol_dat_all <- merge(bol_data_df, bol_neigh_df,
+                     by = c("uid", "lon", "lat", "lc_2008", "lc_2018"),
+                     all.x = TRUE)
+
+### Write out sample pts
+write_csv(bol_dat_all,
+         "/nfs/agfrontiers-data/luc_model/boli_data_for_model.csv")
+```
+
+#### Add factor cols
+```{r}
+### Make column for transition/none
+bol_dat_all <- bol_dat_all %>%
+  mutate(transition = ifelse(lc_2018 == "2",
+                             "no_change",
+                             ifelse(lc_2018 == "1",
+                                    "f_to_ag", 
+                                    "other_change")),
+         trans_rc = ifelse(transition == "no_change",
+                           "0", ifelse(transition == "f_to_ag",
+                                       "1", "2")))
+
+### Make columns factor
+fact_cols <- c("uid", "prot_status", 
+               "pes", "south_north",
+               "landtenure",
+               "lc_2018", "trans_rc")
+bol_dat_all <- bol_dat_all %>%
+  mutate_each_(funs(factor(.)), fact_cols)
+```
+### Check correlations 
+Restrict to points that did not change or points that converted to ag
+```{r}
+### Restrict to transitions
+bol_dat_use <- bol_dat_all %>% 
+  filter(trans_rc == "1" | trans_rc == "0")
+
+### Make corr table
+cor_table_bol <- flattenSquareMatrix(cor.prob(bol_dat_use[, c(2, 3, 7:12, 14:20, 22, 23, 26:30)]))
+
+### Look at vars with abs(cor.prob) > 0.66 and pvalue < 0.05
+cor_table_bol <- subset(cor_table_bol, 
+                        abs(cor) > 0.66 & p <= 0.05)
+
+### illegal mines and soil moisture (-0.8354278)
+### latitude and illegal mines (-0.8343994)
+### latitude and precip (0.8314315)
+### longitude and latitude (-0.7343512)
+### long and poverty (-0.7836683)
+### long and illegal mines (0.9863306)
+### long and soil moisture (-0.8804301)
+### poverty and illegal mines (-0.7814743)
+### poverty and soil moisture (0.7904534)
+### roads and cities (0.7164782)
+```
+### Model 1
+Standard LUC variables only
+
+#### Regression
+```{r}
+### Variables to drop due to correlations:
+### latitude, longitude (correlated with precip, soil moisture, poverty rate)
+### poverty, roads
+
+### Run regression
+fit_bol <- glm(trans_rc ~ elev + aspect + slope + soil +
+                 cities + mines + crop_suit + prot_status + popdens + 
+                 precip + rivers + dist_ag + perc_diff,
+               data = bol_dat_use,
+               family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_bol_summ <- summary(fit_bol)
+fit_bol_coeff <- as.data.frame(fit_bol_summ$coefficients)
+write.csv(fit_bol_coeff, 
+          file = "/nfs/agfrontiers-data/luc_model/fit_bol_model1.csv")
+```
+
+### Model 2
+Discourse analysis variables only:
+* dist_ag
+* distance to fires  
+* fire density  
+* distance to illegal mines  
+* distance to field research  
+* distance to tourism  
+* PES site  
+* south/north divide  
+* land tenure status  
+* cattle
+
+```{r}
+### Run regression
+fit_bol_m2 <- glm(trans_rc ~ dist_ag + dist_fire +
+                    fire_dens + ill_mine + field_res +
+                    tourism + pes + south_north +
+                    landtenure + cattle,
+                  data = bol_dat_use,
+                  family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_bol2_summ <- summary(fit_bol_m2)
+fit_bol2_coeff <- as.data.frame(fit_bol2_summ$coefficients)
+write.csv(fit_bol2_coeff, 
+          file = "/nfs/agfrontiers-data/luc_model/fit_bol_model2.csv")
+```
+
+### Model 3
+All standard variables and discourse analysis variables
+```{r}
+### Drop due to correlation: distance to field research (correlated with precip, elev), tourism (mines), poverty (illegal mines)
+
+### Run regression
+fit_bol_m3 <- glm(trans_rc ~ elev + aspect + slope + soil +
+                    cities + mines + crop_suit + prot_status + popdens + 
+                    precip + rivers + dist_ag + perc_diff +
+                    dist_fire + fire_dens + ill_mine + field_res +
+                    tourism + pes + south_north + landtenure + cattle,
+                  data = bol_dat_use,
+                  family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_bol3_summ <- summary(fit_bol_m3)
+fit_bol3_coeff <- as.data.frame(fit_bol3_summ$coefficients)
+write.csv(fit_bol3_coeff, 
+          file = "/nfs/agfrontiers-data/luc_model/fit_bol_model3.csv")
+```
+
+### Model 4
+Statistically significant variables from Model 1 + qualitatively significant variables from discourse analysis
+Model 1 vars: elev + aspect + slope + soil + cities + mines + crop_suit + prot_status + precip + rivers + dist_ag + perc_diff
+Model 2 vars: dist_fire + fire_dens + tourism + pes + south_north + landtenure + cattle
+```{r}
+### Run regression
+fit_bol_m4 <- glm(trans_rc ~ elev + aspect + slope + soil +
+                    cities + mines + crop_suit + precip +
+                    prot_status + dist_ag + perc_diff +
+                    rivers + dist_fire + fire_dens + pes + 
+                    south_north + landtenure + tourism + cattle,
+                  data = bol_dat_use,
+                  family = binomial(link = "logit"))
+
+### Write out coefficients
+fit_bol4_summ <- summary(fit_bol_m4)
+fit_bol4_coeff <- as.data.frame(fit_bol4_summ$coefficients)
+write.csv(fit_bol4_coeff, 
+          file = "/nfs/agfrontiers-data/luc_model/fit_bol_model4.csv")
+```
+
+### Compare model performance
+```{r}
+### AIC
+AIC(fit_bol, fit_bol_m2,
+    fit_bol_m3, fit_bol_m4) ### Model 3 has lowest AIC
+
+### anova
+anova(fit_bol, fit_bol_m2,
+      fit_bol_m3, fit_bol_m4,
+      test = "Chisq")
+anova(fit_bol_m2, fit_bol_m3, test = "Chisq") ## 3 better than 2
+anova(fit_bol_m3, fit_bol_m4, test = "Chisq") ## 3 better than 4
+anova(fit_bol, fit_bol_m2, test = "Chisq")
+anova(fit_bol, fit_bol_m4, test = "Chisq") ## 4 better than 1
+
+### psuedo r2
+library(pscl)
+pR2(fit_bol)
+pR2(fit_bol_m2)
+pR2(fit_bol_m3)
+pR2(fit_bol_m4)
+```
+# ANALYZE MODEL OUTPUT
+Analyze outputs from predict_luc_boli.R
+
+##UPDATE CODE FROM HERE
+
+## Analyze Monte Carlo simulations for buffer
+Output from predict_luc_peru.R
+```{r}
+### Model 1, whole extent
+m1_mc <- read.csv("/nfs/agfrontiers-data/luc_model/boliv_1_project/boli_projected_loss.csv")
+
+### Add columns for model and extent
+m1_mc <- m1_mc %>%
+  mutate(model = "model1",
+         extent = "whole_area",
+         value_km2 = x/1000000)
+
+### Model 1, Carrasco
+m1_carra <- read.csv("/nfs/agfrontiers-data/luc_model/boliv_1_project/boli_projected_loss_carrasco.csv")
+m1_carra <- m1_carra %>%
+  mutate(model = "model1",
+         extent = "carrasco",
+         value_km2 = x/1000000)
+
+### Model 1, Amboro NP
+m1_ambnp <- read.csv("/nfs/agfrontiers-data/luc_model/boliv_1_project/boli_projected_loss_amboro_np.csv")
+m1_ambnp <- m1_ambnp %>%
+  mutate(model = "model1",
+         extent = "amboro_np",
+         value_km2 = x/1000000)
+
+### Model 1, Amboro IMNA
+m1_ambim <- read.csv("/nfs/agfrontiers-data/luc_model/boliv_1_project/boli_projected_loss_amboro_imna.csv")
+m1_ambim <- m1_ambim %>%
+  mutate(model = "model1",
+         extent = "amboro_imna",
+         value_km2 = x/1000000)
+
+### Model 2, whole extent
+m2_mc <- read.csv("/nfs/agfrontiers-data/luc_model/bolivia_2_project/boli_2_projected_loss.csv")
+### Add columns for model and extent
+m2_mc <- m2_mc %>%
+  mutate(model = "model2",
+         extent = "whole_area",
+         value_km2 = x/1000000)
+
+### Model 2, Carrasco
+m2_carra <- read.csv("/nfs/agfrontiers-data/luc_model/bolivia_2_project/boli_2_projected_loss_carrasco.csv")
+m2_carra <- m2_carra %>%
+  mutate(model = "model2",
+         extent = "carrasco",
+         value_km2 = x/1000000)
+
+### Model 2, Amboro NP
+m2_ambnp <- read.csv("/nfs/agfrontiers-data/luc_model/bolivia_2_project/boli_2_projected_loss_amboro_np.csv")
+m2_ambnp <- m2_ambnp %>%
+  mutate(model = "model2",
+         extent = "amboro_np",
+         value_km2 = x/1000000)
+
+### Model 2, Amboro IMNA
+m2_ambim <- read.csv("/nfs/agfrontiers-data/luc_model/bolivia_2_project/boli_2_projected_loss_amboro_imna.csv")
+m2_ambim <- m2_ambim %>%
+  mutate(model = "model2",
+         extent = "amboro_imna",
+         value_km2 = x/1000000)
+
+### Model 3, whole extent
+m3_mc <- read.csv("/nfs/agfrontiers-data/luc_model/bolivia_3_project/boli_3_projected_loss.csv")
+### Add columns for model and extent
+m3_mc <- m3_mc %>%
+  mutate(model = "model3",
+         extent = "whole_area",
+         value_km2 = x/1000000)
+
+### Model 3, Carrasco
+m3_carra <- read.csv("/nfs/agfrontiers-data/luc_model/bolivia_3_project/boli_3_projected_loss_carrasco.csv")
+m3_carra <- m3_carra %>%
+  mutate(model = "model3",
+         extent = "carrasco",
+         value_km2 = x/1000000)
+
+### Model 3, Amboro NP
+m3_ambnp <- read.csv("/nfs/agfrontiers-data/luc_model/bolivia_3_project/boli_3_projected_loss_amboro_np.csv")
+m3_ambnp <- m3_ambnp %>%
+  mutate(model = "model3",
+         extent = "amboro_np",
+         value_km2 = x/1000000)
+
+### Model 3, Amboro IMNA
+m3_ambim <- read.csv("/nfs/agfrontiers-data/luc_model/bolivia_3_project/boli_3_projected_loss_amboro_imna.csv")
+m3_ambim <- m3_ambim %>%
+  mutate(model = "model3",
+         extent = "amboro_imna",
+         value_km2 = x/1000000)
+
+### Model 4, whole extent
+m4_mc <- read.csv("/nfs/agfrontiers-data/luc_model/bolivia_4_project/boli_4_projected_loss.csv")
+### Add columns for model and extent
+m4_mc <- m4_mc %>%
+  mutate(model = "model4",
+         extent = "whole_area",
+         value_km2 = x/1000000)
+
+### Model 4, Carrasco
+m4_carra <- read.csv("/nfs/agfrontiers-data/luc_model/bolivia_4_project/boli_4_projected_loss_carrasco.csv")
+m4_carra <- m4_carra %>%
+  mutate(model = "model4",
+         extent = "carrasco",
+         value_km2 = x/1000000)
+
+### Model 4, Amboro NP
+m4_ambnp <- read.csv("/nfs/agfrontiers-data/luc_model/bolivia_4_project/boli_4_projected_loss_amboro_np.csv")
+m4_ambnp <- m4_ambnp %>%
+  mutate(model = "model4",
+         extent = "amboro_np",
+         value_km2 = x/1000000)
+
+### Model 4, Amboro IMNA
+m4_ambim <- read.csv("/nfs/agfrontiers-data/luc_model/bolivia_4_project/boli_4_projected_loss_amboro_imna.csv")
+m4_ambim <- m4_ambim %>%
+  mutate(model = "model4",
+         extent = "amboro_imna",
+         value_km2 = x/1000000)
+
+### Take means and sds of carrasco
+mean(m1_carra$value_km2)
+sd(m1_carra$value_km2)
+mean(m2_carra$value_km2)
+sd(m2_carra$value_km2)
+mean(m3_carra$value_km2)
+sd(m3_carra$value_km2)
+mean(m4_carra$value_km2)
+sd(m4_carra$value_km2)
+
+### Take means and sds of amboro np
+mean(m1_ambnp$value_km2)
+sd(m1_ambnp$value_km2)
+mean(m2_ambnp$value_km2)
+sd(m2_ambnp$value_km2)
+mean(m3_ambnp$value_km2)
+sd(m3_ambnp$value_km2)
+mean(m4_ambnp$value_km2)
+sd(m4_ambnp$value_km2)
+
+### Take means and sds of amboro imna
+mean(m1_ambim$value_km2)
+sd(m1_ambim$value_km2)
+mean(m2_ambim$value_km2)
+sd(m2_ambim$value_km2)
+mean(m3_ambim$value_km2)
+sd(m3_ambim$value_km2)
+mean(m4_ambim$value_km2)
+sd(m4_ambim$value_km2)
+
+### Take means and sds of entire extent
+mean(m1_mc$value_km2)
+sd(m1_mc$value_km2)
+mean(m2_mc$value_km2)
+sd(m2_mc$value_km2)
+mean(m3_mc$value_km2)
+sd(m3_mc$value_km2)
+mean(m4_mc$value_km2)
+sd(m4_mc$value_km2)
+
+### rbind
+all_models <- rbind(m1_mc, m2_mc, 
+                    m3_mc, m4_mc)
+all_model_carra <- rbind(m1_carra, m2_carra,
+                         m3_carra, m4_carra)
+all_model_ambnp <- rbind(m1_ambnp, m2_ambnp, 
+                      m3_ambnp, m4_ambnp)
+all_model_ambim <- rbind(m1_ambim, m2_ambim, 
+                      m3_ambim, m4_ambim)
+
+### Plot for full extent
+ggplot(all_models, aes(x = value_km2, color = model)) +
+  geom_density() +
+  xlab("Square km of forest converted to agriculture") +
+  ylab("Density")
+ggsave("/nfs/agfrontiers-data/luc_model/bolivia_allmodels_area_defor.png")
+
+### Plot for Carrasco
+ggplot(all_model_carra, aes(x = value_km2, color = model)) +
+  geom_density() +
+  xlab("Square km of forest converted to agriculture") +
+  ylab("Density")
+ggsave("/nfs/agfrontiers-data/luc_model/bolivi_allmodels_area_defor_carrasco.png")
+
+### Plot for Amboro NP
+ggplot(all_model_ambnp, aes(x = value_km2, color = model)) +
+  geom_density() +
+  xlab("Square km of forest converted to agriculture") +
+  ylab("Density")
+ggsave("/nfs/agfrontiers-data/luc_model/bolivia_allmodels_area_defor_amboro_np.png")
+
+### Plot for Amboro IMNA
+ggplot(all_model_ambim, aes(x = value_km2, color = model)) +
+  geom_density() +
+  xlab("Square km of forest converted to agriculture") +
+  ylab("Density")
+ggsave("/nfs/agfrontiers-data/luc_model/bolivia_allmodels_area_defor_amboro_imna.png")
+```
+### Observed forest loss, 2008-2018
+```{r}
+### Whole region
+per_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2008_102033.tif")
+per_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2018_102033.tif")
+
+### 2008
+forest_08 <- as.data.frame(per_2008) %>%
+    group_by(classi_per_dry_2008_102033) %>%
+    tally() %>%
+    mutate(area = n * res(per_2008)[1] * res(per_2008)[2])
+
+### 2018
+forest_18 <- as.data.frame(per_2018) %>%
+    group_by(classi_per_dry_2018_102033) %>%
+    tally() %>%
+    mutate(area = n * res(per_2018)[1] * res(per_2018)[2])
+
+### Calculate forested area lost 
+f_lost <- (22152369600-22131216000)/1000000
+```
+#### Observed forest loss w/in parks
+```{r}
+### Open shps
+tambo <- st_read("/nfs/agfrontiers-data/Case Study Info/Peru/wdpa_mar2021_tambo_102033.shp")
+bahua <- st_read("/nfs/agfrontiers-data/Case Study Info/Peru/wdpa_mar2021_bahuaja_102033.shp")
+
+### Crop LUC maps
+tambo_08 <- crop(per_2008, tambo)
+tambo_08 <- mask(tambo_08, tambo)
+tambo_18 <- crop(per_2018, tambo)
+tambo_18 <- mask(tambo_18, tambo)
+bahua_08 <- crop(per_2008, bahua)
+bahua_08 <- mask(bahua_08, bahua)
+bahua_18 <- crop(per_2018, bahua)
+bahua_18 <- mask(bahua_18, bahua)
+
+### Tambopata forest loss
+### 2008
+forest_08_tambo <- as.data.frame(tambo_08) %>%
+    group_by(classi_per_dry_2008_102033) %>%
+    tally() %>%
+    mutate(area = n * res(tambo_08)[1] * res(tambo_08)[2])
+
+### 2018
+forest_18_tambo <- as.data.frame(tambo_18) %>%
+    group_by(classi_per_dry_2018_102033) %>%
+    tally() %>%
+    mutate(area = n * res(tambo_18)[1] * res(tambo_18)[2])
+
+### Calculate forested area lost 
+f_lost_tambo <- (2736436500-2733995700)/1000000
+
+### Bahuaja-Sonene forest loss
+### 2008
+forest_08_bahua <- as.data.frame(bahua_08) %>%
+    group_by(classi_per_dry_2008_102033) %>%
+    tally() %>%
+    mutate(area = n * res(bahua_08)[1] * res(bahua_08)[2])
+
+### 2018
+forest_18_bahua <- as.data.frame(bahua_18) %>%
+    group_by(classi_per_dry_2018_102033) %>%
+    tally() %>%
+    mutate(area = n * res(bahua_18)[1] * res(bahua_18)[2])
+
+### Calculate forested area lost 
+f_lost_bahua <- (10792656900-10782045900)/1000000
+```
+## Add Simulations
+Add up simulated maps
+```{r}
+#############
+### Model 1
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/peru_m1_stacked_all.tif")
+
+#############
+### Model 2
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/peru_m2_stacked_all.tif")
+
+#############
+### Model 3
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/peru_m3_stacked_all.tif")
+
+#############
+### Model 4
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/peru_m4_stacked_all.tif")
+```
