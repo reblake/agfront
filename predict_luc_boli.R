@@ -765,3 +765,521 @@ write.csv(ambnp_area_vec,
 write.csv(ambim_area_vec,
           file = "/nfs/agfrontiers-data/luc_model/bolivia_4_project/boli_4_projected_loss_amboro_imna.csv",
           row.names=FALSE)
+
+##################################################################
+### Stack layers
+
+###################
+########## Model 1
+###################
+### Try on subset of layers in Bolivia Model 1
+test_layers <- list.files(path = "/nfs/agfrontiers-data/luc_model/boliv_1_project",
+                          pattern = "*.tif",
+                          full.names = TRUE)
+
+test_layers_1 <- test_layers[1:200]
+test_layers_2 <- test_layers[201:400]
+test_layers_3 <- test_layers[401:600]
+test_layers_4 <- test_layers[601:800]
+test_layers_5 <- test_layers[801:1000]
+
+### Blank raster for adding all rasters
+raster_fill <- raster(test_layers[1])
+raster_fill[raster_fill > 0] <- 0
+
+### Write loop for stack 1
+for (i in 1:length(test_layers_1)) {
+
+  ### Open raster
+  ch_rast <- raster(test_layers_1[i])
+
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m1_stacked_1.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 2
+for (i in 1:length(test_layers_2)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_2[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m1_stacked_2.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 3
+for (i in 1:length(test_layers_3)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_3[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m1_stacked_3.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 4
+for (i in 1:length(test_layers_4)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_4[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m1_stacked_4.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 5
+for (i in 1:length(test_layers_5)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_5[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m1_stacked_5.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+###################
+########## Model 2
+###################
+test_layers <- list.files(path = "/nfs/agfrontiers-data/luc_model/bolivia_2_project",
+                          pattern = "*.tif",
+                          full.names = TRUE)
+
+test_layers_1 <- test_layers[1:200]
+test_layers_2 <- test_layers[201:400]
+test_layers_3 <- test_layers[401:600]
+test_layers_4 <- test_layers[601:800]
+test_layers_5 <- test_layers[801:1000]
+
+### Blank raster for adding all rasters
+raster_fill <- raster(test_layers[1])
+raster_fill[raster_fill > 0] <- 0
+
+### Write loop for stack 1
+for (i in 1:length(test_layers_1)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_1[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m2_stacked_1.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 2
+for (i in 1:length(test_layers_2)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_2[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m2_stacked_2.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 3
+for (i in 1:length(test_layers_3)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_3[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m2_stacked_3.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 4
+for (i in 1:length(test_layers_4)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_4[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m2_stacked_4.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 5
+for (i in 1:length(test_layers_5)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_5[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m2_stacked_5.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+###################
+########## Model 3
+###################
+### Try on subset of layers in Bolivia Model 3
+test_layers <- list.files(path = "/nfs/agfrontiers-data/luc_model/bolivia_3_project",
+                          pattern = "*.tif",
+                          full.names = TRUE)
+
+test_layers_1 <- test_layers[1:200]
+test_layers_2 <- test_layers[201:400]
+test_layers_3 <- test_layers[401:600]
+test_layers_4 <- test_layers[601:800]
+test_layers_5 <- test_layers[801:1000]
+
+### Blank raster for adding all rasters
+raster_fill <- raster(test_layers[1])
+raster_fill[raster_fill > 0] <- 0
+
+### Write loop for stack 1
+for (i in 1:length(test_layers_1)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_1[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m3_stacked_1.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 2
+for (i in 1:length(test_layers_2)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_2[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m3_stacked_2.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 3
+for (i in 1:length(test_layers_3)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_3[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m3_stacked_3.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 4
+for (i in 1:length(test_layers_4)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_4[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m3_stacked_4.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 5
+for (i in 1:length(test_layers_5)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_5[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m3_stacked_5.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+###################
+########## Model 4
+###################
+### Try on subset of layers in Bolivia Model 4
+test_layers <- list.files(path = "/nfs/agfrontiers-data/luc_model/bolivia_4_project",
+                          pattern = "*.tif",
+                          full.names = TRUE)
+
+test_layers_1 <- test_layers[1:200]
+test_layers_2 <- test_layers[201:400]
+test_layers_3 <- test_layers[401:600]
+test_layers_4 <- test_layers[601:800]
+test_layers_5 <- test_layers[801:1000]
+
+### Blank raster for adding all rasters
+raster_fill <- raster(test_layers[1])
+raster_fill[raster_fill > 0] <- 0
+
+### Write loop for stack 1
+for (i in 1:length(test_layers_1)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_1[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m4_stacked_1.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 2
+for (i in 1:length(test_layers_2)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_2[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m4_stacked_2.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 3
+for (i in 1:length(test_layers_3)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_3[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m4_stacked_3.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 4
+for (i in 1:length(test_layers_4)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_4[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m4_stacked_4.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+### Write loop for stack 5
+for (i in 1:length(test_layers_5)) {
+  
+  ### Open raster
+  ch_rast <- raster(test_layers_5[i])
+  
+  ###################################
+  ### Add raster values
+  ###################################
+  ### Stack with raster_fill
+  raster_fill <- stack(raster_fill, ch_rast)
+  
+  ### Add raster values
+  raster_fill <- calc(raster_fill, sum)
+}
+### Write out sum raster
+writeRaster(raster_fill,
+            filename = "/nfs/agfrontiers-data/luc_model/boli_m4_stacked_5.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
