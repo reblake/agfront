@@ -16,22 +16,6 @@ library(spatialEco)
 # ### Open sample points
 # per_dat_all <- read.csv("/nfs/agfrontiers-data/luc_model/peru_data_for_model.csv")
 # 
-# ### Rename columns
-# colnames(per_dat_all) <- c("uid", "lon", "lat", "lc_2008", "lc_2018",
-#                            "id", "aspect", "mines",
-#                            "roads", "rivers",
-#                            "cities", "elev",
-#                            "popdens", "poverty",
-#                            "ppt", "prot_status",
-#                            "slope", "soil",
-#                            "crop_suit", "field_res",
-#                            "paddd", "non_all_land",
-#                            "dist_ill_mines", "dist_ag",
-#                            "dist_fires", "fire_dens",
-#                            "dist_pr_rr",
-#                            "dist_pr_dams",
-#                            "agref_sett", "cattle",
-#                            "precip", "perc_diff")
 # 
 # ### Make column for transition/none
 # per_dat_all <- per_dat_all %>%
@@ -853,6 +837,209 @@ for (i in 1:length(test_layers_4)) {
 ### Write out sum raster
 writeRaster(raster_fill,
             filename = "/nfs/agfrontiers-data/luc_model/peru_m4_stacked_4.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+#############################
+### Run predictions 2008-2018
+#############################
+
+##################
+### Peru model 1 
+##################
+
+### Data prep
+#############
+
+### Open sample points
+per_dat_all <- read.csv("/nfs/agfrontiers-data/luc_model/peru_data/peru_data_for_model.csv")
+
+### Make column for transition/none
+per_dat_all <- per_dat_all %>%
+  mutate(transition = ifelse(lc_2018 == "2",
+                             "no_change",
+                             ifelse(lc_2018 == "1",
+                                    "f_to_ag",
+                                    "other_change")),
+         trans_rc = ifelse(transition == "no_change",
+                           "0", ifelse(transition == "f_to_ag",
+                                       "1", "2")))
+
+### Make columns factor
+fact_cols <- c("uid", "prot_status",
+               "minconc",
+               "nonforconc", "npchg",
+               "permprod", "protforest",
+               "refor",
+               "lc_2018", "trans_rc")
+per_dat_all <- per_dat_all %>%
+  mutate_each_(funs(factor(.)), fact_cols)
+
+### Restrict to transitions
+per_dat_use <- per_dat_all %>%
+  filter(trans_rc == "1" | trans_rc == "0")
+
+### Model 1
+###########
+
+### Run regression
+fit_per <- glm(trans_rc ~ aspect + cities +
+                 slope +
+                 crop_suit + prot_status + popdens +
+                 precip + rivers + dist_ag + perc_diff,
+               data = per_dat_use,
+               family = binomial(link = "logit"))
+
+### 2008 data
+#############
+
+### Open rasterbrick
+per_layers_all <- brick("/nfs/agfrontiers-data/luc_model/peru_all_layers.tif")
+
+### Rename columns
+names(per_layers_all) <- c("aspect", "cities",
+                           "crop_suit", "elev",
+                           "mines", "prot_status",
+                           "popdens", "poverty",
+                           "precip", "rivers",
+                           "roads", "slope",
+                           "soil", "dist_ag",
+                           "control", "commun",
+                           "fire", "forest",
+                           "illegal_mines", "minconc",
+                           "nonforconc", "npchg",
+                           "permprod", "protforest",
+                           "refor", "tourism")
+
+### Replace precip layer
+per_layers_all <- dropLayer(per_layers_all, 9)
+
+### Open new precip layer
+per_precip <- raster("/nfs/agfrontiers-data/luc_model/per_precip_new.tif")
+
+### Add new precip layer
+per_layers_all <- addLayer(per_layers_all, per_precip)
+names(per_layers_all)[26] <- "precip"
+
+### Open 2008 percent of neighboring pixels raster
+neigh_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/per_perc_diff.tif")
+
+### Add to other layers
+per_layers_all <- addLayer(per_layers_all, neigh_2008)
+names(per_layers_all)[27] <- "perc_diff"
+
+### Run prediction
+##################
+
+### Run prediction
+pp_peru <- raster::predict(per_layers_all, fit_per,
+                              na.rm = TRUE,
+                              type = "response",
+                              overwrite = TRUE)
+
+### Open 2008 LUC map
+peru08 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2008_102033.tif")
+
+### Mask cells that were not forested in 2008
+pp_peru_mask_08 <- mask(pp_peru, peru08,
+                           inverse= TRUE,
+                           maskvalue = 2)
+
+writeRaster(pp_peru_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_pp_m1_masked_2018.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+###########
+### Model 2
+###########
+### Run regression
+fit_per_2 <- glm(trans_rc ~ dist_ag +
+                   control + fire + illegal_mines +
+                   nonforconc + npchg + permprod + protforest +
+                   refor + tourism,
+                 data = per_dat_use,
+                 family = binomial(link = "logit"))
+
+### Run prediction
+pp_peru_2 <- raster::predict(per_layers_all, fit_per_2,
+                                na.rm = TRUE,
+                                type = "response",
+                                # filename = "/nfs/agfrontiers-data/luc_model/peru_pp_m2_2018.tif",
+                                overwrite = TRUE)
+
+### Mask cells that were not forested in 2008
+pp_peru_2_mask_08 <- mask(pp_peru_2, peru08,
+                             inverse= TRUE,
+                             maskvalue = 2)
+
+writeRaster(pp_peru_2_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_pp_m2_masked_2018.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+###########
+### Model 3
+###########
+### Run regression
+fit_per_3 <- glm(trans_rc ~ aspect + slope +
+                   crop_suit + prot_status + popdens +
+                   precip + rivers + dist_ag + perc_diff +
+                   control + fire + illegal_mines +
+                   nonforconc + npchg + permprod + protforest +
+                   refor + tourism,
+                 data = per_dat_use,
+                 family = binomial(link = "logit"))
+
+### Run prediction
+pp_peru_3 <- raster::predict(per_layers_all, fit_per_3,
+                             na.rm = TRUE,
+                             type = "response",
+                             # filename = "/nfs/agfrontiers-data/luc_model/peru_pp_m3_2018.tif",
+                             overwrite = TRUE)
+
+### Mask cells that were not forested in 2008
+pp_peru_3_mask_08 <- mask(pp_peru_3, peru08,
+                          inverse= TRUE,
+                          maskvalue = 2)
+
+writeRaster(pp_peru_3_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_pp_m3_masked_2018.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+
+###########
+### Model 4
+###########
+### Run regression
+fit_per_4 <- glm(trans_rc ~ slope + rivers +
+                   dist_ag + crop_suit + popdens +
+                   perc_diff + prot_status +
+                   control + fire + illegal_mines +
+                   nonforconc + permprod + protforest +
+                   refor + tourism,
+                 data = per_dat_use,
+                 family = binomial(link = "logit"))
+
+
+### Run prediction
+pp_peru_4 <- raster::predict(per_layers_all, fit_per_4,
+                             na.rm = TRUE,
+                             type = "response",
+                             # filename = "/nfs/agfrontiers-data/luc_model/peru_pp_m4_2018.tif",
+                             overwrite = TRUE)
+
+### Mask cells that were not forested in 2008
+pp_peru_4_mask_08 <- mask(pp_peru_4, peru08,
+                          inverse= TRUE,
+                          maskvalue = 2)
+
+writeRaster(pp_peru_4_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_pp_m4_masked_2018.tif",
             format = "GTiff",
             overwrite = TRUE,
             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))

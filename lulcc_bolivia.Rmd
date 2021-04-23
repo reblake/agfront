@@ -855,3 +855,166 @@ r_add <- calc(r_stack, sum)
 writeRaster(r_add, 
             "/nfs/agfrontiers-data/luc_model/peru_m4_stacked_all.tif")
 ```
+
+## Observed loss (PAs only)
+Based on stacked simulations
+### Carrasco
+```{r}
+### Calculate forest loss as # pixels
+### Open bolivia 2008 map
+bol_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bol_dry_2008_102033.tif")
+
+### Open bolivia 2018 map
+bol_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bol_dry_2018_102033.tif")
+
+### Open Carrasco without buffer
+carra <- st_read("/nfs/agfrontiers-data/Case Study Info/Bolivia/wdpa_apr21_carrasco_102033.shp")
+
+### Crop LUC maps
+carra_08 <- crop(bol_2008, carra)
+carra_08 <- mask(carra_08, carra)
+carra_18 <- crop(bol_2018, carra)
+carra_18 <- mask(carra_18, carra)
+
+### Forest in 2008
+forest_08_carra <- as.data.frame(carra_08) %>%
+    group_by(classi_bol_dry_2008_102033) %>%
+    tally()
+### 7250670
+
+### Forest in 2018
+forest_18_carra <- as.data.frame(carra_18) %>%
+    group_by(classi_bol_dry_2018_102033) %>%
+    tally()
+### 7308734
+
+### Calculate forest loss
+pix_lost <- 7250670-7308734
+### CNP gained 58064 pixels
+```
+
+### Amboro NP
+```{r}
+### Calculate forest loss as # pixels
+
+### Open Amboro without buffer
+ambnp <- st_read("/nfs/agfrontiers-data/Case Study Info/Bolivia/wdpa_apr21_amboro_np_102033.shp")
+
+### Crop LUC maps
+ambnp_08 <- crop(bol_2008, ambnp)
+ambnp_08 <- mask(ambnp_08, ambnp)
+ambnp_18 <- crop(bol_2018, ambnp)
+ambnp_18 <- mask(ambnp_18, ambnp)
+
+### Forest in 2008
+forest_08_ambnp <- as.data.frame(ambnp_08) %>%
+    group_by(classi_bol_dry_2008_102033) %>%
+    tally()
+### 5439526
+
+### Forest in 2018
+forest_18_ambnp <- as.data.frame(ambnp_18) %>%
+    group_by(classi_bol_dry_2018_102033) %>%
+    tally()
+### 5447774
+
+### Calculate forest loss
+pix_lost <- 5439526-5447774
+### ANP gained 8248 pixels
+```
+
+### Amboro IMNA
+```{r}
+### Calculate forest loss as # pixels
+
+### Open Amboro without buffer
+ambim <- st_read("/nfs/agfrontiers-data/Case Study Info/Bolivia/wdpa_apr21_amboro_im_102033.shp")
+
+### Crop LUC maps
+ambim_08 <- crop(bol_2008, ambim)
+ambim_08 <- mask(ambim_08, ambim)
+ambim_18 <- crop(bol_2018, ambim)
+ambim_18 <- mask(ambim_18, ambim)
+
+### Forest in 2008
+forest_08_ambim <- as.data.frame(ambim_08) %>%
+    group_by(classi_bol_dry_2008_102033) %>%
+    tally()
+### 1832761
+
+### Forest in 2018
+forest_18_ambim <- as.data.frame(ambim_18) %>%
+    group_by(classi_bol_dry_2018_102033) %>%
+    tally()
+### 1796511
+
+### Calculate forest loss
+pix_lost <- 1832761-1796511
+### A IMNA lost 36250 pixels
+```
+
+Net gain in forest when combining the three PAs
+
+### Check all together
+```{r}
+### Open merged PAs without buffer
+all_pa <- st_read("/nfs/agfrontiers-data/Case Study Info/Bolivia/wdpa_all_diss.shp")
+
+### Crop LUC maps
+all_pa_08 <- crop(bol_2008, all_pa)
+all_pa_08 <- mask(all_pa_08, all_pa)
+all_pa_18 <- crop(bol_2018, all_pa)
+all_pa_18 <- mask(all_pa_18, all_pa)
+
+### Forest in 2008
+forest_08_all_pa <- as.data.frame(all_pa_08) %>%
+    group_by(classi_bol_dry_2008_102033) %>%
+    tally()
+### forest: 14522957
+### ag: 367919
+
+### Forest in 2018
+forest_18_all_pa_18 <- as.data.frame(all_pa_18) %>%
+    group_by(classi_bol_dry_2018_102033) %>%
+    tally()
+### forest: 14553019
+### ag: 415601
+
+### Calculate forest loss
+pix_lost_all <- 14522957-14553019
+### combined PAs gained 30062 forest pixels (while gaining 47682 ag pixels)-- lost bare soil, urban
+```
+
+### Check buffer
+```{r}
+bol_buff <- st_read("/nfs/agfrontiers-data/Case Study Info/ambcar_buffer_updated.shp") %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+
+### Crop LUC maps
+buff_08 <- crop(bol_2008, bol_buff)
+buff_08 <- mask(buff_08, bol_buff)
+buff_18 <- crop(bol_2018, bol_buff)
+buff_18 <- mask(buff_18, bol_buff)
+
+### Forest in 2008
+forest_08_buff <- as.data.frame(buff_08) %>%
+    group_by(classi_bol_dry_2008_102033) %>%
+    tally()
+### forest: 24676149
+### ag: 4342826
+
+### Forest in 2018
+forest_18_buff <- as.data.frame(buff_18) %>%
+    group_by(classi_bol_dry_2018_102033) %>%
+    tally()
+### forest: 24190334
+### ag: 4959163
+
+### Calculate forest loss
+pix_lost_buff <- 24676149-24190334
+### lost 485815 forest pixels
+### gained 616337 ag pixels
+```
+
+Because no forest loss within PA complex, can't use same method as used for Jamanxim to project future forest loss.

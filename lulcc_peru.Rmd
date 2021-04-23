@@ -790,3 +790,40 @@ r_add <- calc(r_stack, sum)
 writeRaster(r_add, 
             "/nfs/agfrontiers-data/luc_model/peru_m4_stacked_all.tif")
 ```
+
+## Observed loss (PAs only)
+Based on stacked simulations
+### Tambo & B-S
+```{r}
+### Calculate forest loss as # pixels
+### Open peru 2008 map
+per_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2008_102033.tif")
+
+### Open peru 2018 map
+per_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2018_102033.tif")
+
+### Open Tambo & B-S without buffer
+tbs <- st_read("/nfs/agfrontiers-data/Case Study Info/Peru/wdpa_per_diss.shp")
+
+### Crop LUC maps
+tbs_08 <- crop(per_2008, tbs)
+tbs_08 <- mask(tbs_08, tbs)
+tbs_18 <- crop(per_2018, tbs)
+tbs_18 <- mask(tbs_18, tbs)
+
+### Forest in 2008
+forest_08_tbs <- as.data.frame(tbs_08) %>%
+    group_by(classi_per_dry_2008_102033) %>%
+    tally()
+### 15032326
+
+### Forest in 2018
+forest_18_tbs <- as.data.frame(tbs_18) %>%
+    group_by(classi_per_dry_2018_102033) %>%
+    tally()
+### 15017824
+
+### Calculate forest loss
+pix_lost_tbs <- 15032326-15017824
+### T-BS lost 14502 pixels
+```
