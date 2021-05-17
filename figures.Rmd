@@ -1,0 +1,2162 @@
+---
+title: "figures"
+output: html_document
+---
+## Description
+Figures for LUC modeling paper
+
+## Set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Open packages
+library(tidyverse)
+library(sf)
+library(raster)
+library(sp)
+library(rgdal)
+library(landscapemetrics)
+library(tmap)
+library(ggspatial)
+```
+
+## Study area
+Map of study area
+### South America
+```{r}
+### Get Brazil shapefile
+brazil <- getData('GADM', country = 'BRA', level = 0)
+brazil <- brazil %>% 
+  st_as_sf(.) %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+
+### Get other south american countries
+arg <- getData('GADM', country = 'ARG', level = 0)
+arg <- arg %>% 
+  st_as_sf(.) %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+bol <- getData('GADM', country = 'BOL', level = 0)
+bol <- bol %>% 
+  st_as_sf(.) %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+chl <- getData('GADM', country = 'CHL', level = 0)
+chl <- chl %>% 
+  st_as_sf(.) %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+col <- getData('GADM', country = 'COL', level = 0)
+col <- col %>% 
+  st_as_sf(.) %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+ecu <- getData('GADM', country = 'ECU', level = 0)
+ecu <- ecu %>% 
+  st_as_sf(.) %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+guf <- getData('GADM', country = 'GUF', level = 0)
+guf <- guf %>% 
+  st_as_sf(.) %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+guy <- getData('GADM', country = 'GUY', level = 0)
+guy <- guy %>% 
+  st_as_sf(.) %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+pry <- getData('GADM', country = 'PRY', level = 0)
+pry <- pry %>% 
+  st_as_sf(.) %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+per <- getData('GADM', country = 'PER', level = 0)
+per <- per %>% 
+  st_as_sf(.) %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+sur <- getData('GADM', country = 'SUR', level = 0)
+sur <- sur %>% 
+  st_as_sf(.) %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+ury <- getData('GADM', country = 'URY', level = 0)
+ury <- ury %>% 
+  st_as_sf(.) %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+ven <- getData('GADM', country = 'VEN', level = 0)
+ven <- ven %>% 
+  st_as_sf(.) %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+
+
+### Open Jamanxim shapefile
+jaman <- st_read("/nfs/agfrontiers-data/Case Study Info/Brazil/JamanBuffer/JamanBuffer.shp") %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+
+### Plot
+ggplot() +
+  geom_sf(data = arg, size = 0.1) +
+  geom_sf(data = bol, size = 0.1) +
+  geom_sf(data = chl, size = 0.1) +
+  geom_sf(data = col, size = 0.1) +
+  geom_sf(data = ecu, size = 0.1) +
+  geom_sf(data = guf, size = 0.1) +
+  geom_sf(data = guy, size = 0.1) +
+  geom_sf(data = per, size = 0.1) +
+  geom_sf(data = pry, size = 0.1) +
+  geom_sf(data = sur, size = 0.1) +
+  geom_sf(data = ven, size = 0.1) +
+  geom_sf(data = ury, size = 0.1) +
+  geom_sf(data = brazil, fill = "gray75") +
+  geom_sf(data = jaman, fill = "gray50") +
+  # coord_sf(datum = NA) +
+  theme(
+    axis.line = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    plot.background = element_blank(),
+    panel.background = element_blank(),
+  ) +
+  NULL
+ggsave("/nfs/agfrontiers-data/luc_model/figures/brazil_map.png")
+
+```
+### Jamanxim and buffer
+```{r}
+### Open wdpa JNF boundary
+jnf <- st_read("/nfs/agfrontiers-data/Case Study Info/Brazil/JamanBuffer/jamanxim_wdpa_march21_102033.shp")
+
+### Plot
+ggplot() +
+  geom_sf(data = jaman) +
+  geom_sf(data = jnf, fill = "gray75") +
+  theme(
+    axis.line = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    plot.background = element_blank(),
+    panel.background = element_blank(),
+  ) +
+  annotation_scale(location = "bl", width_hint = 0.5) +
+  NULL
+ggsave("/nfs/agfrontiers-data/luc_model/figures/jamanxim_map.png")
+```
+
+
+## Compare 2018 maps
+Compare observed 2018 map to projected 2018 maps (projections based on observed amount of deforestation)
+
+### Brazil
+#### Open files
+1: ag
+2: forest
+3: bare soil
+4: urban
+5: wetland
+7: water
+10: new ag predicted in 2018
+```{r}
+### Open JNF with buffer
+jaman <- st_read("/nfs/agfrontiers-data/Case Study Info/Brazil/JamanBuffer/JamanBuffer.shp") %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+
+### Open observed 2018 map
+bra_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2018_102033.tif")
+
+### Open observed 2008 map
+bra_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2008_102033.tif")
+
+### Crop LUC maps
+bra_2008 <- crop(bra_2008, jaman)
+bra_2008 <- mask(bra_2008, jaman)
+bra_18 <- crop(bra_2018, jaman)
+bra_18 <- mask(bra_18, jaman)
+
+### Open maps for each model
+
+### M1
+j1 <- raster("/nfs/agfrontiers-data/luc_model/brazil_full_1_projected_2018_map.tif")
+
+### M2
+j2 <- raster("/nfs/agfrontiers-data/luc_model/brazil_full_2_projected_2018_map.tif")
+
+### M3
+j3 <- raster("/nfs/agfrontiers-data/luc_model/brazil_full_3_projected_2018_map.tif")
+
+### M4
+j4 <- raster("/nfs/agfrontiers-data/luc_model/brazil_full_4_projected_2018_map.tif")
+```
+
+#### Mask 2008 ag
+Mask 2008 agriculture to have value = 8
+1: ag
+2: forest
+3: bare soil
+4: urban
+5: wetland
+7: water
+8: 2008 agriculture
+10: new ag predicted in 2018
+```{r}
+### 1, 10 = ag in 2018
+### 8 = ag in 2008
+
+### Mask cells that were ag in 2008
+j1_mask_08 <- mask(j1, 
+                   bra_2008,
+                   inverse = FALSE,
+                   maskvalue = 1,
+                   updatevalue = 8)
+
+j2_mask_08 <- mask(j2, 
+                   bra_2008,
+                   inverse = FALSE,
+                   maskvalue = 1,
+                   updatevalue = 8)
+
+j3_mask_08 <- mask(j3, 
+                   bra_2008,
+                   inverse = FALSE,
+                   maskvalue = 1,
+                   updatevalue = 8)
+
+j4_mask_08 <- mask(j4, 
+                   bra_2008,
+                   inverse = FALSE,
+                   maskvalue = 1,
+                   updatevalue = 8)
+
+```
+
+#### 2018 ag predictions
+* correctly predicted 2018 ag  
+* missed 2018 ag (ag in observed but not in modeled)    
+* incorrectly predicted 2018 ag (ag in modeled but not in observed)  
+```{r}
+### Reclassify 2018 observed map
+
+### Reclassification matrix
+reclass_df <- c(0, 1.5, 0.05,       ## ag
+                1.6, 2.2, 0.1,      ## forest
+                2.6, 3.2, 0.15,     ## bare soil
+                3.6, 4.2, 0.2,      ## urban
+                4.6, 5.2, 0.25,     ## wetland
+                5.6, 7.2, 0.3)      ## water
+reclass_m <- matrix(reclass_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify 2018
+bra_18_rc <- reclassify(bra_18,
+                        reclass_m)
+
+### Raster math: projected 2018 - observed 2018
+## 1.70: predicted forest - observed water --> missed other transition
+## 1.75: predicted forest - observed wetland --> missed other transition
+## 1.8: predicted forest - observed urban --> missed other transition
+## 1.85: predicted forest - observed bare soil --> missed other transition
+## 1.9: predicted forest - observed forest --> correctly predicted stable forest
+## 1.95: predicted forest - observed ag --> missed conversion to ag
+## 2.7: predicted bare soil - observed water --> missed other conversion
+## 2.75: predicted bare soil - observed wetland --> missed other conversion
+## 2.8: predicted bare soil - obs urban --> missed other transition
+## 2.85: predicted bare soil - obs bare soil --> correctly predicted stable bare soil
+## 2.90: predicted bare soil -  obs forest --> missed other transition
+## 2.95: predicted bare soil - obs ag --> missed other transition
+## 3.7: predicted urban - obs water --> missed other transition
+## 3.8: predicted urban - observed urban --> correctly predicted stable urban
+## 3.9: predicted urban - observed forest --> missed other transition  
+## 3.95: predicted urban - obs ag --> missed other transition
+## 4.75: predicted wetland - observed wetland --> correctly predicted stable wetland
+## 4.85: predicted wetland - observed bare soil
+## 4.9: predicted wetland - observed forest
+## 4.95: predicted wetland - observed agriculture
+## 6.70: predicted water - observed water --> correctly predicted stable water
+## 6.80: predicted water - observed forest
+## 6.85: predicted water - observed bare soil
+## 6.9: predicted water - observed forest --> other transition
+## 6.95: predicted water - observed ag --> missed other transition
+## 7.70: 2008 agriculture - observed water --> 2008 ag converted to water
+## 7.75: 2008 agriculture - observed wetland --> 2008 ag converted to wetland  
+## 7.80: 2008 agriculture - observed urban --> 2008 ag converted to urban
+## 7.85: 2008 agriculture - observed bare soil --> 2008 ag converted to bare soil
+## 7.90: 2008 ag - observed forest --> missed reforestation 
+## 7.95: 2008 agriculture - observed ag --> stable ag from 2008
+## 9.70: new ag predicted for 2018 - observed water --> missed other transition
+## 9.75: new ag predicted for 2018 - observed wetland
+## 9.8: new ag predicted for 2018 - obs urban --> incorrectly predicted ag conversion (not forest)
+## 9.85: new ag predicted for 2018 - observed bare soil --> missed other transition
+## 9.9: new ag predicted for 2018 - observed forest --> incorrectly predicted ag conversion
+## 9.95: new ag predicted for 2018 - observed ag --> correctly predicted ag conversion
+
+### Model 1
+j1_mask_08_sub <- j1_mask_08 - bra_18_rc
+
+### Model 2
+j2_mask_08_sub <- j2_mask_08 - bra_18_rc
+
+### Model 3
+j3_mask_08_sub <- j3_mask_08 - bra_18_rc
+
+### Model 4
+j4_mask_08_sub <- j4_mask_08 - bra_18_rc
+```
+
+#### Reclassify rasters
+Key transitions: 
+* 1.9: correctly predicted stable forest
+* 1.95: predicted forest - observed ag --> missed conversion to ag  
+* 7.90: 2008 ag - observed forest --> missed reforestation 
+* 7.95: 2008 agriculture - observed ag --> stable ag from 2008
+* 9.9: new ag predicted for 2018 - observed forest --> incorrectly predicted ag conversion
+* 9.95: new ag predicted for 2018 - observed ag --> correctly predicted ag conversion
+```{r}
+### Reclassify subtracted rasters
+reclass_sub_df <- c(0, 1.94, 0,       ## other
+                    1.945, 1.955, 1,  ## missed conversion to ag
+                    1.96, 7.93, 0,    ## other
+                    7.94, 7.96, 2,    ## stable ag from 2008
+                    7.97, 9.88, 0,    ## other
+                    9.89, 9.91, 3,    ## incorrectly predicted ag conversion
+                    9.92, 9.94, 0,    ## other
+                    9.945, 9.96, 4,   ## correctly predicted ag conversion
+                    9.97, 15, 0)      
+reclass_sub_m <- matrix(reclass_sub_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify Model 1 2018
+j1_mask_08_sub_rc <- reclassify(j1_mask_08_sub,
+                                reclass_sub_m)
+
+### Reclassify Mode2 1 2018
+j2_mask_08_sub_rc <- reclassify(j2_mask_08_sub,
+                                reclass_sub_m)
+
+### Reclassify Model 3 2018
+j3_mask_08_sub_rc <- reclassify(j3_mask_08_sub,
+                                reclass_sub_m)
+
+### Reclassify Model 4 2018
+j4_mask_08_sub_rc <- reclassify(j4_mask_08_sub,
+                                reclass_sub_m)
+```
+
+#### Calculate
+```{r}
+j1_numbers <- as.data.frame(j1_mask_08_sub_rc) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(j1_mask_08_sub_rc)[1] * res(j1_mask_08_sub_rc)[2],
+           area_km2 =  area/1000000,
+           model = "LUC only")
+
+j2_numbers <- as.data.frame(j2_mask_08_sub_rc) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(j2_mask_08_sub_rc)[1] * res(j2_mask_08_sub_rc)[2],
+           area_km2 =  area/1000000,
+           model = "DA only")
+
+j3_numbers <- as.data.frame(j3_mask_08_sub_rc) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(j3_mask_08_sub_rc)[1] * res(j3_mask_08_sub_rc)[2],
+           area_km2 =  area/1000000,
+           model = "LUC & DA")
+
+j4_numbers <- as.data.frame(j4_mask_08_sub_rc) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(j4_mask_08_sub_rc)[1] * res(j4_mask_08_sub_rc)[2],
+           area_km2 =  area/1000000,
+           model = "Refined LUC & DA")
+
+### Bind
+j_all <- rbind(j1_numbers,
+               j2_numbers,
+               j3_numbers,
+               j4_numbers)
+
+j_all <- j_all %>%
+  mutate(transition_type = ifelse(layer == "0", "other",
+                                  ifelse(layer == "1", "missed conversion to ag", ifelse(layer == "2", "stable ag from 2008", ifelse(layer == "3", "incorrectly predicted ag conversion", "correctly predicted ag conversion")))))
+
+### Write out csv
+write_csv(j_all, "/nfs/agfrontiers-data/luc_model/brazil_2018_projection_accuracy.csv")
+
+### Add number of pixels (non-NA)
+n_pix <- j_all %>% 
+  drop_na() %>% 
+  group_by(model) %>% 
+  summarise(n_pix = sum(n))
+j_all <- merge(j_all, n_pix, by = "model")
+
+### Percent of pixels
+j_all <- j_all %>%
+  mutate(pct_pix = n/n_pix*100)
+
+### Drop 0
+j_all <- j_all %>% filter(layer > 0) 
+
+### Plot
+j_all %>%
+  ggplot(aes(x = transition_type, y = pct_pix, fill = model)) +
+  geom_bar(stat = "identity", position = position_dodge()) + 
+  theme(axis.text.x = element_text(angle = 45)) +
+  xlab("Transition type") +
+  ylab("Percent of pixels") +
+  NULL
+
+
+```
+
+#### Map  
+* 0: other  
+* 1: missed conversion to ag  
+* 2: stable ag from 2008  
+* 3: incorrectly predicted ag conversion  
+* 4: correctly predicted ag conversion
+```{r}
+### Open library
+library(tmap)
+
+### Open Jamanxim NF
+jnf <- st_read("/nfs/agfrontiers-data/Case Study Info/Brazil/JamanBuffer/jamanxim_wdpa_march21_102033.shp")
+
+### Map J1
+tm_shape(j4_mask_08_sub_rc) +
+  tm_raster("layer", style = "cat", 
+            # palette = terrain.colors(5),
+            labels = c("Other", "Missed conversion to ag",
+                       "Stable ag from 2008",
+                       "Incorrectly predicted ag conversion",
+                       "Correctly predicted ag conversion"),
+            palette = c("gray73", "darkgoldenrod1",
+                        "darkorchid4",
+                        "seagreen4",
+                        "deeppink")) +
+  tm_shape(jnf) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+```
+
+
+
+### Bolivia
+#### Open files
+1: ag
+2: forest
+3: bare soil
+4: urban
+5: wetland  
+6: desert  
+7: water
+10: new ag predicted in 2018
+```{r}
+### Open AmbCar with buffer
+bol_buff <- st_read("/nfs/agfrontiers-data/Case Study Info/ambcar_buffer_updated.shp") %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+
+### Open observed 2018 map
+bol_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bol_dry_2018_102033.tif")
+
+### Open observed 2008 map
+bol_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bol_dry_2008_102033.tif")
+
+### Crop LUC maps
+bol_2008 <- crop(bol_2008, bol_buff)
+bol_2008 <- mask(bol_2008, bol_buff)
+bol_2018 <- crop(bol_2018, bol_buff)
+bol_2018 <- mask(bol_2018, bol_buff)
+
+### Open maps for each model
+
+### M1
+a1 <- raster("/nfs/agfrontiers-data/luc_model/boli_full_1_projected_2018_map.tif")
+
+### M2
+a2 <- raster("/nfs/agfrontiers-data/luc_model/boli_full_2_projected_2018_map.tif")
+
+### M3
+a3 <- raster("/nfs/agfrontiers-data/luc_model/boli_full_3_projected_2018_map.tif")
+
+### M4
+a4 <- raster("/nfs/agfrontiers-data/luc_model/boli_full_4_projected_2018_map.tif")
+```
+
+#### Mask 2008 ag
+Mask 2008 agriculture to have value = 8
+1: ag
+2: forest
+3: bare soil
+4: urban
+5: wetland  
+6: desert
+7: water
+8: 2008 agriculture
+10: new ag predicted in 2018
+```{r}
+### 1, 10 = ag in 2018
+### 8 = ag in 2008
+
+### Mask cells that were ag in 2008
+a1_mask_08 <- mask(a1, 
+                   bol_2008,
+                   inverse = FALSE,
+                   maskvalue = 1,
+                   updatevalue = 8)
+
+a2_mask_08 <- mask(a2, 
+                   bol_2008,
+                   inverse = FALSE,
+                   maskvalue = 1,
+                   updatevalue = 8)
+
+a3_mask_08 <- mask(a3, 
+                   bol_2008,
+                   inverse = FALSE,
+                   maskvalue = 1,
+                   updatevalue = 8)
+
+a4_mask_08 <- mask(a4, 
+                   bol_2008,
+                   inverse = FALSE,
+                   maskvalue = 1,
+                   updatevalue = 8)
+
+```
+
+#### 2018 ag predictions
+* correctly predicted 2018 ag  
+* missed 2018 ag (ag in observed but not in modeled)    
+* incorrectly predicted 2018 ag (ag in modeled but not in observed)  
+```{r}
+### Reclassify 2018 observed map
+
+### Reclassification matrix
+reclass_df_bol <- c(0, 1.5, 0.05,       ## ag
+                    1.6, 2.2, 0.1,      ## forest
+                    2.6, 3.2, 0.15,     ## bare soil
+                    3.6, 4.2, 0.2,      ## urban
+                    4.6, 5.2, 0.25,     ## wetland
+                    5.6, 6.5, 0.35,     ## desert
+                    6.6, 7.2, 0.3)      ## water
+reclass_m_bol <- matrix(reclass_df_bol,
+                        ncol = 3,
+                        byrow = TRUE)
+
+### Reclassify 2018
+bol_18_rc <- reclassify(bol_2018,
+                        reclass_m_bol)
+
+### Raster math: projected 2018 - observed 2018
+## 0.95: predicted 2018 ag - observed ag --> correctly predicted ag transition in 2018
+## 1.9: predicted forest - observed forest --> correctly predicted stable forest
+## 2.85: predicted bare soil - obs bare soil --> correctly predicted stable bare soil
+## 3.8: predicted urban - observed urban --> correctly predicted stable urban
+## 4.75: predicted wetland - observed wetland --> correctly predicted stable wetland
+## 5.7: predicted desert - observed water --> other transition
+## 6.70: predicted water - observed water --> correctly predicted stable water
+## 9.9: new ag predicted for 2018 - observed forest --> incorrectly predicted ag conversion
+## 7.70: 2008 agriculture - observed water --> 2008 ag converted to water
+## 7.75: 2008 agriculture - observed wetland --> 2008 ag converted to wetland  
+## 7.80: 2008 agriculture - observed urban --> 2008 ag converted to urban
+## 7.85: 2008 agriculture - observed bare soil --> 2008 ag converted to bare soil
+## 7.95: 2008 agriculture - observed ag --> stable ag from 2008
+
+### Model 1
+a1_mask_08_sub <- a1_mask_08 - bol_18_rc
+
+### Model 2
+a2_mask_08_sub <- a2_mask_08 - bol_18_rc
+
+### Model 3
+a3_mask_08_sub <- a3_mask_08 - bol_18_rc
+
+### Model 4
+a4_mask_08_sub <- a4_mask_08 - bol_18_rc
+```
+
+#### Reclassify rasters
+```{r}
+### Reclassify subtracted rasters
+reclass_sub_df <- c(0, 1.94, 0,       ## other
+                    1.945, 1.955, 1,  ## missed conversion to ag
+                    1.96, 7.93, 0,    ## other
+                    7.94, 7.96, 2,    ## stable ag from 2008
+                    7.97, 9.88, 0,    ## other
+                    9.89, 9.91, 3,    ## incorrectly predicted ag conversion
+                    9.92, 9.94, 0,    ## other
+                    9.945, 9.96, 4,   ## correctly predicted ag conversion
+                    9.97, 15, 0)      
+reclass_sub_m <- matrix(reclass_sub_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify Model 1 2018
+a1_mask_08_sub_rc <- reclassify(a1_mask_08_sub,
+                                reclass_sub_m)
+
+### Reclassify Mode2 1 2018
+a2_mask_08_sub_rc <- reclassify(a2_mask_08_sub,
+                                reclass_sub_m)
+
+### Reclassify Model 3 2018
+a3_mask_08_sub_rc <- reclassify(a3_mask_08_sub,
+                                reclass_sub_m)
+
+### Reclassify Model 4 2018
+a4_mask_08_sub_rc <- reclassify(a4_mask_08_sub,
+                                reclass_sub_m)
+```
+
+#### Calculate
+```{r}
+a1_numbers <- as.data.frame(a1_mask_08_sub_rc) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(a1_mask_08_sub_rc)[1] * res(a1_mask_08_sub_rc)[2],
+           area_km2 =  area/1000000,
+           model = "LUC only")
+
+a2_numbers <- as.data.frame(a2_mask_08_sub_rc) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(a2_mask_08_sub_rc)[1] * res(a2_mask_08_sub_rc)[2],
+           area_km2 =  area/1000000,
+           model = "DA only")
+
+a3_numbers <- as.data.frame(a3_mask_08_sub_rc) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(a3_mask_08_sub_rc)[1] * res(a3_mask_08_sub_rc)[2],
+           area_km2 =  area/1000000,
+           model = "LUC & DA")
+
+a4_numbers <- as.data.frame(a4_mask_08_sub_rc) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(a4_mask_08_sub_rc)[1] * res(a4_mask_08_sub_rc)[2],
+           area_km2 =  area/1000000,
+           model = "Refined LUC & DA")
+
+### Bind
+a_all <- rbind(a1_numbers,
+               a2_numbers,
+               a3_numbers,
+               a4_numbers)
+
+a_all <- a_all %>%
+  mutate(transition_type = ifelse(layer == "0", "other",
+                                  ifelse(layer == "1", "missed conversion to ag", ifelse(layer == "2", "stable ag from 2008", ifelse(layer == "3", "incorrectly predicted ag conversion", "correctly predicted ag conversion")))))
+
+### Write out csv
+write_csv(a_all, "/nfs/agfrontiers-data/luc_model/boliv_2018_projection_accuracy.csv")
+
+### Add number of pixels (non-NA)
+n_pix <- a_all %>% 
+  drop_na() %>% 
+  group_by(model) %>% 
+  summarise(n_pix = sum(n))
+a_all <- merge(a_all, n_pix, by = "model")
+
+### Percent of pixels
+a_all <- a_all %>%
+  mutate(pct_pix = n/n_pix*100)
+
+### Drop 0
+a_all <- a_all %>% filter(layer > 0) 
+
+### Plot
+a_all %>%
+  ggplot(aes(x = transition_type, y = pct_pix, fill = model)) +
+  geom_bar(stat = "identity", position = position_dodge()) + 
+  theme(axis.text.x = element_text(angle = 45)) +
+  xlab("Transition type") +
+  ylab("Percent of pixels") +
+  NULL
+```
+
+#### Map  
+* 0: other  
+* 1: missed conversion to ag  
+* 2: stable ag from 2008  
+* 3: incorrectly predicted ag conversion  
+* 4: correctly predicted ag conversion
+```{r}
+### Open Carrasco NP
+carra <- st_read("/nfs/agfrontiers-data/Case Study Info/Bolivia/wdpa_apr21_carrasco_102033.shp")
+
+### Open Amboro NP
+ambnp <- st_read("/nfs/agfrontiers-data/Case Study Info/Bolivia/wdpa_apr21_amboro_np_102033.shp")
+
+### Open Amboro IMNA
+ambim <- st_read("/nfs/agfrontiers-data/Case Study Info/Bolivia/wdpa_apr21_amboro_im_102033.shp")
+
+### Map A1
+tm_shape(a1_mask_08_sub_rc) +
+  tm_raster("layer", style = "cat", 
+            # palette = terrain.colors(5),
+            labels = c("Other", "Missed conversion to ag",
+                       "Stable ag from 2008",
+                       "Incorrectly predicted ag conversion",
+                       "Correctly predicted ag conversion"),
+            palette = c("gray73", "darkgoldenrod1",
+                        "darkorchid4",
+                        "seagreen4",
+                        "deeppink")) +
+  tm_shape(carra) + tm_borders(col = "black") +
+  tm_shape(ambnp) + tm_borders(col = "black") +
+  tm_shape(ambim) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+
+### Map A2
+tm_shape(a2_mask_08_sub_rc) +
+  tm_raster("layer", style = "cat", 
+            # palette = terrain.colors(5),
+            labels = c("Other", "Missed conversion to ag",
+                       "Stable ag from 2008",
+                       "Incorrectly predicted ag conversion",
+                       "Correctly predicted ag conversion"),
+            palette = c("gray73", "darkgoldenrod1",
+                        "darkorchid4",
+                        "seagreen4",
+                        "deeppink")) +
+  tm_shape(carra) + tm_borders(col = "black") +
+  tm_shape(ambnp) + tm_borders(col = "black") +
+  tm_shape(ambim) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+
+### Map A3
+tm_shape(a3_mask_08_sub_rc) +
+  tm_raster("layer", style = "cat", 
+            # palette = terrain.colors(5),
+            labels = c("Other", "Missed conversion to ag",
+                       "Stable ag from 2008",
+                       "Incorrectly predicted ag conversion",
+                       "Correctly predicted ag conversion"),
+            palette = c("gray73", "darkgoldenrod1",
+                        "darkorchid4",
+                        "seagreen4",
+                        "deeppink")) +
+  tm_shape(carra) + tm_borders(col = "black") +
+  tm_shape(ambnp) + tm_borders(col = "black") +
+  tm_shape(ambim) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+
+### Map A4
+tm_shape(a4_mask_08_sub_rc) +
+  tm_raster("layer", style = "cat", 
+            # palette = terrain.colors(5),
+            labels = c("Other", "Missed conversion to ag",
+                       "Stable ag from 2008",
+                       "Incorrectly predicted ag conversion",
+                       "Correctly predicted ag conversion"),
+            palette = c("gray73", "darkgoldenrod1",
+                        "darkorchid4",
+                        "seagreen4",
+                        "deeppink")) +
+  tm_shape(carra) + tm_borders(col = "black") +
+  tm_shape(ambnp) + tm_borders(col = "black") +
+  tm_shape(ambim) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+```
+
+### Peru
+#### Open files
+1: ag
+2: forest
+3: bare soil
+4: urban
+5: wetland  
+6: desert  
+7: water
+10: new ag predicted in 2018
+```{r}
+### Open peru 2008 map
+per_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2008_102033.tif")
+
+### Open peru 2018 map
+per_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2018_102033.tif")
+
+### Open buffer
+tbs <- st_read("/nfs/agfrontiers-data/Case Study Info/peru_buff_final.shp") %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+
+### Crop LUC maps
+tbs_08 <- crop(per_2008, tbs)
+tbs <- st_zm(tbs)
+tbs_08 <- mask(tbs_08, tbs)
+tbs_18 <- crop(per_2018, tbs)
+tbs_18 <- mask(tbs_18, tbs)
+
+### Open maps for each model
+
+### M1
+t1 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_1_projected_2018_map.tif")
+
+### M2
+t2 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_2_projected_2018_map.tif")
+
+### M3
+t3 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_3_projected_2018_map.tif")
+
+### M4
+t4 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_4_projected_2018_map.tif")
+```
+
+#### Mask 2008 ag
+Mask 2008 agriculture to have value = 8
+1: ag
+2: forest
+3: bare soil
+4: urban
+5: wetland  
+6: desert
+7: water
+8: 2008 agriculture
+10: new ag predicted in 2018
+```{r}
+### 1, 10 = ag in 2018
+### 8 = ag in 2008
+
+### Mask cells that were ag in 2008
+t1_mask_08 <- mask(t1, 
+                   tbs_08,
+                   inverse = FALSE,
+                   maskvalue = 1,
+                   updatevalue = 8)
+
+t2_mask_08 <- mask(t2, 
+                   tbs_08,
+                   inverse = FALSE,
+                   maskvalue = 1,
+                   updatevalue = 8)
+
+t3_mask_08 <- mask(t3, 
+                   tbs_08,
+                   inverse = FALSE,
+                   maskvalue = 1,
+                   updatevalue = 8)
+
+t4_mask_08 <- mask(t4, 
+                   tbs_08,
+                   inverse = FALSE,
+                   maskvalue = 1,
+                   updatevalue = 8)
+
+```
+
+#### 2018 ag predictions
+* correctly predicted 2018 ag  
+* missed 2018 ag (ag in observed but not in modeled)    
+* incorrectly predicted 2018 ag (ag in modeled but not in observed)  
+```{r}
+### Reclassify 2018 observed map
+
+### Reclassification matrix
+reclass_df_bol <- c(0, 1.5, 0.05,       ## ag
+                    1.6, 2.2, 0.1,      ## forest
+                    2.6, 3.2, 0.15,     ## bare soil
+                    3.6, 4.2, 0.2,      ## urban
+                    4.6, 5.2, 0.25,     ## wetland
+                    5.6, 6.5, 0.35,     ## desert
+                    6.6, 7.2, 0.3)      ## water
+reclass_m_bol <- matrix(reclass_df_bol,
+                        ncol = 3,
+                        byrow = TRUE)
+
+### Reclassify 2018
+per_18_rc <- reclassify(tbs_18,
+                        reclass_m_bol)
+
+### Raster math: projected 2018 - observed 2018
+## 0.95: predicted 2018 ag - observed ag --> correctly predicted ag transition in 2018
+## 1.9: predicted forest - observed forest --> correctly predicted stable forest
+## 2.85: predicted bare soil - obs bare soil --> correctly predicted stable bare soil
+## 3.8: predicted urban - observed urban --> correctly predicted stable urban
+## 4.75: predicted wetland - observed wetland --> correctly predicted stable wetland
+## 5.7: predicted desert - observed water --> other transition
+## 6.70: predicted water - observed water --> correctly predicted stable water
+## 9.9: new ag predicted for 2018 - observed forest --> incorrectly predicted ag conversion
+## 7.70: 2008 agriculture - observed water --> 2008 ag converted to water
+## 7.75: 2008 agriculture - observed wetland --> 2008 ag converted to wetland  
+## 7.80: 2008 agriculture - observed urban --> 2008 ag converted to urban
+## 7.85: 2008 agriculture - observed bare soil --> 2008 ag converted to bare soil
+## 7.95: 2008 agriculture - observed ag --> stable ag from 2008
+
+### Model 1
+t1_mask_08_sub <- t1_mask_08 - per_18_rc
+
+### Model 2
+t2_mask_08_sub <- t2_mask_08 - per_18_rc
+
+### Model 3
+t3_mask_08_sub <- t3_mask_08 - per_18_rc
+
+### Model 4
+t4_mask_08_sub <- t4_mask_08 - per_18_rc
+```
+
+#### Reclassify rasters
+```{r}
+### Reclassify subtracted rasters
+reclass_sub_df <- c(0, 1.94, 0,       ## other
+                    1.945, 1.955, 1,  ## missed conversion to ag
+                    1.96, 7.93, 0,    ## other
+                    7.94, 7.96, 2,    ## stable ag from 2008
+                    7.97, 9.88, 0,    ## other
+                    9.89, 9.91, 3,    ## incorrectly predicted ag conversion
+                    9.92, 9.94, 0,    ## other
+                    9.945, 9.96, 4,   ## correctly predicted ag conversion
+                    9.97, 15, 0)      
+reclass_sub_m <- matrix(reclass_sub_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify Model 1 2018
+t1_mask_08_sub_rc <- reclassify(t1_mask_08_sub,
+                                reclass_sub_m)
+
+### Reclassify Mode2 1 2018
+t2_mask_08_sub_rc <- reclassify(t2_mask_08_sub,
+                                reclass_sub_m)
+
+### Reclassify Model 3 2018
+t3_mask_08_sub_rc <- reclassify(t3_mask_08_sub,
+                                reclass_sub_m)
+
+### Reclassify Model 4 2018
+t4_mask_08_sub_rc <- reclassify(t4_mask_08_sub,
+                                reclass_sub_m)
+```
+
+#### Calculate
+```{r}
+t1_numbers <- as.data.frame(t1_mask_08_sub_rc) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(t1_mask_08_sub_rc)[1] * res(t1_mask_08_sub_rc)[2],
+           area_km2 =  area/1000000,
+           model = "LUC only")
+
+t2_numbers <- as.data.frame(t2_mask_08_sub_rc) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(t2_mask_08_sub_rc)[1] * res(t2_mask_08_sub_rc)[2],
+           area_km2 =  area/1000000,
+           model = "DA only")
+
+t3_numbers <- as.data.frame(t3_mask_08_sub_rc) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(t3_mask_08_sub_rc)[1] * res(t3_mask_08_sub_rc)[2],
+           area_km2 =  area/1000000,
+           model = "LUC & DA")
+
+t4_numbers <- as.data.frame(t4_mask_08_sub_rc) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(t4_mask_08_sub_rc)[1] * res(t4_mask_08_sub_rc)[2],
+           area_km2 =  area/1000000,
+           model = "Refined LUC & DA")
+
+### Bind
+t_all <- rbind(t1_numbers,
+               t2_numbers,
+               t3_numbers,
+               t4_numbers)
+
+t_all <- t_all %>%
+  mutate(transition_type = ifelse(layer == "0", "other",
+                                  ifelse(layer == "1", "missed conversion to ag", ifelse(layer == "2", "stable ag from 2008", ifelse(layer == "3", "incorrectly predicted ag conversion", "correctly predicted ag conversion")))))
+
+### Write out csv
+write_csv(t_all, "/nfs/agfrontiers-data/luc_model/peru_2018_projection_accuracy.csv")
+
+### Add number of pixels (non-NA)
+n_pix <- t_all %>% 
+  drop_na() %>% 
+  group_by(model) %>% 
+  summarise(n_pix = sum(n))
+t_all <- merge(t_all, n_pix, by = "model")
+
+### Percent of pixels
+t_all <- t_all %>%
+  mutate(pct_pix = n/n_pix*100)
+
+### Drop 0
+t_all <- t_all %>% filter(layer > 0) 
+
+### Plot
+t_all %>%
+  ggplot(aes(x = transition_type, y = pct_pix, fill = model)) +
+  geom_bar(stat = "identity", position = position_dodge()) + 
+  theme(axis.text.x = element_text(angle = 45)) +
+  xlab("Transition type") +
+  ylab("Percent of pixels") +
+  NULL
+```
+
+#### Map  
+* 0: other  
+* 1: missed conversion to ag  
+* 2: stable ag from 2008  
+* 3: incorrectly predicted ag conversion  
+* 4: correctly predicted ag conversion
+```{r}
+### Open Carrasco NP
+tambo <- st_read("/nfs/agfrontiers-data/Case Study Info/Peru/wdpa_mar2021_tambo_102033.shp")
+
+### Open Amboro NP
+bahua <- st_read("/nfs/agfrontiers-data/Case Study Info/Peru/wdpa_mar2021_bahuaja_102033.shp")
+
+### Map t1
+tm_shape(t1_mask_08_sub_rc) +
+  tm_raster("layer", style = "cat", 
+            # palette = terrain.colors(5),
+            labels = c("Other", "Missed conversion to ag",
+                       "Stable ag from 2008",
+                       "Incorrectly predicted ag conversion",
+                       "Correctly predicted ag conversion"),
+            palette = c("gray73", "darkgoldenrod1",
+                        "darkorchid4",
+                        "seagreen4",
+                        "deeppink")) +
+  tm_shape(tambo) + tm_borders(col = "black") +
+  tm_shape(bahua) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+
+### Map t2
+tm_shape(t2_mask_08_sub_rc) +
+  tm_raster("layer", style = "cat", 
+            # palette = terrain.colors(5),
+            labels = c("Other", "Missed conversion to ag",
+                       "Stable ag from 2008",
+                       "Incorrectly predicted ag conversion",
+                       "Correctly predicted ag conversion"),
+            palette = c("gray73", "darkgoldenrod1",
+                        "darkorchid4",
+                        "seagreen4",
+                        "deeppink")) +
+   tm_shape(tambo) + tm_borders(col = "black") +
+  tm_shape(bahua) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+
+### Map t3
+tm_shape(t3_mask_08_sub_rc) +
+  tm_raster("layer", style = "cat", 
+            # palette = terrain.colors(5),
+            labels = c("Other", "Missed conversion to ag",
+                       "Stable ag from 2008",
+                       "Incorrectly predicted ag conversion",
+                       "Correctly predicted ag conversion"),
+            palette = c("gray73", "darkgoldenrod1",
+                        "darkorchid4",
+                        "seagreen4",
+                        "deeppink")) +
+  tm_shape(tambo) + tm_borders(col = "black") +
+  tm_shape(bahua) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+
+### Map t4
+tm_shape(t4_mask_08_sub_rc) +
+  tm_raster("layer", style = "cat", 
+            # palette = terrain.colors(5),
+            labels = c("Other", "Missed conversion to ag",
+                       "Stable ag from 2008",
+                       "Incorrectly predicted ag conversion",
+                       "Correctly predicted ag conversion"),
+            palette = c("gray73", "darkgoldenrod1",
+                        "darkorchid4",
+                        "seagreen4",
+                        "deeppink")) +
+  tm_shape(tambo) + tm_borders(col = "black") +
+  tm_shape(bahua) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+```
+## 2028 Modeled Landscapes
+Land cover classes:  
+* 2008 ag  
+* 2018 new ag  
+* 2028 projected new ag  
+* forest  
+* other  
+
+### Jamanxim
+#### Prep Jamanxim data
+```{r}
+### Open JNF with buffer
+jaman <- st_read("/nfs/agfrontiers-data/Case Study Info/Brazil/JamanBuffer/JamanBuffer.shp") %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+
+### Open observed 2018 map
+bra_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2018_102033.tif")
+
+### Open observed 2008 map
+bra_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2008_102033.tif")
+
+### Open Jamanxim NF
+jnf <- st_read("/nfs/agfrontiers-data/Case Study Info/Brazil/JamanBuffer/jamanxim_wdpa_march21_102033.shp")
+
+jaman <- st_zm(jaman)
+
+### Crop LUC maps
+jaman_08 <- crop(bra_2008, jaman)
+jaman_08 <- mask(jaman_08, jaman)
+jaman_18 <- crop(bra_2018, jaman)
+jaman_18 <- mask(jaman_18, jaman)
+```
+
+#### Jamanxim Model 1  
+* 1: ag  
+* 10: new ag projected 2028
+```{r}
+### Open projected 2028 map
+j1 <- raster("/nfs/agfrontiers-data/luc_model/brazil_full_1_projected_map.tif")
+
+### Mask cells that were ag in 2018
+j1 <- mask(j1, 
+           jaman_18,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+j1 <- mask(j1, 
+           jaman_08,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 30)
+### 30 = ag in 2008
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Reclassification matrix
+reclass_28_df <- c(-1, 0.5, NA,      ## 0 is NA
+                    1.9, 2.1, 4,      ## forest
+                    2.3, 8, 5,        ## other
+                    9, 11, 3,         ## new ag in 2028
+                    19, 21, 2,        ## new ag in 2018
+                    29, 31, 1)        ## stable ag from 2008
+reclass_28_m <- matrix(reclass_28_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify Model 1 2018
+j1_rc <- reclassify(j1,
+                    reclass_28_df)
+
+### Map J1
+tm_shape(j1_rc) +
+  tm_raster("brazil_full_1_projected_map", 
+            style = "cat", 
+            # palette = terrain.colors(5))+
+            labels = c("2008 observed ag",
+                       "2018 observed ag",
+                       "2028 projected ag",
+                       "Forest",
+                       "Other"),
+            palette = c("red4",
+                        "orangered2",
+                        "gold",
+                        "gray73",
+                        "gray40")) +
+  tm_shape(jnf) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+```
+#### Jamanxim Model 2  
+* 1: ag  
+* 10: new ag projected 2028
+```{r}
+### Open projected 2028 map
+j2 <- raster("/nfs/agfrontiers-data/luc_model/brazil_full_2_projected_map.tif")
+
+### Mask cells that were ag in 2018
+j2 <- mask(j2, 
+           jaman_18,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+j2 <- mask(j2, 
+           jaman_08,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 30)
+### 30 = ag in 2008
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Reclassify Model 1 2018
+j2_rc <- reclassify(j2,
+                    reclass_28_df)
+
+### Map j2
+tm_shape(j2_rc) +
+  tm_raster("brazil_full_2_projected_map", 
+            style = "cat", 
+            # palette = terrain.colors(5))+
+            labels = c("2008 observed ag",
+                       "2018 observed ag",
+                       "2028 projected ag",
+                       "Forest",
+                       "Other"),
+            palette = c("red4",
+                        "orangered2",
+                        "gold",
+                        "gray73",
+                        "gray40")) +
+  tm_shape(jnf) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+```
+
+#### Jamanxim Model 3  
+* 1: ag  
+* 10: new ag projected 2028
+```{r}
+### Open projected 2028 map
+j3 <- raster("/nfs/agfrontiers-data/luc_model/brazil_full_3_projected_map.tif")
+
+### Mask cells that were ag in 2018
+j3 <- mask(j3, 
+           jaman_18,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+j3 <- mask(j3, 
+           jaman_08,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 30)
+### 30 = ag in 2008
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Reclassify Model 1 2018
+j3_rc <- reclassify(j3,
+                    reclass_28_df)
+
+### Map j3
+tm_shape(j3_rc) +
+  tm_raster("brazil_full_3_projected_map", 
+            style = "cat", 
+            # palette = terrain.colors(5))+
+            labels = c("2008 observed ag",
+                       "2018 observed ag",
+                       "2028 projected ag",
+                       "Forest",
+                       "Other"),
+            palette = c("red4",
+                        "orangered2",
+                        "gold",
+                        "gray73",
+                        "gray40")) +
+  tm_shape(jnf) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+```
+
+#### Jamanxim Model 4  
+* 1: ag  
+* 10: new ag projected 2028
+```{r}
+### Open projected 2028 map
+j4 <- raster("/nfs/agfrontiers-data/luc_model/brazil_full_4_projected_map.tif")
+
+### Mask cells that were ag in 2018
+j4 <- mask(j4, 
+           jaman_18,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+j4 <- mask(j4, 
+           jaman_08,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 30)
+### 30 = ag in 2008
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Reclassify Model 1 2018
+j4_rc <- reclassify(j4,
+                    reclass_28_df)
+
+### Map j4
+tm_shape(j4_rc) +
+  tm_raster("brazil_full_4_projected_map", 
+            style = "cat", 
+            # palette = terrain.colors(5))+
+            labels = c("2008 observed ag",
+                       "2018 observed ag",
+                       "2028 projected ag",
+                       "Forest",
+                       "Other"),
+            palette = c("red4",
+                        "orangered2",
+                        "gold",
+                        "gray73",
+                        "gray40")) +
+  tm_shape(jnf) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+```
+
+### Amboro-Carrasco
+#### Prep AmbCar data
+```{r}
+### Open AmbCar with buffer
+bol_buff <- st_read("/nfs/agfrontiers-data/Case Study Info/ambcar_buffer_updated.shp") %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+
+### Open observed 2018 map
+bol_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bol_dry_2018_102033.tif")
+
+### Open observed 2008 map
+bol_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bol_dry_2008_102033.tif")
+
+### Open Carrasco NP
+carra <- st_read("/nfs/agfrontiers-data/Case Study Info/Bolivia/wdpa_apr21_carrasco_102033.shp")
+
+### Open Amboro NP
+ambnp <- st_read("/nfs/agfrontiers-data/Case Study Info/Bolivia/wdpa_apr21_amboro_np_102033.shp")
+
+### Open Amboro IMNA
+ambim <- st_read("/nfs/agfrontiers-data/Case Study Info/Bolivia/wdpa_apr21_amboro_im_102033.shp")
+
+# jaman <- st_zm(jaman)
+
+### Crop LUC maps
+bol_2008 <- crop(bol_2008, bol_buff)
+bol_2008 <- mask(bol_2008, bol_buff)
+bol_2018 <- crop(bol_2018, bol_buff)
+bol_2018 <- mask(bol_2018, bol_buff)
+```
+#### AmbCar Model 1  
+* 1: ag  
+* 10: new ag projected 2028
+```{r}
+### Open projected 2028 map
+a1 <- raster("/nfs/agfrontiers-data/luc_model/boli_full_1_projected_map.tif")
+
+### Mask cells that were ag in 2018
+a1 <- mask(a1, 
+           bol_2018,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+a1 <- mask(a1, 
+           bol_2008,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 30)
+### 30 = ag in 2008
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Reclassification matrix
+reclass_28_df <- c(-1, 0.5, NA,      ## 0 is NA
+                    1.9, 2.1, 4,      ## forest
+                    2.3, 8, 5,        ## other
+                    9, 11, 3,         ## new ag in 2028
+                    19, 21, 2,        ## new ag in 2018
+                    29, 31, 1)        ## stable ag from 2008
+reclass_28_m <- matrix(reclass_28_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify Model 1 2018
+a1_rc <- reclassify(a1,
+                    reclass_28_df)
+
+### Map J1
+tm_shape(a1_rc) +
+  tm_raster("boli_full_1_projected_map", 
+            style = "cat", 
+            # palette = terrain.colors(5))+
+            labels = c("2008 observed ag",
+                       "2018 observed ag",
+                       "2028 projected ag",
+                       "Forest",
+                       "Other"),
+            palette = c("red4",
+                        "orangered2",
+                        "gold",
+                        "gray73",
+                        "gray40")) +
+  tm_shape(carra) + tm_borders(col = "black") +
+  tm_shape(ambnp) + tm_borders(col = "black") +
+  tm_shape(ambim) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+```
+
+#### AmbCar Model 2  
+* 1: ag  
+* 10: new ag projected 2028
+```{r}
+### Open projected 2028 map
+a2 <- raster("/nfs/agfrontiers-data/luc_model/boli_full_2_projected_map.tif")
+
+### Mask cells that were ag in 2018
+a2 <- mask(a2, 
+           bol_2018,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+a2 <- mask(a2, 
+           bol_2008,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 30)
+### 30 = ag in 2008
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Reclassification matrix
+reclass_28_df <- c(-1, 0.5, NA,      ## 0 is NA
+                    1.9, 2.1, 4,      ## forest
+                    2.3, 8, 5,        ## other
+                    9, 11, 3,         ## new ag in 2028
+                    19, 21, 2,        ## new ag in 2018
+                    29, 31, 1)        ## stable ag from 2008
+reclass_28_m <- matrix(reclass_28_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify Model 1 2018
+a2_rc <- reclassify(a2,
+                    reclass_28_df)
+
+### Map J1
+tm_shape(a2_rc) +
+  tm_raster("boli_full_2_projected_map", 
+            style = "cat", 
+            # palette = terrain.colors(5))+
+            labels = c("2008 observed ag",
+                       "2018 observed ag",
+                       "2028 projected ag",
+                       "Forest",
+                       "Other"),
+            palette = c("red4",
+                        "orangered2",
+                        "gold",
+                        "gray73",
+                        "gray40")) +
+  tm_shape(carra) + tm_borders(col = "black") +
+  tm_shape(ambnp) + tm_borders(col = "black") +
+  tm_shape(ambim) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+```
+#### AmbCar Model 3  
+* 1: ag  
+* 10: new ag projected 2028
+```{r}
+### Open projected 2028 map
+a3 <- raster("/nfs/agfrontiers-data/luc_model/boli_full_3_projected_map.tif")
+
+### Mask cells that were ag in 2018
+a3 <- mask(a3, 
+           bol_2018,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+a3 <- mask(a3, 
+           bol_2008,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 30)
+### 30 = ag in 2008
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Reclassification matrix
+reclass_28_df <- c(-1, 0.5, NA,      ## 0 is NA
+                    1.9, 2.1, 4,      ## forest
+                    2.3, 8, 5,        ## other
+                    9, 11, 3,         ## new ag in 2028
+                    19, 21, 2,        ## new ag in 2018
+                    29, 31, 1)        ## stable ag from 2008
+reclass_28_m <- matrix(reclass_28_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify Model 1 2018
+a3_rc <- reclassify(a3,
+                    reclass_28_df)
+
+### Map J1
+tm_shape(a3_rc) +
+  tm_raster("boli_full_3_projected_map", 
+            style = "cat", 
+            # palette = terrain.colors(5))+
+            labels = c("2008 observed ag",
+                       "2018 observed ag",
+                       "2028 projected ag",
+                       "Forest",
+                       "Other"),
+            palette = c("red4",
+                        "orangered2",
+                        "gold",
+                        "gray73",
+                        "gray40")) +
+  tm_shape(carra) + tm_borders(col = "black") +
+  tm_shape(ambnp) + tm_borders(col = "black") +
+  tm_shape(ambim) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+```
+
+#### AmbCar Model 4  
+* 1: ag  
+* 10: new ag projected 2028
+```{r}
+### Open projected 2028 map
+a4 <- raster("/nfs/agfrontiers-data/luc_model/boli_full_4_projected_map.tif")
+
+### Mask cells that were ag in 2018
+a4 <- mask(a4, 
+           bol_2018,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+a4 <- mask(a4, 
+           bol_2008,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 30)
+### 30 = ag in 2008
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Reclassification matrix
+reclass_28_df <- c(-1, 0.5, NA,      ## 0 is NA
+                    1.9, 2.1, 4,      ## forest
+                    2.3, 8, 5,        ## other
+                    9, 11, 3,         ## new ag in 2028
+                    19, 21, 2,        ## new ag in 2018
+                    29, 31, 1)        ## stable ag from 2008
+reclass_28_m <- matrix(reclass_28_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify Model 1 2018
+a4_rc <- reclassify(a4,
+                    reclass_28_df)
+
+### Map J1
+tm_shape(a4_rc) +
+  tm_raster("boli_full_4_projected_map", 
+            style = "cat", 
+            # palette = terrain.colors(5))+
+            labels = c("2008 observed ag",
+                       "2018 observed ag",
+                       "2028 projected ag",
+                       "Forest",
+                       "Other"),
+            palette = c("red4",
+                        "orangered2",
+                        "gold",
+                        "gray73",
+                        "gray40")) +
+  tm_shape(carra) + tm_borders(col = "black") +
+  tm_shape(ambnp) + tm_borders(col = "black") +
+  tm_shape(ambim) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+```
+
+### Tambopata-Bahuaja-Sonene
+#### Prep TBS data
+```{r}
+### Open peru 2008 map
+per_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2008_102033.tif")
+
+### Open peru 2018 map
+per_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2018_102033.tif")
+
+### Open buffer
+tbs <- st_read("/nfs/agfrontiers-data/Case Study Info/peru_buff_final.shp") %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+
+### Crop LUC maps
+tbs_08 <- crop(per_2008, tbs)
+tbs <- st_zm(tbs)
+tbs_08 <- mask(tbs_08, tbs)
+tbs_18 <- crop(per_2018, tbs)
+tbs_18 <- mask(tbs_18, tbs)
+
+### Open Carrasco NP
+tambo <- st_read("/nfs/agfrontiers-data/Case Study Info/Peru/wdpa_mar2021_tambo_102033.shp")
+
+### Open Amboro NP
+bahua <- st_read("/nfs/agfrontiers-data/Case Study Info/Peru/wdpa_mar2021_bahuaja_102033.shp")
+```
+
+#### TBS Model 1  
+* 1: ag  
+* 10: new ag projected 2028
+```{r}
+### Open projected 2028 map
+t1 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_1_projected_map.tif")
+
+### Mask cells that were ag in 2018
+t1 <- mask(t1, 
+           tbs_18,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t1 <- mask(t1, 
+           tbs_08,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 30)
+### 30 = ag in 2008
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Reclassification matrix
+reclass_28_df <- c(-1, 0.5, NA,      ## 0 is NA
+                    1.9, 2.1, 4,      ## forest
+                    2.3, 8, 5,        ## other
+                    9, 11, 3,         ## new ag in 2028
+                    19, 21, 2,        ## new ag in 2018
+                    29, 31, 1)        ## stable ag from 2008
+reclass_28_m <- matrix(reclass_28_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify Model 1 2018
+t1_rc <- reclassify(t1,
+                    reclass_28_df)
+
+### Map J1
+tm_shape(t1_rc) +
+  tm_raster("peru_full_1_projected_map", 
+            style = "cat", 
+            # palette = terrain.colors(5))+
+            labels = c("2008 observed ag",
+                       "2018 observed ag",
+                       "2028 projected ag",
+                       "Forest",
+                       "Other"),
+            palette = c("red4",
+                        "orangered2",
+                        "gold",
+                        "gray73",
+                        "gray40")) +
+  tm_shape(tambo) + tm_borders(col = "black") +
+  tm_shape(bahua) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+```
+
+#### TBS Model 2  
+* 1: ag  
+* 10: new ag projected 2028
+```{r}
+### Open projected 2028 map
+t2 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_2_projected_map.tif")
+
+### Mask cells that were ag in 2018
+t2 <- mask(t2, 
+           tbs_18,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t2 <- mask(t2, 
+           tbs_08,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 30)
+### 30 = ag in 2008
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Reclassification matrix
+reclass_28_df <- c(-1, 0.5, NA,      ## 0 is NA
+                    1.9, 2.1, 4,      ## forest
+                    2.3, 8, 5,        ## other
+                    9, 11, 3,         ## new ag in 2028
+                    19, 21, 2,        ## new ag in 2018
+                    29, 31, 1)        ## stable ag from 2008
+reclass_28_m <- matrix(reclass_28_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify Model 1 2018
+t2_rc <- reclassify(t2,
+                    reclass_28_df)
+
+### Map J1
+tm_shape(t2_rc) +
+  tm_raster("peru_full_2_projected_map", 
+            style = "cat", 
+            # palette = terrain.colors(5))+
+            labels = c("2008 observed ag",
+                       "2018 observed ag",
+                       "2028 projected ag",
+                       "Forest",
+                       "Other"),
+            palette = c("red4",
+                        "orangered2",
+                        "gold",
+                        "gray73",
+                        "gray40")) +
+  tm_shape(tambo) + tm_borders(col = "black") +
+  tm_shape(bahua) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+```
+
+#### TBS Model 3  
+* 1: ag  
+* 10: new ag projected 2028
+```{r}
+### Open projected 2028 map
+t3 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_3_projected_map.tif")
+
+### Mask cells that were ag in 2018
+t3 <- mask(t3, 
+           tbs_18,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t3 <- mask(t3, 
+           tbs_08,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 30)
+### 30 = ag in 2008
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Reclassification matrix
+reclass_28_df <- c(-1, 0.5, NA,      ## 0 is NA
+                    1.9, 2.1, 4,      ## forest
+                    2.3, 8, 5,        ## other
+                    9, 11, 3,         ## new ag in 2028
+                    19, 21, 2,        ## new ag in 2018
+                    29, 31, 1)        ## stable ag from 2008
+reclass_28_m <- matrix(reclass_28_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify Model 1 2018
+t3_rc <- reclassify(t3,
+                    reclass_28_df)
+
+### Map J1
+tm_shape(t3_rc) +
+  tm_raster("peru_full_3_projected_map", 
+            style = "cat", 
+            # palette = terrain.colors(5))+
+            labels = c("2008 observed ag",
+                       "2018 observed ag",
+                       "2028 projected ag",
+                       "Forest",
+                       "Other"),
+            palette = c("red4",
+                        "orangered2",
+                        "gold",
+                        "gray73",
+                        "gray40")) +
+  tm_shape(tambo) + tm_borders(col = "black") +
+  tm_shape(bahua) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+```
+
+#### TBS Model 4  
+* 1: ag  
+* 10: new ag projected 2028
+```{r}
+### Open projected 2028 map
+t4 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_4_projected_map.tif")
+
+### Mask cells that were ag in 2018
+t4 <- mask(t4, 
+           tbs_18,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t4 <- mask(t4, 
+           tbs_08,
+           inverse= FALSE,
+           maskvalue = 1,
+           updatevalue = 30)
+### 30 = ag in 2008
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Reclassification matrix
+reclass_28_df <- c(-1, 0.5, NA,      ## 0 is NA
+                    1.9, 2.1, 4,      ## forest
+                    2.3, 8, 5,        ## other
+                    9, 11, 3,         ## new ag in 2028
+                    19, 21, 2,        ## new ag in 2018
+                    29, 31, 1)        ## stable ag from 2008
+reclass_28_m <- matrix(reclass_28_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify Model 1 2018
+t4_rc <- reclassify(t4,
+                    reclass_28_df)
+
+### Map J1
+tm_shape(t4_rc) +
+  tm_raster("peru_full_4_projected_map", 
+            style = "cat", 
+            # palette = terrain.colors(5))+
+            labels = c("2008 observed ag",
+                       "2018 observed ag",
+                       "2028 projected ag",
+                       "Forest",
+                       "Other"),
+            palette = c("red4",
+                        "orangered2",
+                        "gold",
+                        "gray73",
+                        "gray40")) +
+  tm_shape(tambo) + tm_borders(col = "black") +
+  tm_shape(bahua) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+```
+
+
+## Forest points at highest risk
+### Jamanxim
+1: stable ag from 2008
+2: new ag in 2018
+3: projected new ag in 2028
+4: forest
+5: other
+
+Categories I want:  
+* existing ag (2008, 2018)  
+* forest  
+* other  
+* predicted to convert in all 4 models  
+```{r}
+### Reclassification matrix
+rc_risk <- c(0, 2.5, 1,      ## ag in 2008 and/or 2018 
+             2.9, 3.1, 5,    ## projected ag 2028
+             3.3, 4.5, 30,   ## forest
+             4.8, 11, 100)   ## other
+rc_risk_m <- matrix(rc_risk,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify Model 1
+j1_rc_risk <- reclassify(j1_rc,
+                         rc_risk_m)
+
+### Reclassify Model 2
+j2_rc_risk <- reclassify(j2_rc,
+                         rc_risk_m)
+
+### Reclassify Model 3
+j3_rc_risk <- reclassify(j3_rc,
+                         rc_risk_m)
+
+### Reclassify Model 4
+j4_rc_risk <- reclassify(j4_rc,
+                         rc_risk_m)
+
+### Stack
+j_stack <- stack(j1_rc_risk, j2_rc_risk,
+                 j3_rc_risk, j4_rc_risk)
+
+### Sum
+j_sum <- calc(j_stack, sum)
+
+### Map J1
+tm_shape(j_sum) +
+  tm_raster("layer", 
+            style = "cat", 
+            # palette = terrain.colors(5))+
+            labels = c("Existing agriculture",
+                       "Projected 2028 agriculture (4)",
+                       "Projected 2028 agriculture (3)",
+                       "Projected 2028 agriculture (2)",
+                       "Projected 2028 agriculture (1)",
+                       "Forest", 
+                       "Other"),
+            palette = c("tan",
+                        "mediumturquoise",
+                        "lightseagreen",
+                        "darkcyan",
+                        "deepskyblue4",
+                        "gray73",
+                        "gray40")) +
+  tm_shape(jnf) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+
+### Frequency of values
+jaman_risk <- as.data.frame(j_sum) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(j_sum)[1] * res(j_sum)[2],
+           area_km2 = area/1000000)
+
+### Area predicted for loss within JNF only (not buffer)
+j_sum_jnf <- crop(j_sum, jnf)
+j_sum_jnf <- mask(j_sum_jnf, jnf)
+
+### Calculate area per category
+jnf_risk <- as.data.frame(j_sum_jnf) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(j_sum_jnf)[1] * res(j_sum_jnf)[2],
+           area_km2 = area/1000000)
+
+```
+
+### Amboro-Carrasco
+```{r}
+### Reclassification matrix
+rc_risk <- c(0, 2.5, 1,      ## ag in 2008 and/or 2018 
+             2.9, 3.1, 5,    ## projected ag 2028
+             3.3, 4.5, 30,   ## forest
+             4.8, 11, 100)   ## other
+rc_risk_m <- matrix(rc_risk,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify Model 1
+a1_rc_risk <- reclassify(a1_rc,
+                         rc_risk_m)
+
+### Reclassify Model 2
+a2_rc_risk <- reclassify(a2_rc,
+                         rc_risk_m)
+
+### Reclassify Model 3
+a3_rc_risk <- reclassify(a3_rc,
+                         rc_risk_m)
+
+### Reclassify Model 4
+a4_rc_risk <- reclassify(a4_rc,
+                         rc_risk_m)
+
+### Stack
+a_stack <- stack(a1_rc_risk, a2_rc_risk,
+                 a3_rc_risk, a4_rc_risk)
+
+### Sum
+a_sum <- calc(a_stack, sum)
+
+### Map J1
+tm_shape(a_sum) +
+  tm_raster("layer", 
+            style = "cat", 
+            # palette = terrain.colors(5))+
+            labels = c("Existing agriculture",
+                       "Projected 2028 agriculture (4)",
+                       "Projected 2028 agriculture (3)",
+                       "Projected 2028 agriculture (2)",
+                       "Projected 2028 agriculture (1)",
+                       "Forest", 
+                       "Other"),
+            palette = c("tan",
+                        "mediumturquoise",
+                        "lightseagreen",
+                        "darkcyan",
+                        "deepskyblue4",
+                        "gray73",
+                        "gray40")) +
+  tm_shape(carra) + tm_borders(col = "black") +
+  tm_shape(ambnp) + tm_borders(col = "black") +
+  tm_shape(ambim) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+
+### Frequency of values
+ambcar_risk <- as.data.frame(a_sum) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(a_sum)[1] * res(a_sum)[2],
+           area_km2 = area/1000000)
+
+### Area predicted for loss within Carrasco NP only (not buffer)
+a_sum_carra <- crop(a_sum, carra)
+a_sum_carra <- mask(a_sum_carra, carra)
+
+### Calculate area per category
+carra_risk <- as.data.frame(a_sum_carra) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(a_sum_carra)[1] * res(a_sum_carra)[2],
+           area_km2 = area/1000000)
+
+### Area predicted for loss within Amboro NP only (not buffer)
+a_sum_ambnp <- crop(a_sum, ambnp)
+a_sum_ambnp <- mask(a_sum_ambnp, ambnp)
+
+### Calculate area per category
+ambnp_risk <- as.data.frame(a_sum_ambnp) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(a_sum_ambnp)[1] * res(a_sum_ambnp)[2],
+           area_km2 = area/1000000)
+
+### Area predicted for loss within Amboro IMNA only (not buffer)
+a_sum_ambim <- crop(a_sum, ambim)
+a_sum_ambim <- mask(a_sum_ambim, ambim)
+
+### Calculate area per category
+ambim_risk <- as.data.frame(a_sum_ambim) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(a_sum_ambim)[1] * res(a_sum_ambim)[2],
+           area_km2 = area/1000000)
+```
+
+### Tambo-Bahuaja-Sonene
+```{r}
+### Reclassification matrix
+rc_risk <- c(0, 2.5, 1,      ## ag in 2008 and/or 2018 
+             2.9, 3.1, 5,    ## projected ag 2028
+             3.3, 4.5, 30,   ## forest
+             4.8, 11, 100)   ## other
+rc_risk_m <- matrix(rc_risk,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify Model 1
+t1_rc_risk <- reclassify(t1_rc,
+                         rc_risk_m)
+
+### Reclassify Model 2
+t2_rc_risk <- reclassify(t2_rc,
+                         rc_risk_m)
+
+### Reclassify Model 3
+t3_rc_risk <- reclassify(t3_rc,
+                         rc_risk_m)
+
+### Reclassify Model 4
+t4_rc_risk <- reclassify(t4_rc,
+                         rc_risk_m)
+
+### Stack
+t_stack <- stack(t1_rc_risk, t2_rc_risk,
+                 t3_rc_risk, t4_rc_risk)
+
+### Sum
+t_sum <- calc(t_stack, sum)
+
+### Map J1
+tm_shape(t_sum) +
+  tm_raster("layer", 
+            style = "cat", 
+            # palette = terrain.colors(5))+
+            labels = c("Existing agriculture",
+                       "Projected 2028 agriculture (4)",
+                       "Projected 2028 agriculture (3)",
+                       "Projected 2028 agriculture (2)",
+                       "Projected 2028 agriculture (1)",
+                       "Forest", 
+                       "Other"),
+            palette = c("tan",
+                        "mediumturquoise",
+                        "lightseagreen",
+                        "darkcyan",
+                        "deepskyblue4",
+                        "gray73",
+                        "gray40")) +
+  tm_shape(tambo) + tm_borders(col = "black") +
+  tm_shape(bahua) + tm_borders(col = "black") +
+  tm_layout(legend.outside = TRUE)
+
+### Frequency of values
+tbs_risk <- as.data.frame(t_sum) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(t_sum)[1] * res(t_sum)[2],
+           area_km2 = area/1000000)
+
+### Area predicted for loss within Carrasco NP only (not buffer)
+t_sum_tambo <- crop(t_sum, tambo)
+t_sum_tambo <- mask(t_sum_tambo, tambo)
+
+### Calculate area per category
+tambo_risk <- as.data.frame(t_sum_tambo) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(t_sum_tambo)[1] * res(t_sum_tambo)[2],
+           area_km2 = area/1000000)
+
+### Area predicted for loss within Amboro NP only (not buffer)
+t_sum_bahua <- crop(t_sum, bahua)
+t_sum_bahua <- mask(t_sum_bahua, bahua)
+
+### Calculate area per category
+bahua_risk <- as.data.frame(t_sum_bahua) %>%
+    group_by(layer) %>%
+    tally() %>%
+    mutate(area = n * res(t_sum_bahua)[1] * res(t_sum_bahua)[2],
+           area_km2 = area/1000000)
+```
