@@ -3,7 +3,7 @@ title: "lulcc_peru"
 output: html_document
 ---
 ## Description
-Play with LUC models in Brazil
+Play with LUC models in Peru
 
 ## Set up
 ```{r setup, include=FALSE}
@@ -15,6 +15,7 @@ library(sf)
 library(raster)
 library(sp)
 library(rgdal)
+library(landscapemetrics)
 # library(lulcc)
 # library(gsubfn)
 # library(caret)
@@ -826,4 +827,2881 @@ forest_18_tbs <- as.data.frame(tbs_18) %>%
 ### Calculate forest loss
 pix_lost_tbs <- 15032326-15017824
 ### T-BS lost 14502 pixels
+```
+
+# PROJECT TBS AND BUFFER
+## BASELINE: Observed forest loss in TBS and buffer
+Baseline deforestation, assumes same rate of deforestation from 2008-2018 and 2018-2028
+```{r}
+### Calculate forest loss as # pixels
+### Open peru 2008 map
+per_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2008_102033.tif")
+
+### Open brazil 2018 map
+per_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2018_102033.tif")
+
+### Open buffer
+tbs <- st_read("/nfs/agfrontiers-data/Case Study Info/peru_buff_final.shp") %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+
+tbs <- st_zm(tbs)
+
+### Crop LUC maps
+tbs_08 <- crop(per_2008, tbs)
+tbs_08 <- mask(tbs_08, tbs)
+tbs_18 <- crop(per_2018, tbs)
+tbs_18 <- mask(tbs_18, tbs)
+
+### Forest in 2008
+forest_08_tbs <- as.data.frame(tbs_08) %>%
+    group_by(classi_per_dry_2008_102033) %>%
+    tally()
+### 24601046
+
+### Forest in 2018
+forest_18_tbs <- as.data.frame(tbs_18) %>%
+    group_by(classi_per_dry_2018_102033) %>%
+    tally()
+### 24577655
+
+### Calculate forest loss
+pix_lost_tbs <- 24601046-24577655
+### 23391 pixels
+```
+23391 pixels of forest lost
+
+#### Model 1
+```{r}
+### Open stacked raster
+t_m1 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_stacked_all.tif")
+
+### Restrict to TBS
+t_m1 <- crop(t_m1, tbs)
+t_m1 <- mask(t_m1, tbs)
+
+### Convert to df
+t_m1_df <- as.data.frame(t_m1)
+
+### To vector
+t_m1_df <- dplyr::pull(t_m1_df, peru_m1_stacked_all)
+
+### Descending order
+t_m1_df <- sort(t_m1_df, decreasing = TRUE)
+
+### Get top values
+t_m1_top <- head(t_m1_df, 23391)
+
+### Get range of those values
+range(t_m1_top)
+### 231-870
+t1_min <- min(t_m1_top)
+
+### So if the value is >= 231, it converts to agriculture (10 = new ag)
+
+### Stack 2018 tbs and PP 
+t_m1_stack <- stack(tbs_18, t_m1)
+
+### Reclassification function
+rc_m1 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t1_min), 10, x1)
+}
+
+## Make output raster
+t_m1_projected <- overlay(t_m1_stack, fun = rc_m1)
+  
+### Save raster
+writeRaster(t_m1_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_1_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 2
+```{r}
+### Open stacked raster
+t_m2 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_stacked_all.tif")
+
+### Restrict to TBS
+t_m2 <- crop(t_m2, tbs)
+t_m2 <- mask(t_m2, tbs)
+
+### Convert to df
+t_m2_df <- as.data.frame(t_m2)
+
+### To vector
+t_m2_df <- dplyr::pull(t_m2_df, peru_m2_stacked_all)
+
+### Descending order
+t_m2_df <- sort(t_m2_df, decreasing = TRUE)
+
+### Get top values
+t_m2_top <- head(t_m2_df, 23391)
+
+### Get range of those values
+range(t_m2_top)
+### 126-331
+t2_min <- min(t_m2_top)
+
+### So if the value is >= 231, it converts to agriculture (10 = new ag)
+
+### Stack 2018 tbs and PP 
+t_m2_stack <- stack(tbs_18, t_m2)
+
+### Reclassification function
+rc_m2 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t2_min), 10, x1)
+}
+
+## Make output raster
+t_m2_projected <- overlay(t_m2_stack, fun = rc_m2)
+  
+### Save raster
+writeRaster(t_m2_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_2_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 3
+```{r}
+### Open stacked raster
+t_m3 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_stacked_all.tif")
+
+### Restrict to TBS
+t_m3 <- crop(t_m3, tbs)
+t_m3 <- mask(t_m3, tbs)
+
+### Convert to df
+t_m3_df <- as.data.frame(t_m3)
+
+### To vector
+t_m3_df <- dplyr::pull(t_m3_df, peru_m3_stacked_all)
+
+### Descending order
+t_m3_df <- sort(t_m3_df, decreasing = TRUE)
+
+### Get top values
+t_m3_top <- head(t_m3_df, 23391)
+
+### Get range of those values
+range(t_m3_top)
+### 238-331
+t3_min <- min(t_m3_top)
+
+### So if the value is >= 238, it converts to agriculture (10 = new ag)
+
+### Stack 2018 tbs and PP 
+t_m3_stack <- stack(tbs_18, t_m3)
+
+### Reclassification function
+rc_m3 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t3_min), 10, x1)
+}
+
+## Make output raster
+t_m3_projected <- overlay(t_m3_stack, fun = rc_m3)
+  
+### Save raster
+writeRaster(t_m3_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_3_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 4
+```{r}
+### Open stacked raster
+t_m4 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_stacked_all.tif")
+
+### Restrict to TBS
+t_m4 <- crop(t_m4, tbs)
+t_m4 <- mask(t_m4, tbs)
+
+### Convert to df
+t_m4_df <- as.data.frame(t_m4)
+
+### To vector
+t_m4_df <- dplyr::pull(t_m4_df, peru_m4_stacked_all)
+
+### Descending order
+t_m4_df <- sort(t_m4_df, decreasing = TRUE)
+
+### Get top values
+t_m4_top <- head(t_m4_df, 23391)
+
+### Get range of those values
+range(t_m4_top)
+### 237 -331
+t4_min <- min(t_m4_top)
+
+### So if the value is >= 237 , it converts to agriculture (10 = new ag)
+
+### Stack 2018 tbs and PP 
+t_m4_stack <- stack(tbs_18, t_m4)
+
+### Reclassification function
+rc_m4 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t4_min), 10, x1)
+}
+
+## Make output raster
+t_m4_projected <- overlay(t_m4_stack, fun = rc_m4)
+  
+### Save raster
+writeRaster(t_m4_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_4_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+## Compare JNF model projections (baseline defor)
+```{r}
+### Open model rasters
+t1 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_1_projected_map.tif")
+t2 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_2_projected_map.tif")
+t3 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_3_projected_map.tif")
+t4 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_4_projected_map.tif")
+
+### Make reclassification matrix
+reclass_df <- c(0, 0.99, NA,
+                0.991, 1.001, 1,
+                1.9, 7.1, 0,
+                8, 10.1, 10)
+reclass_m <- matrix(reclass_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify rasters
+t1 <- reclassify(t1,
+                 reclass_m)
+t2 <- reclassify(t2,
+                 reclass_m)
+t3 <- reclassify(t3,
+                 reclass_m)
+t4 <- reclassify(t4,
+                 reclass_m)
+
+### Stack files
+t_all <- stack(t1, t2, t3, t4)
+
+### Sum
+t_summ <- calc(t_all, sum)
+
+### Get frequency of each value
+# ag_2008 <- freq(t_summ, value = 20) ## 
+# ag_2018 <- freq(t_summ, value = 10) ## 
+ag_2028_1 <- freq(t_summ, value = 10) ## 20494
+ag_2028_2 <- freq(t_summ, value = 20) ## 4341
+ag_2028_3 <- freq(t_summ, value = 30) ## 14147
+ag_2028_4 <- freq(t_summ, value = 40) ## 5633
+```
+
+### Ag over time for models
+```{r}
+### Open 2008 and 2018 LC maps
+### Open peru 2008 map
+per_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2008_102033.tif")
+### Open peru 2018 map
+per_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2018_102033.tif")
+### Open buffer
+tbs <- st_read("/nfs/agfrontiers-data/Case Study Info/peru_buff_final.shp") %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+tbs <- st_zm(tbs)
+
+### Crop LUC maps
+tbs_08 <- crop(per_2008, tbs)
+tbs_08 <- mask(tbs_08, tbs)
+tbs_18 <- crop(per_2018, tbs)
+tbs_18 <- mask(tbs_18, tbs)
+```
+
+#### model 1
+```{r}
+### Open model rasters
+t1 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_1_projected_map.tif")
+
+### Mask cells that were ag in 2018
+t1_mask_18 <- mask(t1, tbs_18,
+                   inverse= FALSE,
+                   maskvalue = 1,
+                   updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t1_mask_08 <- mask(t1_mask_18, tbs_08,
+                   inverse= FALSE,
+                   maskvalue = 1,
+                   updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t1_ag_2008 <- freq(t1_mask_08, value = 30) ## 381,765
+t1_ag_2018 <- freq(t1_mask_08, value = 20) ## 43,197
+t1_ag_2028 <- freq(t1_mask_08, value = 10) ## 20,907
+
+### Save raster
+writeRaster(t1_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_1_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 2
+```{r}
+### Open model rasters
+t2 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_2_projected_map.tif")
+
+### Mask cells that were ag in 2018
+t2_mask_18 <- mask(t2, tbs_18,
+                  inverse= FALSE,
+                  maskvalue = 1,
+                  updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t2_mask_08 <- mask(t2_mask_18, tbs_08,
+                   inverse= FALSE,
+                   maskvalue = 1,
+                   updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t2_ag_2008 <- freq(t2_mask_08, value = 30) ## 381824
+t2_ag_2018 <- freq(t2_mask_08, value = 20) ## 43197
+t2_ag_2028 <- freq(t2_mask_08, value = 10) ## 22549
+
+### Save raster
+writeRaster(t2_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_2_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 3
+```{r}
+### Open model rasters
+t3 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_3_projected_map.tif")
+
+### Mask cells that were ag in 2018
+t3_mask_18 <- mask(t3, tbs_18,
+                  inverse= FALSE,
+                  maskvalue = 1,
+                  updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t3_mask_08 <- mask(t3_mask_18, tbs_08,
+                   inverse= FALSE,
+                   maskvalue = 1,
+                   updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t3_ag_2008 <- freq(t3_mask_08, value = 30) ## 381765
+t3_ag_2018 <- freq(t3_mask_08, value = 20) ## 43197
+t3_ag_2028 <- freq(t3_mask_08, value = 10) ## 20908
+
+### Save raster
+writeRaster(t3_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_3_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 4
+```{r}
+### Open model rasters
+t4 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_4_projected_map.tif")
+
+### Mask cells that were ag in 2018
+t4_mask_18 <- mask(t4, tbs_18,
+                  inverse= FALSE,
+                  maskvalue = 1,
+                  updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t4_mask_08 <- mask(t4_mask_18, tbs_08,
+                   inverse= FALSE,
+                   maskvalue = 1,
+                   updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t4_ag_2008 <- freq(t4_mask_08, value = 30) ## 381765
+t4_ag_2018 <- freq(t4_mask_08, value = 20) ## 43197
+t4_ag_2028 <- freq(t4_mask_08, value = 10) ## 21063
+
+### Save raster
+writeRaster(t4_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_4_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+#### Area converted per model (baseline defor)
+```{r}
+t1_area <- t1_ag_2028 * res(t1)[1] * res(t1)[2] / 1000000 ## 18.8163 km2
+t2_area <- t2_ag_2028 * res(t2)[1] * res(t2)[2] / 1000000 ## 20.2941 km2
+t3_area <- t3_ag_2028 * res(t3)[1] * res(t3)[2] / 1000000 ## 18.8172 km2
+t4_area <- t4_ag_2028 * res(t4)[1] * res(t4)[2] / 1000000 ## 18.9567 km2
+
+### Make df
+area_conv_km2 <- c(18.8163, 20.2941, 18.8172, 18.9567)
+model_name <- c("LUC", "DA", "LUC & DA", "Refined LUC & DA")
+conv_mod <- data.frame(cbind(model = model_name,
+                             area_conv = area_conv_km2))
+conv_mod$area_conv <- as.integer(conv_mod$area_conv)
+
+### Make bargraph
+conv_mod %>%
+  ggplot(aes(x = model, y = area_conv, color = model, fill = model)) +
+  geom_bar(stat = "identity") +
+  xlab("Model") +
+  ylab("Area converted to ag, 2018-2028 (sq. km)") +
+  scale_color_brewer(palette = "Dark2") + 
+  scale_fill_brewer(palette = "Dark2") + 
+  theme_bw(base_size=15) +
+  NULL
+```
+
+## FRAGSTATS
+### Models 1-4, 2008 and 2018
+```{r}
+### Open files
+t1 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_1_projected_map.tif")
+
+### Check that it will work
+check_landscape(t1) ## it will work
+
+### Reclassification matrix
+reclass_df <- c(0, 1.99, 0,
+                1.991, 2.001, 1,
+                2.1, 10.1, 0)
+reclass_m <- matrix(reclass_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Reclassify rasters
+t1 <- reclassify(t1,
+                 reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t1_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t1, directions = 8),
+  lsm_c_area_sd(t1, directions = 8),
+  lsm_c_ca(t1, directions = 8),
+  lsm_c_cai_mn(t1, directions = 8),
+  lsm_c_cai_sd(t1, directions = 8),
+  lsm_c_core_mn(t1, directions = 8),
+  lsm_c_core_sd(t1, directions = 8),
+  lsm_c_cpland(t1, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t1, directions = 8),
+  lsm_c_frac_mn(t1, directions = 8),
+  lsm_c_frac_sd(t1, directions = 8),
+  lsm_c_np(t1, directions = 8),
+  lsm_c_pafrac(t1, directions = 8),
+  lsm_c_para_mn(t1, directions = 8),
+  lsm_c_para_sd(t1, directions = 8),
+  lsm_c_pland(t1, directions = 8),
+  lsm_c_tca(t1, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t1, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t1_metrics <- t1_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model1",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "baseline") 
+
+
+### Model 2
+
+### Open files
+t2 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_2_projected_map.tif")
+
+### Reclassify rasters
+t2 <- reclassify(t2,
+                 reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t2_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t2, directions = 8),
+  lsm_c_area_sd(t2, directions = 8),
+  lsm_c_ca(t2, directions = 8),
+  lsm_c_cai_mn(t2, directions = 8),
+  lsm_c_cai_sd(t2, directions = 8),
+  lsm_c_core_mn(t2, directions = 8),
+  lsm_c_core_sd(t2, directions = 8),
+  lsm_c_cpland(t2, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t2, directions = 8),
+  lsm_c_frac_mn(t2, directions = 8),
+  lsm_c_frac_sd(t2, directions = 8),
+  lsm_c_np(t2, directions = 8),
+  lsm_c_pafrac(t2, directions = 8),
+  lsm_c_para_mn(t2, directions = 8),
+  lsm_c_para_sd(t2, directions = 8),
+  lsm_c_pland(t2, directions = 8),
+  lsm_c_tca(t2, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t2, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t2_metrics <- t2_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model2",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "baseline") 
+
+
+### Model 3
+
+### Open files
+t3 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_3_projected_map.tif")
+
+### Reclassify rasters
+t3 <- reclassify(t3,
+                 reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t3_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t3, directions = 8),
+  lsm_c_area_sd(t3, directions = 8),
+  lsm_c_ca(t3, directions = 8),
+  lsm_c_cai_mn(t3, directions = 8),
+  lsm_c_cai_sd(t3, directions = 8),
+  lsm_c_core_mn(t3, directions = 8),
+  lsm_c_core_sd(t3, directions = 8),
+  lsm_c_cpland(t3, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t3, directions = 8),
+  lsm_c_frac_mn(t3, directions = 8),
+  lsm_c_frac_sd(t3, directions = 8),
+  lsm_c_np(t3, directions = 8),
+  lsm_c_pafrac(t3, directions = 8),
+  lsm_c_para_mn(t3, directions = 8),
+  lsm_c_para_sd(t3, directions = 8),
+  lsm_c_pland(t3, directions = 8),
+  lsm_c_tca(t3, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t3, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t3_metrics <- t3_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model3",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "baseline") 
+
+
+### Model 4
+
+### Open files
+t4 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_4_projected_map.tif")
+
+### Reclassify rasters
+t4 <- reclassify(t4,
+                 reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t4_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t4, directions = 8),
+  lsm_c_area_sd(t4, directions = 8),
+  lsm_c_ca(t4, directions = 8),
+  lsm_c_cai_mn(t4, directions = 8),
+  lsm_c_cai_sd(t4, directions = 8),
+  lsm_c_core_mn(t4, directions = 8),
+  lsm_c_core_sd(t4, directions = 8),
+  lsm_c_cpland(t4, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t4, directions = 8),
+  lsm_c_frac_mn(t4, directions = 8),
+  lsm_c_frac_sd(t4, directions = 8),
+  lsm_c_np(t4, directions = 8),
+  lsm_c_pafrac(t4, directions = 8),
+  lsm_c_para_mn(t4, directions = 8),
+  lsm_c_para_sd(t4, directions = 8),
+  lsm_c_pland(t4, directions = 8),
+  lsm_c_tca(t4, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t4, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t4_metrics <- t4_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model4",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "baseline") 
+
+
+### 2008 land cover
+
+### Reclassify rasters
+tbs_08_rc <- reclassify(tbs_08,
+                          reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+tbs_08_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(tbs_08_rc, directions = 8),
+  lsm_c_area_sd(tbs_08_rc, directions = 8),
+  lsm_c_ca(tbs_08_rc, directions = 8),
+  lsm_c_cai_mn(tbs_08_rc, directions = 8),
+  lsm_c_cai_sd(tbs_08_rc, directions = 8),
+  lsm_c_core_mn(tbs_08_rc, directions = 8),
+  lsm_c_core_sd(tbs_08_rc, directions = 8),
+  lsm_c_cpland(tbs_08_rc, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(tbs_08_rc, directions = 8),
+  lsm_c_frac_mn(tbs_08_rc, directions = 8),
+  lsm_c_frac_sd(tbs_08_rc, directions = 8),
+  lsm_c_np(tbs_08_rc, directions = 8),
+  lsm_c_pafrac(tbs_08_rc, directions = 8),
+  lsm_c_para_mn(tbs_08_rc, directions = 8),
+  lsm_c_para_sd(tbs_08_rc, directions = 8),
+  lsm_c_pland(tbs_08_rc, directions = 8),
+  lsm_c_tca(tbs_08_rc, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(tbs_08_rc, count_boundary = FALSE)
+)
+
+### Add column for model
+tbs_08_metrics <- tbs_08_metrics  %>%
+  filter(class == 1) %>%
+  mutate(model_name = "tbs_2008",
+         scenario = "observed")
+
+
+### 2018 land cover
+
+### Reclassify rasters
+tbs_18_rc <- reclassify(tbs_18,
+                          reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t_18_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(tbs_18_rc, directions = 8),
+  lsm_c_area_sd(tbs_18_rc, directions = 8),
+  lsm_c_ca(tbs_18_rc, directions = 8),
+  lsm_c_cai_mn(tbs_18_rc, directions = 8),
+  lsm_c_cai_sd(tbs_18_rc, directions = 8),
+  lsm_c_core_mn(tbs_18_rc, directions = 8),
+  lsm_c_core_sd(tbs_18_rc, directions = 8),
+  lsm_c_cpland(tbs_18_rc, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(tbs_18_rc, directions = 8),
+  lsm_c_frac_mn(tbs_18_rc, directions = 8),
+  lsm_c_frac_sd(tbs_18_rc, directions = 8),
+  lsm_c_np(tbs_18_rc, directions = 8),
+  lsm_c_pafrac(tbs_18_rc, directions = 8),
+  lsm_c_para_mn(tbs_18_rc, directions = 8),
+  lsm_c_para_sd(tbs_18_rc, directions = 8),
+  lsm_c_pland(tbs_18_rc, directions = 8),
+  lsm_c_tca(tbs_18_rc, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(tbs_18_rc, count_boundary = FALSE)
+)
+
+### Add column for model
+t_18_metrics <- t_18_metrics  %>%
+  filter(class == 1) %>%
+  mutate(model_name = "tbs_2018",
+         scenario = "observed")
+
+
+### Combine
+
+### One df
+all_metrics <- rbind(t1_metrics,
+                     t2_metrics,
+                     t3_metrics,
+                     t4_metrics,
+                     tbs_08_metrics,
+                     t_18_metrics)
+
+### Write csv
+write_csv(all_metrics,
+          "/nfs/agfrontiers-data/luc_model/peru_landscape_metrics_baseline.tif")
+```
+* lsm_c_area_mn: mean patch area (ha)  
+* lsm_c_area_sd: sd of patch area (ha)  
+* lsm_c_ca: total class area (ha)-- area of all patches in the class  
+* lsm_c_cai_mn: mean of core area index (% of each patch that is core area) (%)  
+* lsm_c_cai_sd: sd of core area index  
+* lsm_c_core_mn: mean of core areas of all patches (ha)  
+* lsm_c_core_sd: sd of core areas of all patches (ha)  
+* lsm_c_cpland: core area as percentage of landscape (%)  
+* lsm_c_division: landscape division index- probability that two randomly selected cells are not located in the same patch of class i (0=one patch, 1=all patches are a single cell)    
+* lsm_c_frac_mn: mean fractal dimension index-- summarizes each class as the mean of the fractal dimension index of all patches in the class, describes patch complexity (1=all patches are squared, 2=all patches are irregular)    
+* lsm_c_frac_sd: sd of fractal dimension index (0=fractal dimension is the same for all patches) 
+* lsm_c_np: number of patches  
+* lsm_c_pafrac: perimeter-area fractal dimension-- described patch complexity and is scale-dependent (1=patches have simple shapes, 2= irregular shapes)  
+* lsm_c_para_mn: mean perimeter-area ratio (higher value = more complex patch shapes)   
+* lsm_c_para_sd: sd of perimeter-area ratio  
+* lsm_c_pland: percentage of landscape of class i  
+* lsm_c_tca: total core area (sum of all core areas of all patches in the class i) (ha)  
+* lsm_c_te: total edge (m)
+
+## 20% INCREASE: 20% increase in deforestation over observed forest loss in TBS and buffer
+20% increase in deforestation, assumes 20% higher rate of deforestation in 2018-2028 vs. 2008-2018
+From 2008-2018, TBS + buffer lost 23391 pixels
+```{r}
+### Calculate 20% increase in pixels lost
+inc_20 <- 23391 + 23391*0.2
+## 28069.2
+```
+#### Model 1
+```{r}
+### Open stacked raster
+t_m1 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_stacked_all.tif")
+
+### Restrict to JNF
+t_m1 <- crop(t_m1, tbs)
+t_m1 <- mask(t_m1, tbs)
+
+### Convert to df
+t_m1_df <- as.data.frame(t_m1)
+
+### To vector
+t_m1_df <- dplyr::pull(t_m1_df, peru_m1_stacked_all)
+
+### Descending order
+t_m1_df <- sort(t_m1_df, decreasing = TRUE)
+
+### Get top values
+t_m1_top_20 <- head(t_m1_df, 28069)
+
+### Get range of those values
+range(t_m1_top_20)
+### 208-870
+t1_min_20 <- min(t_m1_top_20)
+
+### So if the value is >= 208, it converts to agriculture (10 = new ag)
+
+### Stack 2018 tbs and PP 
+t_m1_stack <- stack(tbs_18, t_m1)
+
+### Reclassification function
+rc_m1_20 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t1_min_20), 10, x1)
+}
+
+## Make output raster
+t_m1_projected_20 <- overlay(t_m1_stack, fun = rc_m1_20)
+  
+### Save raster
+writeRaster(t_m1_projected_20,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_1_20increase_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 2
+```{r}
+### Open stacked raster
+t_m2 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_stacked_all.tif")
+
+### Restrict to JNF
+t_m2 <- crop(t_m2, tbs)
+t_m2 <- mask(t_m2, tbs)
+
+### Convert to df
+t_m2_df <- as.data.frame(t_m2)
+
+### To vector
+t_m2_df <- dplyr::pull(t_m2_df, peru_m2_stacked_all)
+
+### Descending order
+t_m2_df <- sort(t_m2_df, decreasing = TRUE)
+
+### Get top values
+t_m2_top_20 <- head(t_m2_df, 28069)
+
+### Get range of those values
+range(t_m2_top_20)
+t2_min_20 <- min(t_m2_top_20)
+
+### Stack 2018 tbs and PP 
+t_m2_stack <- stack(tbs_18, t_m2)
+
+### Reclassification function
+rc_m2_20 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t2_min_20), 10, x1)
+}
+
+## Make output raster
+t_m2_projected_20 <- overlay(t_m2_stack, fun = rc_m2_20)
+  
+### Save raster
+writeRaster(t_m2_projected_20,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_2_20increase_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 3
+```{r}
+### Open stacked raster
+t_m3 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_stacked_all.tif")
+
+### Restrict to JNF
+t_m3 <- crop(t_m3, tbs)
+t_m3 <- mask(t_m3, tbs)
+
+### Convert to df
+t_m3_df <- as.data.frame(t_m3)
+
+### To vector
+t_m3_df <- dplyr::pull(t_m3_df, peru_m3_stacked_all)
+
+### Descending order
+t_m3_df <- sort(t_m3_df, decreasing = TRUE)
+
+### Get top values
+t_m3_top_20 <- head(t_m3_df, 28069)
+
+### Get range of those values
+range(t_m3_top_20)
+t3_min_20 <- min(t_m3_top_20)
+
+### Stack 2018 tbs and PP 
+t_m3_stack <- stack(tbs_18, t_m3)
+
+### Reclassification function
+rc_m3_20 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t3_min_20), 10, x1)
+}
+
+## Make output raster
+t_m3_projected_20 <- overlay(t_m3_stack, fun = rc_m3_20)
+  
+### Save raster
+writeRaster(t_m3_projected_20,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_3_20increase_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 4
+```{r}
+### Open stacked raster
+t_m4 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_stacked_all.tif")
+
+### Restrict to JNF
+t_m4 <- crop(t_m4, tbs)
+t_m4 <- mask(t_m4, tbs)
+
+### Convert to df
+t_m4_df <- as.data.frame(t_m4)
+
+### To vector
+t_m4_df <- dplyr::pull(t_m4_df, peru_m4_stacked_all)
+
+### Descending order
+t_m4_df <- sort(t_m4_df, decreasing = TRUE)
+
+### Get top values
+t_m4_top_20 <- head(t_m4_df, 28069)
+
+### Get range of those values
+range(t_m4_top_20)
+t4_min_20 <- min(t_m4_top_20)
+
+### Stack 2018 tbs and PP 
+t_m4_stack <- stack(tbs_18, t_m4)
+
+### Reclassification function
+rc_m4_20 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t4_min_20), 10, x1)
+}
+
+## Make output raster
+t_m4_projected_20 <- overlay(t_m4_stack, fun = rc_m4_20)
+  
+### Save raster
+writeRaster(t_m4_projected_20,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_4_20increase_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+### Compare TBS model projections (increased defor)
+```{r}
+### Open model rasters
+t1_20increase <- raster("/nfs/agfrontiers-data/luc_model/peru_full_1_20increase_projected_map.tif")
+t2_20increase <- raster("/nfs/agfrontiers-data/luc_model/peru_full_2_20increase_projected_map.tif")
+t3_20increase <- raster("/nfs/agfrontiers-data/luc_model/peru_full_3_20increase_projected_map.tif")
+t4_20increase <- raster("/nfs/agfrontiers-data/luc_model/peru_full_4_20increase_projected_map.tif")
+
+# ### Make reclassification matrix
+# reclass_df <- c(0, 0.99, NA,
+#                 0.991, 1.001, 1,
+#                 1.9, 7.1, 0,
+#                 8, 10.1, 10)
+# reclass_m <- matrix(reclass_df,
+#                     ncol = 3,
+#                     byrow = TRUE)
+
+# ### Reclassify rasters
+# j1_20increase <- reclassify(j1_20increase,
+#                             reclass_m)
+# j2_20increase <- reclassify(j2_20increase,
+#                             reclass_m)
+# j3_20increase <- reclassify(j3_20increase,
+#                             reclass_m)
+# j4_20increase <- reclassify(j4_20increase,
+#                             reclass_m)
+# 
+# ### Stack files
+# j_all_20increase <- stack(j1_20increase, j2_20increase, j3_20increase, j4_20increase)
+# 
+# ### Sum
+# j_summ_20increase <- calc(j_all_20increase, sum)
+
+# ### Open 2008 and 2018 LC maps
+# ### Open brazil 2008 map
+# bra_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2008_102033.tif")
+# ### Open brazil 2018 map
+# bra_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2018_102033.tif")
+# ### Open JNF without buffer
+# jaman <- st_read("/nfs/agfrontiers-data/Case Study Info/Brazil/JamanBuffer/jamanxim_wdpa_march21_102033.shp")
+# ### Crop LUC maps
+# jaman_08 <- crop(bra_2008, jaman)
+# jaman_08 <- mask(jaman_08, jaman)
+# jaman_18 <- crop(bra_2018, jaman)
+# jaman_18 <- mask(jaman_18, jaman)
+# 
+# ### Mask cells that were ag in 2018
+# j_summ_mask_18 <- mask(j_summ, jaman_18,
+#                        inverse= FALSE,
+#                        maskvalue = 1,
+#                        updatevalue = 10)
+# ### 10 = ag in 2018
+# ### 1 = ag in 2028
+# 
+# ### Mask cells that were ag in 2008
+# j_summ_mask_08 <- mask(j_summ_mask_18, jaman_08,
+#                        inverse= FALSE,
+#                        maskvalue = 1,
+#                        updatevalue = 20)
+# ### 10 = ag in 2018
+# ### 1 = ag in 2028
+# ### 20 = forest in 2008
+
+### Get frequency of each value
+# ag_2008 <- freq(j_summ, value = 20) ## 
+# ag_2018 <- freq(j_summ, value = 10) ## 
+# ag_2028_1_20increase <- freq(j_summ_20increase, value = 10)
+# ag_2028_2_20increase <- freq(j_summ_20increase, value = 20) 
+# ag_2028_3_20increase <- freq(j_summ_20increase, value = 30) 
+# ag_2028_4_20increase <- freq(j_summ_20increase, value = 40) 
+```
+
+### Ag over time for models
+```{r}
+### Open 2008 and 2018 LC maps
+### Open peru 2008 map
+per_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2008_102033.tif")
+### Open peru 2018 map
+per_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_per_dry_2018_102033.tif")
+### Open buffer
+tbs <- st_read("/nfs/agfrontiers-data/Case Study Info/peru_buff_final.shp") %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+tbs <- st_zm(tbs)
+
+### Crop LUC maps
+tbs_08 <- crop(per_2008, tbs)
+tbs_08 <- mask(tbs_08, tbs)
+tbs_18 <- crop(per_2018, tbs)
+tbs_18 <- mask(tbs_18, tbs)
+```
+
+#### model 1
+```{r}
+### Mask cells that were ag in 2018
+t1_mask_18_20increase <- mask(t_m1_projected_20, 
+                              tbs_18,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t1_mask_08_20increase <- mask(t1_mask_18_20increase, 
+                              tbs_08,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t1_ag_2008_20increase <- freq(t1_mask_08_20increase, value = 30) ## 381765
+t1_ag_2018_20increase <- freq(t1_mask_08_20increase, value = 20) ## 43197
+t1_ag_2028_20increase <- freq(t1_mask_08_20increase, value = 10) ## 25070
+
+### Save raster
+writeRaster(t1_mask_08_20increase,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_1_20increase_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 2
+```{r}
+### Mask cells that were ag in 2018
+t2_mask_18_20increase <- mask(t_m2_projected_20, 
+                              tbs_18,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t2_mask_08_20increase <- mask(t2_mask_18_20increase, 
+                              tbs_08,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t2_ag_2008_20increase <- freq(t2_mask_08_20increase, value = 30) ## 381824
+t2_ag_2018_20increase <- freq(t2_mask_08_20increase, value = 20) ## 43197
+t2_ag_2028_20increase <- freq(t2_mask_08_20increase, value = 10) ## 27137
+
+### Save raster
+writeRaster(t2_mask_08_20increase,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_2_20increase_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 3
+```{r}
+### Mask cells that were ag in 2018
+t3_mask_18_20increase <- mask(t_m3_projected_20, 
+                              tbs_18,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t3_mask_08_20increase <- mask(t3_mask_18_20increase, 
+                              tbs_08,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t3_ag_2008_20increase <- freq(t3_mask_08_20increase, value = 30) ## 381765
+t3_ag_2018_20increase <- freq(t3_mask_08_20increase, value = 20) ## 43197
+t3_ag_2028_20increase <- freq(t3_mask_08_20increase, value = 10) ## 25125
+
+### Save raster
+writeRaster(t3_mask_08_20increase,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_3_20increase_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 4
+```{r}
+# ### Open model rasters
+# j4 <- raster("/nfs/agfrontiers-data/luc_model/brazil_full_4_projected_map.tif")
+# 
+### Mask cells that were ag in 2018
+t4_mask_18_20increase <- mask(t_m4_projected_20, tbs_18,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t4_mask_08_20increase <- mask(t4_mask_18_20increase, tbs_08,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t4_ag_2008_20increase <- freq(t4_mask_08_20increase, value = 30) ## 381765
+t4_ag_2018_20increase <- freq(t4_mask_08_20increase, value = 20) ## 43197
+t4_ag_2028_20increase <- freq(t4_mask_08_20increase, value = 10) ## 25261
+
+### Save raster
+writeRaster(t4_mask_08_20increase,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_4_20increase_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+## FRAGSTATS on 20% increase
+### Model 1
+```{r}
+### Check that it will work
+check_landscape(t_m1_projected_20) ## it will work
+
+# ### Reclassification matrix
+# reclass_df <- c(0, 1.99, 0,
+#                 1.991, 2.001, 1,
+#                 2.1, 10.1, 0)
+# reclass_m <- matrix(reclass_df,
+#                     ncol = 3,
+#                     byrow = TRUE)
+
+### Reclassify rasters
+t_m1_projected_20 <- reclassify(t_m1_projected_20,
+                                reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t1_20increase_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t_m1_projected_20, directions = 8),
+  lsm_c_area_sd(t_m1_projected_20, directions = 8),
+  lsm_c_ca(t_m1_projected_20, directions = 8),
+  lsm_c_cai_mn(t_m1_projected_20, directions = 8),
+  lsm_c_cai_sd(t_m1_projected_20, directions = 8),
+  lsm_c_core_mn(t_m1_projected_20, directions = 8),
+  lsm_c_core_sd(t_m1_projected_20, directions = 8),
+  lsm_c_cpland(t_m1_projected_20, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t_m1_projected_20, directions = 8),
+  lsm_c_frac_mn(t_m1_projected_20, directions = 8),
+  lsm_c_frac_sd(t_m1_projected_20, directions = 8),
+  lsm_c_np(t_m1_projected_20, directions = 8),
+  lsm_c_pafrac(t_m1_projected_20, directions = 8),
+  lsm_c_para_mn(t_m1_projected_20, directions = 8),
+  lsm_c_para_sd(t_m1_projected_20, directions = 8),
+  lsm_c_pland(t_m1_projected_20, directions = 8),
+  lsm_c_tca(t_m1_projected_20, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t_m1_projected_20, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t1_20increase_metrics <- t1_20increase_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model1",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "increase_20") 
+```
+
+### Model 2-4
+```{r}
+### Reclassify rasters
+t_m2_projected_20 <- reclassify(t_m2_projected_20,
+                                reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t2_20increase_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t_m2_projected_20, directions = 8),
+  lsm_c_area_sd(t_m2_projected_20, directions = 8),
+  lsm_c_ca(t_m2_projected_20, directions = 8),
+  lsm_c_cai_mn(t_m2_projected_20, directions = 8),
+  lsm_c_cai_sd(t_m2_projected_20, directions = 8),
+  lsm_c_core_mn(t_m2_projected_20, directions = 8),
+  lsm_c_core_sd(t_m2_projected_20, directions = 8),
+  lsm_c_cpland(t_m2_projected_20, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t_m2_projected_20, directions = 8),
+  lsm_c_frac_mn(t_m2_projected_20, directions = 8),
+  lsm_c_frac_sd(t_m2_projected_20, directions = 8),
+  lsm_c_np(t_m2_projected_20, directions = 8),
+  lsm_c_pafrac(t_m2_projected_20, directions = 8),
+  lsm_c_para_mn(t_m2_projected_20, directions = 8),
+  lsm_c_para_sd(t_m2_projected_20, directions = 8),
+  lsm_c_pland(t_m2_projected_20, directions = 8),
+  lsm_c_tca(t_m2_projected_20, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t_m2_projected_20, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t2_20increase_metrics <- t2_20increase_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model2",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "increase_20") 
+
+
+### Model 3
+
+### Reclassify rasters
+t_m3_projected_20 <- reclassify(t_m3_projected_20,
+                                reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t3_20increase_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t_m3_projected_20, directions = 8),
+  lsm_c_area_sd(t_m3_projected_20, directions = 8),
+  lsm_c_ca(t_m3_projected_20, directions = 8),
+  lsm_c_cai_mn(t_m3_projected_20, directions = 8),
+  lsm_c_cai_sd(t_m3_projected_20, directions = 8),
+  lsm_c_core_mn(t_m3_projected_20, directions = 8),
+  lsm_c_core_sd(t_m3_projected_20, directions = 8),
+  lsm_c_cpland(t_m3_projected_20, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t_m3_projected_20, directions = 8),
+  lsm_c_frac_mn(t_m3_projected_20, directions = 8),
+  lsm_c_frac_sd(t_m3_projected_20, directions = 8),
+  lsm_c_np(t_m3_projected_20, directions = 8),
+  lsm_c_pafrac(t_m3_projected_20, directions = 8),
+  lsm_c_para_mn(t_m3_projected_20, directions = 8),
+  lsm_c_para_sd(t_m3_projected_20, directions = 8),
+  lsm_c_pland(t_m3_projected_20, directions = 8),
+  lsm_c_tca(t_m3_projected_20, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t_m3_projected_20, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t3_20increase_metrics <- t3_20increase_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model3",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "increase_20") 
+
+
+### Model 4
+
+### Reclassify rasters
+t_m4_projected_20 <- reclassify(t_m4_projected_20,
+                 reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t4_20increase_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t_m4_projected_20, directions = 8),
+  lsm_c_area_sd(t_m4_projected_20, directions = 8),
+  lsm_c_ca(t_m4_projected_20, directions = 8),
+  lsm_c_cai_mn(t_m4_projected_20, directions = 8),
+  lsm_c_cai_sd(t_m4_projected_20, directions = 8),
+  lsm_c_core_mn(t_m4_projected_20, directions = 8),
+  lsm_c_core_sd(t_m4_projected_20, directions = 8),
+  lsm_c_cpland(t_m4_projected_20, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t_m4_projected_20, directions = 8),
+  lsm_c_frac_mn(t_m4_projected_20, directions = 8),
+  lsm_c_frac_sd(t_m4_projected_20, directions = 8),
+  lsm_c_np(t_m4_projected_20, directions = 8),
+  lsm_c_pafrac(t_m4_projected_20, directions = 8),
+  lsm_c_para_mn(t_m4_projected_20, directions = 8),
+  lsm_c_para_sd(t_m4_projected_20, directions = 8),
+  lsm_c_pland(t_m4_projected_20, directions = 8),
+  lsm_c_tca(t_m4_projected_20, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t_m4_projected_20, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t4_20increase_metrics <- t4_20increase_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model4",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "increase_20") 
+
+
+### Combine
+
+### One df
+all_metrics_20increase <- rbind(t1_20increase_metrics,
+                                t2_20increase_metrics,
+                                t3_20increase_metrics,
+                                t4_20increase_metrics)
+
+### Write csv
+write_csv(all_metrics_20increase,
+          "/nfs/agfrontiers-data/luc_model/peru_landscape_metrics_increase20.tif")
+```
+
+
+## 20% DECREASE: 20% decrease in deforestation over observed forest loss in JNF and buffer
+20% decrease in deforestation, assumes 20% higher rate of deforestation in 2018-2028 vs. 2008-2018
+From 2008-2018, TBS + buffer lost 23391 pixels
+```{r}
+### Calculate 20% increase in pixels lost
+dec_20 <- 23391 - 23391*0.2
+## 18713
+```
+#### Model 1
+```{r}
+### Get top values
+t_m1_top_20d <- head(t_m1_df, 18713)
+
+### Get range of those values
+range(t_m1_top_20d)
+### 201-999
+t1_min_20d <- min(t_m1_top_20d)
+
+### So if the value is >= 201, it converts to agriculture (10 = new ag)
+
+### Reclassification function
+rc_m1_20_dec <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t1_min_20d), 10, x1)
+}
+
+## Make output raster
+t_m1_projected_20_dec <- overlay(t_m1_stack, fun = rc_m1_20_dec)
+  
+### Save raster
+writeRaster(t_m1_projected_20_dec,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_1_20decrease_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 2
+```{r}
+### Get top values
+t_m2_top_20d <- head(t_m2_df, 18713)
+
+### Get range of those values
+range(t_m2_top_20d)
+### 332-999
+t2_min_20d <- min(t_m2_top_20d)
+
+### So if the value is >= 332, it converts to agriculture (10 = new ag)
+
+### Reclassification function
+rc_m2_20_dec <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t2_min_20d), 10, x1)
+}
+
+## Make output raster
+t_m2_projected_20_dec <- overlay(t_m2_stack, fun = rc_m2_20_dec)
+  
+### Save raster
+writeRaster(t_m2_projected_20_dec,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_2_20decrease_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 3
+```{r}
+### Get top values
+t_m3_top_20d <- head(t_m3_df, 18713)
+
+### Get range of those values
+range(t_m3_top_20d)
+### 375-999
+t3_min_20d <- min(t_m3_top_20d)
+
+### So if the value is >= 375, it converts to agriculture (10 = new ag)
+
+### Reclassification function
+rc_m3_20_dec <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t3_min_20d), 10, x1)
+}
+
+## Make output raster
+t_m3_projected_20_dec <- overlay(t_m3_stack, fun = rc_m3_20_dec)
+  
+### Save raster
+writeRaster(t_m3_projected_20_dec,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_3_20decrease_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 4
+```{r}
+### Get top values
+t_m4_top_20d <- head(t_m4_df, 18713)
+
+### Get range of those values
+range(t_m4_top_20d)
+### 374-999
+t4_min_20d <- min(t_m4_top_20d)
+
+### So if the value is >= 374, it converts to agriculture (10 = new ag)
+
+### Reclassification function
+rc_m4_20_dec <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t4_min_20d), 10, x1)
+}
+
+## Make output raster
+t_m4_projected_20_dec <- overlay(t_m4_stack, fun = rc_m4_20_dec)
+  
+### Save raster
+writeRaster(t_m4_projected_20_dec,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_4_20decrease_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+### Ag over time for models
+#### model 1
+```{r}
+### Mask cells that were ag in 2018
+t1_mask_18_20decrease <- mask(t_m1_projected_20_dec, 
+                              tbs_18,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t1_mask_08_20decrease <- mask(t1_mask_18_20decrease, 
+                              tbs_08,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t1_ag_2008_20decrease <- freq(t1_mask_08_20decrease, value = 30) ## 381765
+t1_ag_2018_20decrease <- freq(t1_mask_08_20decrease, value = 20) ## 43197
+t1_ag_2028_20decrease <- freq(t1_mask_08_20decrease, value = 10) ## 16653
+
+### Save raster
+writeRaster(t1_mask_08_20decrease,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_1_20decrease_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 2
+```{r}
+### Mask cells that were ag in 2018
+t2_mask_18_20decrease <- mask(t_m2_projected_20_dec, 
+                              tbs_18,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t2_mask_08_20decrease <- mask(t2_mask_18_20decrease, 
+                              tbs_08,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t2_ag_2008_20decrease <- freq(t2_mask_08_20decrease, value = 30) ## 381824
+t2_ag_2018_20decrease <- freq(t2_mask_08_20decrease, value = 20) ## 43197
+t2_ag_2028_20decrease <- freq(t2_mask_08_20decrease, value = 10) ## 17946
+
+### Save raster
+writeRaster(t2_mask_08_20decrease,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_2_20decrease_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 3
+```{r}
+### Mask cells that were ag in 2018
+t3_mask_18_20decrease <- mask(t_m3_projected_20_dec, 
+                              tbs_18,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t3_mask_08_20decrease <- mask(t3_mask_18_20decrease, 
+                              tbs_08,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t3_ag_2008_20decrease <- freq(t3_mask_08_20decrease, value = 30) ## 381765
+t3_ag_2018_20decrease <- freq(t3_mask_08_20decrease, value = 20) ## 43197
+t3_ag_2028_20decrease <- freq(t3_mask_08_20decrease, value = 10) ## 16636
+
+### Save raster
+writeRaster(t3_mask_08_20decrease,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_3_20decrease_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 4
+```{r}
+# ### Open model rasters
+# j4 <- raster("/nfs/agfrontiers-data/luc_model/brazil_full_4_projected_map.tif")
+# 
+### Mask cells that were ag in 2018
+t4_mask_18_20decrease <- mask(t_m4_projected_20_dec, tbs_18,
+                  inverse= FALSE,
+                  maskvalue = 1,
+                  updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t4_mask_08_20decrease <- mask(t4_mask_18_20decrease, tbs_08,
+                   inverse= FALSE,
+                   maskvalue = 1,
+                   updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t4_ag_2008_20decrease <- freq(t4_mask_08_20decrease, value = 30) ## 381765
+t4_ag_2018_20decrease <- freq(t4_mask_08_20decrease, value = 20) ## 43197
+t4_ag_2028_20decrease <- freq(t4_mask_08_20decrease, value = 10) ## 16668
+
+### Save raster
+writeRaster(t4_mask_08_20decrease,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_4_20decrease_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+## FRAGSTATS on 20% decrease
+### Models 1-4
+```{r}
+### Check that it will work
+check_landscape(t_m1_projected_20_dec) ## it will work
+
+# ### Reclassification matrix
+# reclass_df <- c(0, 1.99, 0,
+#                 1.991, 2.001, 1,
+#                 2.1, 10.1, 0)
+# reclass_m <- matrix(reclass_df,
+#                     ncol = 3,
+#                     byrow = TRUE)
+
+### Reclassify rasters
+t_m1_projected_20_dec <- reclassify(t_m1_projected_20_dec,
+                                    reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t1_20decrease_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t_m1_projected_20_dec, directions = 8),
+  lsm_c_area_sd(t_m1_projected_20_dec, directions = 8),
+  lsm_c_ca(t_m1_projected_20_dec, directions = 8),
+  lsm_c_cai_mn(t_m1_projected_20_dec, directions = 8),
+  lsm_c_cai_sd(t_m1_projected_20_dec, directions = 8),
+  lsm_c_core_mn(t_m1_projected_20_dec, directions = 8),
+  lsm_c_core_sd(t_m1_projected_20_dec, directions = 8),
+  lsm_c_cpland(t_m1_projected_20_dec, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t_m1_projected_20_dec, directions = 8),
+  lsm_c_frac_mn(t_m1_projected_20_dec, directions = 8),
+  lsm_c_frac_sd(t_m1_projected_20_dec, directions = 8),
+  lsm_c_np(t_m1_projected_20_dec, directions = 8),
+  lsm_c_pafrac(t_m1_projected_20_dec, directions = 8),
+  lsm_c_para_mn(t_m1_projected_20_dec, directions = 8),
+  lsm_c_para_sd(t_m1_projected_20_dec, directions = 8),
+  lsm_c_pland(t_m1_projected_20_dec, directions = 8),
+  lsm_c_tca(t_m1_projected_20_dec, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t_m1_projected_20_dec, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t1_20decrease_metrics <- t1_20decrease_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model1",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "decrease_20") 
+
+
+### Model 2
+
+### Reclassify rasters
+t_m2_projected_20_dec <- reclassify(t_m2_projected_20_dec,
+                                reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t2_20decrease_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t_m2_projected_20_dec, directions = 8),
+  lsm_c_area_sd(t_m2_projected_20_dec, directions = 8),
+  lsm_c_ca(t_m2_projected_20_dec, directions = 8),
+  lsm_c_cai_mn(t_m2_projected_20_dec, directions = 8),
+  lsm_c_cai_sd(t_m2_projected_20_dec, directions = 8),
+  lsm_c_core_mn(t_m2_projected_20_dec, directions = 8),
+  lsm_c_core_sd(t_m2_projected_20_dec, directions = 8),
+  lsm_c_cpland(t_m2_projected_20_dec, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t_m2_projected_20_dec, directions = 8),
+  lsm_c_frac_mn(t_m2_projected_20_dec, directions = 8),
+  lsm_c_frac_sd(t_m2_projected_20_dec, directions = 8),
+  lsm_c_np(t_m2_projected_20_dec, directions = 8),
+  lsm_c_pafrac(t_m2_projected_20_dec, directions = 8),
+  lsm_c_para_mn(t_m2_projected_20_dec, directions = 8),
+  lsm_c_para_sd(t_m2_projected_20_dec, directions = 8),
+  lsm_c_pland(t_m2_projected_20_dec, directions = 8),
+  lsm_c_tca(t_m2_projected_20_dec, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t_m2_projected_20_dec, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t2_20decrease_metrics <- t2_20decrease_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model2",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "decrease_20") 
+
+
+### Model 3
+
+### Reclassify rasters
+t_m3_projected_20_dec <- reclassify(t_m3_projected_20_dec,
+                                reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t3_20decrease_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t_m3_projected_20_dec, directions = 8),
+  lsm_c_area_sd(t_m3_projected_20_dec, directions = 8),
+  lsm_c_ca(t_m3_projected_20_dec, directions = 8),
+  lsm_c_cai_mn(t_m3_projected_20_dec, directions = 8),
+  lsm_c_cai_sd(t_m3_projected_20_dec, directions = 8),
+  lsm_c_core_mn(t_m3_projected_20_dec, directions = 8),
+  lsm_c_core_sd(t_m3_projected_20_dec, directions = 8),
+  lsm_c_cpland(t_m3_projected_20_dec, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t_m3_projected_20_dec, directions = 8),
+  lsm_c_frac_mn(t_m3_projected_20_dec, directions = 8),
+  lsm_c_frac_sd(t_m3_projected_20_dec, directions = 8),
+  lsm_c_np(t_m3_projected_20_dec, directions = 8),
+  lsm_c_pafrac(t_m3_projected_20_dec, directions = 8),
+  lsm_c_para_mn(t_m3_projected_20_dec, directions = 8),
+  lsm_c_para_sd(t_m3_projected_20_dec, directions = 8),
+  lsm_c_pland(t_m3_projected_20_dec, directions = 8),
+  lsm_c_tca(t_m3_projected_20_dec, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t_m3_projected_20_dec, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t3_20decrease_metrics <- t3_20decrease_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model3",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "decrease_20") 
+
+
+### Model 4
+
+### Reclassify rasters
+t_m4_projected_20_dec <- reclassify(t_m4_projected_20_dec,
+                 reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t4_20decrease_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t_m4_projected_20_dec, directions = 8),
+  lsm_c_area_sd(t_m4_projected_20_dec, directions = 8),
+  lsm_c_ca(t_m4_projected_20_dec, directions = 8),
+  lsm_c_cai_mn(t_m4_projected_20_dec, directions = 8),
+  lsm_c_cai_sd(t_m4_projected_20_dec, directions = 8),
+  lsm_c_core_mn(t_m4_projected_20_dec, directions = 8),
+  lsm_c_core_sd(t_m4_projected_20_dec, directions = 8),
+  lsm_c_cpland(t_m4_projected_20_dec, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t_m4_projected_20_dec, directions = 8),
+  lsm_c_frac_mn(t_m4_projected_20_dec, directions = 8),
+  lsm_c_frac_sd(t_m4_projected_20_dec, directions = 8),
+  lsm_c_np(t_m4_projected_20_dec, directions = 8),
+  lsm_c_pafrac(t_m4_projected_20_dec, directions = 8),
+  lsm_c_para_mn(t_m4_projected_20_dec, directions = 8),
+  lsm_c_para_sd(t_m4_projected_20_dec, directions = 8),
+  lsm_c_pland(t_m4_projected_20_dec, directions = 8),
+  lsm_c_tca(t_m4_projected_20_dec, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t_m4_projected_20_dec, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t4_20decrease_metrics <- t4_20decrease_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model4",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "decrease_20") 
+
+
+### Combine
+
+### One df
+all_metrics_20decrease <- rbind(t1_20decrease_metrics,
+                                t2_20decrease_metrics,
+                                t3_20decrease_metrics,
+                                t4_20decrease_metrics)
+
+### Write csv
+write_csv(all_metrics_20decrease,
+          "/nfs/agfrontiers-data/luc_model/peru_landscape_metrics_decrease20.tif")
+```
+
+
+## MODEL MEAN: Mean forest loss modeled in TBS and buffer from 2018-2028
+```{r}
+### Area lost
+mean_km2_m1 <- 31.693  
+mean_km2_m2 <- 29.768
+mean_km2_m3 <- 31.559
+mean_km2_m4 <- 31.682
+```
+
+### Convert area to number of pixels
+```{r}
+### Model 1
+#### Convert to sq meters
+mean_meter2_m1 <- mean_km2_m1 * 1000000
+#### Convert to # pixels
+res_x <- res(t1)[1]
+res_y <- res(t1)[2]
+mean_m1_pix <- mean_meter2_m1/(res_x*res_y)
+### 35214.44
+mean_m1_pix <- round(mean_m1_pix, 0)
+
+### Model 2
+#### Convert to sq meters
+mean_meter2_m2 <- mean_km2_m2 * 1000000
+#### Convert to # pixels
+res_x <- res(t2)[1]
+res_y <- res(t2)[2]
+mean_m2_pix <- mean_meter2_m2/(res_x*res_y)
+### 33075.56
+mean_m2_pix <- round(mean_m2_pix, 0)
+
+### Model 3
+#### Convert to sq meters
+mean_meter2_m3 <- mean_km2_m3 * 1000000
+#### Convert to # pixels
+res_x <- res(t3)[1]
+res_y <- res(t3)[2]
+mean_m3_pix <- mean_meter2_m3/(res_x*res_y)
+### 35065.56
+mean_m3_pix <- round(mean_m3_pix, 0)
+
+### Model 4
+#### Convert to sq meters
+mean_meter2_m4 <- mean_km2_m4 * 1000000
+#### Convert to # pixels
+res_x <- res(t4)[1]
+res_y <- res(t4)[2]
+mean_m4_pix <- mean_meter2_m4/(res_x*res_y)
+### 35202.22
+mean_m4_pix <- round(mean_m4_pix, 0)
+```
+
+#### Model 1
+```{r}
+### Get top values
+t_m1_top_model <- head(t_m1_df, 35214)
+
+### Get range of those values
+range(t_m1_top_model)
+### 181 -870
+t1_min_model <- min(t_m1_top_model)
+
+### So if the value is >= 181, it converts to agriculture (10 = new ag)
+
+### Stack 2018 tbs and PP 
+t_m1_stack <- stack(tbs_18, t_m1)
+
+### Reclassification function
+rc_m1_model <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t1_min_model), 10, x1)
+}
+
+## Make output raster
+t_m1_projected_model <- overlay(t_m1_stack, fun = rc_m1_model)
+  
+### Save raster
+writeRaster(t_m1_projected_model,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_1_modeled_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 2
+```{r}
+### Get top values
+t_m2_top_model <- head(t_m2_df, 33076)
+
+### Get range of those values
+range(t_m2_top_model)
+### 109-331
+t2_min_model <- min(t_m2_top_model)
+
+### So if the value is >= 109, it converts to agriculture (10 = new ag)
+
+### Stack 2018 tbs and PP 
+t_m2_stack <- stack(tbs_18, t_m2)
+
+### Reclassification function
+rc_m2_model <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t2_min_model), 10, x1)
+}
+
+## Make output raster
+t_m2_projected_model <- overlay(t_m2_stack, fun = rc_m2_model)
+  
+### Save raster
+writeRaster(t_m2_projected_model,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_2_modeled_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 3
+```{r}
+### Get top values
+t_m3_top_model <- head(t_m3_df, 35066)
+
+### Get range of those values
+range(t_m3_top_model)
+### 185-916
+t3_min_model <- min(t_m3_top_model)
+
+### Stack 2018 tbs and PP 
+t_m3_stack <- stack(tbs_18, t_m3)
+
+### Reclassification function
+rc_m3_model <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t3_min_model), 10, x1)
+}
+
+## Make output raster
+t_m3_projected_model <- overlay(t_m3_stack, fun = rc_m3_model)
+  
+### Save raster
+writeRaster(t_m3_projected_model,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_3_modeled_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 4
+```{r}
+### Get top values
+t_m4_top_model <- head(t_m4_df, 35202)
+
+### Get range of those values
+range(t_m4_top_model)
+### 185-900
+t4_min_model <- min(t_m4_top_model)
+
+### Reclassification function
+rc_m4_model <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t4_min_model), 10, x1)
+}
+
+### Stack 2018 tbs and PP 
+t_m4_stack <- stack(tbs_18, t_m4)
+
+## Make output raster
+t_m4_projected_model <- overlay(t_m4_stack, fun = rc_m4_model)
+  
+### Save raster
+writeRaster(t_m4_projected_model,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_4_modeled_projected_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+### Ag over time for models
+#### model 1
+```{r}
+### Mask cells that were ag in 2018
+t1_mask_18_modeled <- mask(t_m1_projected_model, 
+                              tbs_18,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t1_mask_08_modeled <- mask(t1_mask_18_modeled, 
+                              tbs_08,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t1_ag_2008_modeled <- freq(t1_mask_08_modeled, value = 30) ## 381765
+t1_ag_2018_modeled <- freq(t1_mask_08_modeled, value = 20) ## 43197
+t1_ag_2028_modeled <- freq(t1_mask_08_modeled, value = 10) ## 31640
+
+### Save raster
+writeRaster(t1_mask_08_modeled,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_1_modeled_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 2
+```{r}
+### Mask cells that were ag in 2018
+t2_mask_18_modeled <- mask(t_m2_projected_model, 
+                              tbs_18,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t2_mask_08_modeled <- mask(t2_mask_18_modeled, 
+                              tbs_08,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t2_ag_2008_modeled <- freq(t2_mask_08_modeled, value = 30) ## 381824
+t2_ag_2018_modeled <- freq(t2_mask_08_modeled, value = 20) ## 43197
+t2_ag_2028_modeled <- freq(t2_mask_08_modeled, value = 10) ## 32343
+
+### Save raster
+writeRaster(t2_mask_08_modeled,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_2_modeled_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 3
+```{r}
+### Mask cells that were ag in 2018
+t3_mask_18_modeled <- mask(t_m3_projected_model, 
+                              tbs_18,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t3_mask_08_modeled <- mask(t3_mask_18_modeled, 
+                              tbs_08,
+                              inverse= FALSE,
+                              maskvalue = 1,
+                              updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t3_ag_2008_modeled <- freq(t3_mask_08_modeled, value = 30) ## 381765
+t3_ag_2018_modeled <- freq(t3_mask_08_modeled, value = 20) ## 43197
+t3_ag_2028_modeled <- freq(t3_mask_08_modeled, value = 10) ## 31687
+
+### Save raster
+writeRaster(t3_mask_08_modeled,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_3_modeled_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 4
+```{r}
+# ### Open model rasters
+# t4 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_4_protected_map.tif")
+# 
+### Mask cells that were ag in 2018
+t4_mask_18_modeled <- mask(t_m4_projected_model, tbs_18,
+                  inverse= FALSE,
+                  maskvalue = 1,
+                  updatevalue = 20)
+### 20 = ag in 2018
+### 10 = ag in 2028
+
+### Mask cells that were ag in 2008
+t4_mask_08_modeled <- mask(t4_mask_18_modeled, tbs_08,
+                   inverse= FALSE,
+                   maskvalue = 1,
+                   updatevalue = 30)
+### 20 = ag in 2018
+### 10 = ag in 2028
+### 30 = ag in 2008
+
+### Get frequency of each value
+t4_ag_2008_modeled <- freq(t4_mask_08_modeled, value = 30) ## 381765
+t4_ag_2018_modeled <- freq(t4_mask_08_modeled, value = 20) ## 43197
+t4_ag_2028_modeled <- freq(t4_mask_08_modeled, value = 10) ## 31961
+
+### Save raster
+writeRaster(t4_mask_08_modeled,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_4_modeled_projected_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+## FRAGSTATS on mean projected defor
+### Models 1-4
+```{r}
+### Reclassification matrix
+reclass_df <- c(0, 1.99, 0,
+                1.991, 2.001, 1,
+                2.1, 10.1, 0)
+reclass_m <- matrix(reclass_df,
+                    ncol = 3,
+                    byrow = TRUE)
+
+### Check that it will work
+# check_landscape(t_m1_projected_model) ## it will work
+
+### Reclassify rasters
+t_m1_projected_model <- reclassify(t_m1_projected_model,
+                                   reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t1_model_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t_m1_projected_model, directions = 8),
+  lsm_c_area_sd(t_m1_projected_model, directions = 8),
+  lsm_c_ca(t_m1_projected_model, directions = 8),
+  lsm_c_cai_mn(t_m1_projected_model, directions = 8),
+  lsm_c_cai_sd(t_m1_projected_model, directions = 8),
+  lsm_c_core_mn(t_m1_projected_model, directions = 8),
+  lsm_c_core_sd(t_m1_projected_model, directions = 8),
+  lsm_c_cpland(t_m1_projected_model, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t_m1_projected_model, directions = 8),
+  lsm_c_frac_mn(t_m1_projected_model, directions = 8),
+  lsm_c_frac_sd(t_m1_projected_model, directions = 8),
+  lsm_c_np(t_m1_projected_model, directions = 8),
+  lsm_c_pafrac(t_m1_projected_model, directions = 8),
+  lsm_c_para_mn(t_m1_projected_model, directions = 8),
+  lsm_c_para_sd(t_m1_projected_model, directions = 8),
+  lsm_c_pland(t_m1_projected_model, directions = 8),
+  lsm_c_tca(t_m1_projected_model, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t_m1_projected_model, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t1_model_metrics <- t1_model_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model1",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "modeled_defor") 
+
+### Model 2
+
+### Reclassify rasters
+t_m2_projected_model <- reclassify(t_m2_projected_model,
+                                reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t2_model_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t_m2_projected_model, directions = 8),
+  lsm_c_area_sd(t_m2_projected_model, directions = 8),
+  lsm_c_ca(t_m2_projected_model, directions = 8),
+  lsm_c_cai_mn(t_m2_projected_model, directions = 8),
+  lsm_c_cai_sd(t_m2_projected_model, directions = 8),
+  lsm_c_core_mn(t_m2_projected_model, directions = 8),
+  lsm_c_core_sd(t_m2_projected_model, directions = 8),
+  lsm_c_cpland(t_m2_projected_model, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t_m2_projected_model, directions = 8),
+  lsm_c_frac_mn(t_m2_projected_model, directions = 8),
+  lsm_c_frac_sd(t_m2_projected_model, directions = 8),
+  lsm_c_np(t_m2_projected_model, directions = 8),
+  lsm_c_pafrac(t_m2_projected_model, directions = 8),
+  lsm_c_para_mn(t_m2_projected_model, directions = 8),
+  lsm_c_para_sd(t_m2_projected_model, directions = 8),
+  lsm_c_pland(t_m2_projected_model, directions = 8),
+  lsm_c_tca(t_m2_projected_model, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t_m2_projected_model, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t2_model_metrics <- t2_model_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model2",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "modeled_defor") 
+
+
+### Model 3
+
+### Reclassify rasters
+t_m3_projected_model <- reclassify(t_m3_projected_model,
+                                reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t3_model_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t_m3_projected_model, directions = 8),
+  lsm_c_area_sd(t_m3_projected_model, directions = 8),
+  lsm_c_ca(t_m3_projected_model, directions = 8),
+  lsm_c_cai_mn(t_m3_projected_model, directions = 8),
+  lsm_c_cai_sd(t_m3_projected_model, directions = 8),
+  lsm_c_core_mn(t_m3_projected_model, directions = 8),
+  lsm_c_core_sd(t_m3_projected_model, directions = 8),
+  lsm_c_cpland(t_m3_projected_model, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t_m3_projected_model, directions = 8),
+  lsm_c_frac_mn(t_m3_projected_model, directions = 8),
+  lsm_c_frac_sd(t_m3_projected_model, directions = 8),
+  lsm_c_np(t_m3_projected_model, directions = 8),
+  lsm_c_pafrac(t_m3_projected_model, directions = 8),
+  lsm_c_para_mn(t_m3_projected_model, directions = 8),
+  lsm_c_para_sd(t_m3_projected_model, directions = 8),
+  lsm_c_pland(t_m3_projected_model, directions = 8),
+  lsm_c_tca(t_m3_projected_model, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t_m3_projected_model, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t3_model_metrics <- t3_model_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model3",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "modeled_defor") 
+
+
+### Model 4
+
+### Reclassify rasters
+t_m4_projected_model <- reclassify(t_m4_projected_model,
+                 reclass_m)
+
+### Calculate metrics!
+
+### Class-level metrics
+t4_model_metrics <- dplyr::bind_rows(
+  lsm_c_area_mn(t_m4_projected_model, directions = 8),
+  lsm_c_area_sd(t_m4_projected_model, directions = 8),
+  lsm_c_ca(t_m4_projected_model, directions = 8),
+  lsm_c_cai_mn(t_m4_projected_model, directions = 8),
+  lsm_c_cai_sd(t_m4_projected_model, directions = 8),
+  lsm_c_core_mn(t_m4_projected_model, directions = 8),
+  lsm_c_core_sd(t_m4_projected_model, directions = 8),
+  lsm_c_cpland(t_m4_projected_model, directions = 8,
+               consider_boundary = FALSE),
+  lsm_c_division(t_m4_projected_model, directions = 8),
+  lsm_c_frac_mn(t_m4_projected_model, directions = 8),
+  lsm_c_frac_sd(t_m4_projected_model, directions = 8),
+  lsm_c_np(t_m4_projected_model, directions = 8),
+  lsm_c_pafrac(t_m4_projected_model, directions = 8),
+  lsm_c_para_mn(t_m4_projected_model, directions = 8),
+  lsm_c_para_sd(t_m4_projected_model, directions = 8),
+  lsm_c_pland(t_m4_projected_model, directions = 8),
+  lsm_c_tca(t_m4_projected_model, directions = 8, 
+            consider_boundary = TRUE),
+  lsm_c_te(t_m4_projected_model, count_boundary = FALSE)
+)
+
+### Filter for forest and add model name
+t4_model_metrics <- t4_model_metrics %>%
+  filter(class == 1) %>%
+  mutate(model_name = "model4",
+         
+         ## scenario: which deforestation scenario?
+         scenario = "modeled_defor") 
+
+
+### Combine
+### One df
+all_metrics_modeled <- rbind(t1_model_metrics,
+                             t2_model_metrics,
+                             t3_model_metrics,
+                             t4_model_metrics)
+
+### Write csv
+write_csv(all_metrics_modeled,
+          "/nfs/agfrontiers-data/luc_model/peru_landscape_metrics_modeled.tif")
+```
+
+## 2018 PROJECTIONS
+### Stack and add Monte Carlos
+Add up simulated maps
+```{r}
+#############
+### Model 1
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_2018_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_2018_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_2018_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_2018_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_2018_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/peru_m1_2018_stacked_all.tif")
+
+#############
+### Model 2
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_2018_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_2018_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_2018_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_2018_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_2018_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/peru_m2_2018_stacked_all.tif")
+
+#############
+### Model 3
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_2018_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_2018_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_2018_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_2018_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_2018_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/peru_m3_2018_stacked_all.tif")
+
+#############
+### Model 4
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_2018_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_2018_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_2018_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_2018_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_2018_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/peru_m4_2018_stacked_all.tif")
+```
+
+### Project with observed deforestation
+Using amount of deforestation observed from 2008-2018
+#### Model 1
+```{r}
+### Open stacked raster
+t_m1 <- raster("/nfs/agfrontiers-data/luc_model/peru_m1_2018_stacked_all.tif")
+
+### Restrict to TBS
+t_m1 <- crop(t_m1, tbs)
+t_m1 <- mask(t_m1, tbs)
+
+### Convert to df
+t_m1_df <- as.data.frame(t_m1)
+
+### To vector
+t_m1_df <- dplyr::pull(t_m1_df, peru_m1_2018_stacked_all)
+
+### Descending order
+t_m1_df <- sort(t_m1_df, decreasing = TRUE)
+
+### Get top values
+t_m1_top <- head(t_m1_df, 23391)
+
+### Get range of those values
+range(t_m1_top)
+### 248 -898
+t1_min <- min(t_m1_top)
+
+### So if the value is >= 248, it converts to agriculture (10 = new ag)
+
+### Stack 2008 tbs and PP 
+t_m1_stack <- stack(tbs_08, t_m1)
+
+### Reclassification function
+rc_m1 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t1_min), 10, x1)
+}
+
+## Make output raster
+t_m1_projected <- overlay(t_m1_stack, fun = rc_m1)
+  
+### Save raster
+writeRaster(t_m1_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_1_projected_2018_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 2
+```{r}
+### Open stacked raster
+t_m2 <- raster("/nfs/agfrontiers-data/luc_model/peru_m2_2018_stacked_all.tif")
+
+### Restrict to TBS
+t_m2 <- crop(t_m2, tbs)
+t_m2 <- mask(t_m2, tbs)
+
+### Convert to df
+t_m2_df <- as.data.frame(t_m2)
+
+### To vector
+t_m2_df <- dplyr::pull(t_m2_df, peru_m2_2018_stacked_all)
+
+### Descending order
+t_m2_df <- sort(t_m2_df, decreasing = TRUE)
+
+### Get top values
+t_m2_top <- head(t_m2_df, 23391)
+
+### Get range of those values
+range(t_m2_top)
+### 146-489
+t2_min <- min(t_m2_top)
+
+### So if the value is >= 231, it converts to agriculture (10 = new ag)
+
+### Stack 2008 tbs and PP 
+t_m2_stack <- stack(tbs_08, t_m2)
+
+### Reclassification function
+rc_m2 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t2_min), 10, x1)
+}
+
+## Make output raster
+t_m2_projected <- overlay(t_m2_stack, fun = rc_m2)
+  
+### Save raster
+writeRaster(t_m2_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_2_projected_2018_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 3
+```{r}
+### Open stacked raster
+t_m3 <- raster("/nfs/agfrontiers-data/luc_model/peru_m3_2018_stacked_all.tif")
+
+### Restrict to TBS
+t_m3 <- crop(t_m3, tbs)
+t_m3 <- mask(t_m3, tbs)
+
+### Convert to df
+t_m3_df <- as.data.frame(t_m3)
+
+### To vector
+t_m3_df <- dplyr::pull(t_m3_df, peru_m3_2018_stacked_all)
+
+### Descending order
+t_m3_df <- sort(t_m3_df, decreasing = TRUE)
+
+### Get top values
+t_m3_top <- head(t_m3_df, 23391)
+
+### Get range of those values
+range(t_m3_top)
+### 255-922
+t3_min <- min(t_m3_top)
+
+### So if the value is >= 238, it converts to agriculture (10 = new ag)
+
+### Stack 2008 tbs and PP 
+t_m3_stack <- stack(tbs_08, t_m3)
+
+### Reclassification function
+rc_m3 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t3_min), 10, x1)
+}
+
+## Make output raster
+t_m3_projected <- overlay(t_m3_stack, fun = rc_m3)
+  
+### Save raster
+writeRaster(t_m3_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_3_projected_2018_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 4
+```{r}
+### Open stacked raster
+t_m4 <- raster("/nfs/agfrontiers-data/luc_model/peru_m4_2018_stacked_all.tif")
+
+### Restrict to TBS
+t_m4 <- crop(t_m4, tbs)
+t_m4 <- mask(t_m4, tbs)
+
+### Convert to df
+t_m4_df <- as.data.frame(t_m4)
+
+### To vector
+t_m4_df <- dplyr::pull(t_m4_df, peru_m4_2018_stacked_all)
+
+### Descending order
+t_m4_df <- sort(t_m4_df, decreasing = TRUE)
+
+### Get top values
+t_m4_top <- head(t_m4_df, 23391)
+
+### Get range of those values
+range(t_m4_top)
+### 254-916
+t4_min <- min(t_m4_top)
+
+### So if the value is >= 237 , it converts to agriculture (10 = new ag)
+
+### Stack 2008 tbs and PP 
+t_m4_stack <- stack(tbs_08, t_m4)
+
+### Reclassification function
+rc_m4 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= t4_min), 10, x1)
+}
+
+## Make output raster
+t_m4_projected <- overlay(t_m4_stack, fun = rc_m4)
+  
+### Save raster
+writeRaster(t_m4_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_4_projected_2018_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+### Mask out ag
+#### model 1
+```{r}
+### Open model rasters
+t1 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_1_projected_2018_map.tif")
+
+### Mask cells that were ag in 2008
+t1_mask_08 <- mask(t1, tbs_08,
+                   inverse= FALSE,
+                   maskvalue = 1,
+                   updatevalue = 30)
+### 10 = ag in 2018
+### 30 = ag in 2008
+
+### Save raster
+writeRaster(t1_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_1_projected_2018_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 2
+```{r}
+### Open model rasters
+t2 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_2_projected_2018_map.tif")
+
+### Mask cells that were ag in 2008
+t2_mask_08 <- mask(t2, tbs_08,
+                   inverse= FALSE,
+                   maskvalue = 1,
+                   updatevalue = 30)
+### 10 = ag in 2018
+### 30 = ag in 2008
+
+### Save raster
+writeRaster(t2_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_2_projected_2018_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 3
+```{r}
+### Open model rasters
+t3 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_3_projected_2018_map.tif")
+
+### Mask cells that were ag in 2008
+t3_mask_08 <- mask(t3, tbs_08,
+                   inverse= FALSE,
+                   maskvalue = 1,
+                   updatevalue = 30)
+### 10 = ag in 2018
+### 30 = ag in 2008
+
+### Save raster
+writeRaster(t3_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_3_projected_2018_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 4
+```{r}
+### Open model rasters
+t4 <- raster("/nfs/agfrontiers-data/luc_model/peru_full_4_projected_2018_map.tif")
+
+### Mask cells that were ag in 2008
+t4_mask_08 <- mask(t4, tbs_08,
+                   inverse= FALSE,
+                   maskvalue = 1,
+                   updatevalue = 30)
+### 10 = ag in 2018
+### 30 = ag in 2008
+
+### Save raster
+writeRaster(t4_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/peru_full_4_projected_2018_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+# ANALYZE 2018 MODEL OUTPUT
+Analyze outputs from predict_luc_peru.R
+
+## Analyze Monte Carlo simulations for buffer in 2018
+Output from predict_luc_peru.R
+```{r}
+### Model 1, whole extent
+m1_mc <- read.csv("/nfs/agfrontiers-data/luc_model/peru_1_project_2018/peru_projected_loss_2018.csv")
+
+### Add columns for model and extent
+m1_mc <- m1_mc %>%
+  mutate(model = "model1",
+         extent = "whole_area",
+         value_km2 = x/1000000)
+
+### Model 1, Tambo
+m1_tambo <- read.csv("/nfs/agfrontiers-data/luc_model/peru_1_project_2018/peru_projected_loss_tambopata_2018.csv")
+m1_tambo <- m1_tambo %>%
+  mutate(model = "model1",
+         extent = "tambopata",
+         value_km2 = x/1000000)
+
+### Model 1, B-S
+m1_bahua <- read.csv("/nfs/agfrontiers-data/luc_model/peru_1_project_2018/peru_projected_loss_bahuaja_2018.csv")
+m1_bahua <- m1_bahua %>%
+  mutate(model = "model1",
+         extent = "bahuaja_sonene",
+         value_km2 = x/1000000)
+
+### Model 2, whole extent
+m2_mc <- read.csv("/nfs/agfrontiers-data/luc_model/peru_2_project_2018/peru_2_projected_loss_2018.csv")
+### Add columns for model and extent
+m2_mc <- m2_mc %>%
+  mutate(model = "model2",
+         extent = "whole_area",
+         value_km2 = x/1000000)
+
+### Model 2, Tambo
+m2_tambo <- read.csv("/nfs/agfrontiers-data/luc_model/peru_2_project_2018/peru_2_projected_loss_tambopata_2018.csv")
+m2_tambo <- m2_tambo %>%
+  mutate(model = "model2",
+         extent = "tambopata",
+         value_km2 = x/1000000)
+
+### Model 2, B-S
+m2_bahua <- read.csv("//nfs/agfrontiers-data/luc_model/peru_2_project_2018/peru_2_projected_loss_bahuaja_2018.csv")
+m2_bahua <- m2_bahua %>%
+  mutate(model = "model2",
+         extent = "bahuaja_sonene",
+         value_km2 = x/1000000)
+
+### Model 3, whole extent
+m3_mc <- read.csv("/nfs/agfrontiers-data/luc_model/peru_3_project_2018/peru_3_projected_loss_2018.csv")
+### Add columns for model and extent
+m3_mc <- m3_mc %>%
+  mutate(model = "model3",
+         extent = "whole_area",
+         value_km2 = x/1000000)
+
+### Model 3, Tambo
+m3_tambo <- read.csv("/nfs/agfrontiers-data/luc_model/peru_3_project_2018/peru_3_projected_loss_tambopata_2018.csv")
+m3_tambo <- m3_tambo %>%
+  mutate(model = "model3",
+         extent = "tambopata",
+         value_km2 = x/1000000)
+
+### Model 3, B-S
+m3_bahua <- read.csv("/nfs/agfrontiers-data/luc_model/peru_3_project_2018/peru_3_projected_loss_bahuaja_2018.csv")
+m3_bahua <- m3_bahua %>%
+  mutate(model = "model3",
+         extent = "bahuaja_sonene",
+         value_km2 = x/1000000)
+
+### Model 4, whole extent
+m4_mc <- read.csv("/nfs/agfrontiers-data/luc_model/peru_4_project_2018/peru_4_projected_loss_2018.csv")
+### Add columns for model and extent
+m4_mc <- m4_mc %>%
+  mutate(model = "model4",
+         extent = "whole_area",
+         value_km2 = x/1000000)
+
+### Model 4, Tambo
+m4_tambo <- read.csv("/nfs/agfrontiers-data/luc_model/peru_4_project_2018/peru_4_projected_loss_tambopata_2018.csv")
+m4_tambo <- m4_tambo %>%
+  mutate(model = "model4",
+         extent = "tambopata",
+         value_km2 = x/1000000)
+
+### Model 4, B-S
+m4_bahua <- read.csv("/nfs/agfrontiers-data/luc_model/peru_4_project_2018/peru_4_projected_loss_bahuaja_2018.csv")
+m4_bahua <- m4_bahua %>%
+  mutate(model = "model4",
+         extent = "bahuaja_sonene",
+         value_km2 = x/1000000)
+
+### Take means and sds of tambopata
+mean(m1_tambo$value_km2)
+sd(m1_tambo$value_km2)
+mean(m2_tambo$value_km2)
+sd(m2_tambo$value_km2)
+mean(m3_tambo$value_km2)
+sd(m3_tambo$value_km2)
+mean(m4_tambo$value_km2)
+sd(m4_tambo$value_km2)
+
+### Take means and sds of bahuaja sonene
+mean(m1_bahua$value_km2)
+sd(m1_bahua$value_km2)
+mean(m2_bahua$value_km2)
+sd(m2_bahua$value_km2)
+mean(m3_bahua$value_km2)
+sd(m3_bahua$value_km2)
+mean(m4_bahua$value_km2)
+sd(m4_bahua$value_km2)
+
+### Take means and sds of whole extent
+mean(m1_mc$value_km2)
+sd(m1_mc$value_km2)
+mean(m2_mc$value_km2)
+sd(m2_mc$value_km2)
+mean(m3_mc$value_km2)
+sd(m3_mc$value_km2)
+mean(m4_mc$value_km2)
+sd(m4_mc$value_km2)
+
+### rbind
+all_models <- rbind(m1_mc, m2_mc, 
+                    m3_mc, m4_mc)
+all_model_tambo <- rbind(m1_tambo, m2_tambo,
+                         m3_tambo, m4_tambo)
+all_model_bs <- rbind(m1_bahua, m2_bahua, 
+                      m3_bahua, m4_bahua)
+
+### Write out csvs
+write_csv(all_models,
+          "/nfs/agfrontiers-data/luc_model/peru_2018_forest_loss_allmodels_fullextent.csv")
+write_csv(all_model_tambo,
+          "/nfs/agfrontiers-data/luc_model/peru_2018_forest_loss_allmodels_tambo.csv")
+write_csv(all_model_bs,
+          "/nfs/agfrontiers-data/luc_model/peru_2018_forest_loss_allmodels_bahau.csv")
+
+# ### Plot for full extent
+# ggplot(all_models, aes(x = value_km2, color = model)) +
+#   geom_density() +
+#   xlab("Square km of forest converted to agriculture") +
+#   ylab("Density")
+# ggsave("/nfs/agfrontiers-data/luc_model/peru_allmodels_area_defor.png")
+# 
+# ### Plot for Tambopata
+# ggplot(all_model_tambo, aes(x = value_km2, color = model)) +
+#   geom_density() +
+#   xlab("Square km of forest converted to agriculture") +
+#   ylab("Density")
+# ggsave("/nfs/agfrontiers-data/luc_model/peru_allmodels_area_defor_tambopata.png")
+# 
+# ### Plot for Bahuaja-Sonene
+# ggplot(all_model_bs, aes(x = value_km2, color = model)) +
+#   geom_density() +
+#   xlab("Square km of forest converted to agriculture") +
+#   ylab("Density")
+# ggsave("/nfs/agfrontiers-data/luc_model/peru_allmodels_area_defor_bahuaja.png")
+```
+
+## OLD CODE
+## Graph model coefficients
+```{r}
+### Open Model 4 coefficients
+m4 <- read.csv("/nfs/agfrontiers-data/luc_model/fit_bra_model4.csv")
+colnames(m4) <- c("variable", "coefficient", 
+                  "std_error", "zvalue", "pvalue")
+
+### Filter out intercept and add model number
+m4 <- m4 %>%
+  filter(pvalue <= 0.05) %>%
+  filter(variable != "(Intercept)") %>%
+  mutate(model = "Model 4")
+
+### Rename cols
+m4$variable[m4$variable == "soil"] <- "Soil moisture"
+m4$variable[m4$variable == "slope"] <- "Slope"
+m4$variable[m4$variable == "elev"] <- "Elevation"
+m4$variable[m4$variable == "roads"] <- "Dist. to roads"
+m4$variable[m4$variable == "cities"] <- "Dist. to cities"
+m4$variable[m4$variable == "dist_ag"] <- "Dist. to agriculture"
+m4$variable[m4$variable == "dist_fires"] <- "Dist. to fires"
+m4$variable[m4$variable == "perc_diff"] <- "Neighborhood effect"
+m4$variable[m4$variable == "prot_status10"] <- "10 km buffer"
+m4$variable[m4$variable == "prot_status20"] <- "20 km buffer"
+m4$variable[m4$variable == "paddd1"] <- "PADDD proposal"
+m4$variable[m4$variable == "non_all_land"] <- "% non-allocated land"
+m4$variable[m4$variable == "fire_dens"] <- "Fire density"
+m4$variable[m4$variable == "agref_sett1"] <- "Ag reform settlement"
+
+### order
+m4 <- m4 %>%
+  arrange(coefficient)
+
+### Plot
+m4 %>%
+  arrange(coefficient) %>%
+  mutate(name=factor(variable, levels=variable)) %>%
+  ggplot(aes(x = coefficient, y = variable)) +
+  geom_point(colour = "turquoise4") +
+  geom_vline(xintercept = 0, 
+             linetype = "dashed", 
+             color = "gray") +
+  theme(legend.position="none") +
+  xlab("Coefficient estimate") + ylab("Variable") +
+  NULL
 ```

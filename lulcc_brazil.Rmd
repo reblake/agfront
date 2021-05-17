@@ -699,6 +699,7 @@ ggplot(all_models, aes(x = value_km2, color = model)) +
   ylab("Density")
 ggsave("/nfs/agfrontiers-data/luc_model/brazil_allmodels_area_defor.png")
 ```
+
 ## Original forest cover in buffer + park
 ```{r}
 ### 2008
@@ -870,6 +871,7 @@ forest_18_jaman <- as.data.frame(jaman_18) %>%
 ### Calculate forested area lost 
 f_lost_jaman <- (12557664259-12238130351)/1000000
 ```
+
 ## Add Simulations
 Add up simulated maps
 ```{r}
@@ -3299,11 +3301,561 @@ write_csv(all_metrics_modeled,
           "/nfs/agfrontiers-data/luc_model/brazil_landscape_metrics_modeled.tif")
 ```
 
+## 2018 PROJECTIONS
+### Stack and add Monte Carlos
+Add up simulated maps
+```{r}
+#############
+### Model 1
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m1_2018_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m1_2018_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m1_2018_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m1_2018_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m1_2018_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/brazil_m1_2018_stacked_all.tif")
+
+#############
+### Model 2
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m2_2018_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m2_2018_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m2_2018_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m2_2018_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m2_2018_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/brazil_m2_2018_stacked_all.tif")
+
+#############
+### Model 3
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m3_2018_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m3_2018_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m3_2018_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m3_2018_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m3_2018_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/brazil_m3_2018_stacked_all.tif")
+
+#############
+### Model 4
+#############
+### Open rasters
+r1 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m4_2018_stacked_1.tif")
+r2 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m4_2018_stacked_2.tif")
+r3 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m4_2018_stacked_3.tif")
+r4 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m4_2018_stacked_4.tif")
+r5 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m4_2018_stacked_5.tif")
+
+### Stack
+r_stack <- stack(r1, r2, r3, r4, r5)
+
+### Add raster values
+r_add <- calc(r_stack, sum)
+
+### Save output
+writeRaster(r_add, 
+            "/nfs/agfrontiers-data/luc_model/brazil_m4_2018_stacked_all.tif")
+```
+
+### Baseline: Project based on observed forest loss in JNF and buffer
+```{r}
+### Calculate forest loss as # pixels
+### Open brazil 2008 map
+bra_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2008_102033.tif")
+
+### Open brazil 2018 map
+bra_2018 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2018_102033.tif")
+
+### Open buffer
+jaman <- st_read("/nfs/agfrontiers-data/Case Study Info/Brazil/JamanBuffer/JamanBuffer.shp") %>%
+  st_transform(., crs = "+proj=aea +lat_0=-32 +lon_0=-60 +lat_1=-5 +lat_2=-42 +x_0=0 +y_0=0
++ellps=aust_SA +units=m +no_defs")
+
+### Crop LUC maps
+jaman_08 <- crop(bra_2008, jaman)
+jaman_08 <- mask(jaman_08, jaman)
+jaman_18 <- crop(bra_2018, jaman)
+jaman_18 <- mask(jaman_18, jaman)
+
+### Forest in 2008
+forest_08_jaman <- as.data.frame(jaman_08) %>%
+    group_by(classi_bra_dry_2008_102033) %>%
+    tally()
+### 27983889
+
+### Forest in 2018
+forest_18_jaman <- as.data.frame(jaman_18) %>%
+    group_by(classi_bra_dry_2018_102033) %>%
+    tally()
+### 26689943
+
+### Calculate forest loss
+pix_lost_jbuff <- 27983889-26689943
+### 1293946 pixels
+```
+#### Model 1
+```{r}
+### Open stacked raster
+j_m1 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m1_2018_stacked_all.tif")
+
+### Restrict to JNF
+j_m1 <- crop(j_m1, jaman)
+j_m1 <- mask(j_m1, jaman)
+
+### Convert to df
+j_m1_df <- as.data.frame(j_m1)
+
+### To vector
+j_m1_df <- dplyr::pull(j_m1_df, brazil_m1_2018_stacked_all)
+
+### Descending order
+j_m1_df <- sort(j_m1_df, decreasing = TRUE)
+
+### Get top values
+j_m1_top <- head(j_m1_df, 1293946)
+
+### Get range of those values
+range(j_m1_top)
+### 185-999
+j1_min <- min(j_m1_top)
+
+### So if the value is >= 185, it converts to agriculture (10 = new ag)
+
+### Stack 2008 jaman and PP 
+j_m1_stack <- stack(jaman_08, j_m1)
+
+### Reclassification function
+rc_m1 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= j1_min), 10, x1)
+}
+
+## Make output raster
+j_m1_projected <- overlay(j_m1_stack, fun = rc_m1)
+  
+### Save raster
+writeRaster(j_m1_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/brazil_full_1_projected_2018_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 2
+```{r}
+### Open stacked raster
+j_m2 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m2_2018_stacked_all.tif")
+
+### Restrict to JNF
+j_m2 <- crop(j_m2, jaman)
+j_m2 <- mask(j_m2, jaman)
+
+### Convert to df
+j_m2_df <- as.data.frame(j_m2)
+
+### To vector
+j_m2_df <- dplyr::pull(j_m2_df, brazil_m2_2018_stacked_all)
+
+### Descending order
+j_m2_df <- sort(j_m2_df, decreasing = TRUE)
+
+### Get top values
+j_m2_top <- head(j_m2_df, 1293946)
+
+### Get range of those values
+range(j_m2_top)
+### 295-999
+j2_min <- min(j_m2_top)
+
+### So if the value is >= 295, it converts to agriculture
+
+### Stack 2008 jaman and PP 
+j_m2_stack <- stack(jaman_08, j_m2)
+
+### Reclassification function
+rc_m2 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= j2_min), 10, x1)
+}
+
+## Make output raster
+j_m2_projected <- overlay(j_m2_stack, fun = rc_m2)
+  
+### Save raster
+writeRaster(j_m2_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/brazil_full_2_projected_2018_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 3
+```{r}
+### Open stacked raster
+j_m3 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m3_2018_stacked_all.tif")
+
+### Restrict to JNF
+j_m3 <- crop(j_m3, jaman)
+j_m3 <- mask(j_m3, jaman)
+
+### Convert to df
+j_m3_df <- as.data.frame(j_m3)
+
+### To vector
+j_m3_df <- dplyr::pull(j_m3_df, brazil_m3_2018_stacked_all)
+
+### Descending order
+j_m3_df <- sort(j_m3_df, decreasing = TRUE)
+
+### Get top values
+j_m3_top <- head(j_m3_df, 1293946)
+
+### Get range of those values
+range(j_m3_top)
+### 306-999
+j3_min <- min(j_m3_top)
+
+### Stack 2008 jaman and PP 
+j_m3_stack <- stack(jaman_08, j_m3)
+
+### Reclassification function
+rc_m3 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= j3_min), 10, x1)
+}
+
+## Make output raster
+j_m3_projected <- overlay(j_m3_stack, fun = rc_m3)
+  
+### Save raster
+writeRaster(j_m3_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/brazil_full_3_projected_2018_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### Model 4
+```{r}
+### Open stacked raster
+j_m4 <- raster("/nfs/agfrontiers-data/luc_model/brazil_m4_2018_stacked_all.tif")
+
+### Restrict to JNF
+j_m4 <- crop(j_m4, jaman)
+j_m4 <- mask(j_m4, jaman)
+
+### Convert to df
+j_m4_df <- as.data.frame(j_m4)
+
+### To vector
+j_m4_df <- dplyr::pull(j_m4_df, brazil_m4_2018_stacked_all)
+
+### Descending order
+j_m4_df <- sort(j_m4_df, decreasing = TRUE)
+
+### Get top values
+j_m4_top <- head(j_m4_df, 1293946)
+
+### Get range of those values
+range(j_m4_top)
+### 305-1000
+j4_min <- min(j_m4_top)
+
+### So if the value is >= 305, it converts to agriculture
+
+### Stack 2008 jaman and PP 
+j_m4_stack <- stack(jaman_08, j_m4)
+
+### Reclassification function
+rc_m4 <- function(x1, x2) {
+  ifelse((x1 == 2 & x2 >= j4_min), 10, x1)
+}
+
+## Make output raster
+j_m4_projected <- overlay(j_m4_stack, fun = rc_m4)
+  
+### Save raster
+writeRaster(j_m4_projected,
+            filename = "/nfs/agfrontiers-data/luc_model/brazil_full_4_projected_2018_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+### Ag over time
+#### model 1
+```{r}
+### Open model rasters
+j1 <- raster("/nfs/agfrontiers-data/luc_model/brazil_full_1_projected_2018_map.tif")
+
+### Mask cells that were ag in 2008
+j1_mask_08 <- mask(j1, jaman_08,
+                   inverse= FALSE,
+                   maskvalue = 1,
+                   updatevalue = 30)
+### 10 = ag in 2018
+### 30 = ag in 2008
+
+### Save raster
+writeRaster(j1_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/brazil_full_1_projected_2018_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 2
+```{r}
+### Open model rasters
+j2 <- raster("/nfs/agfrontiers-data/luc_model/brazil_full_2_projected_2018_map.tif")
+
+### Mask cells that were ag in 2008
+j2_mask_08 <- mask(j2, jaman_08,
+                   inverse= FALSE,
+                   maskvalue = 1,
+                   updatevalue = 30)
+### 10 = ag in 2018
+### 30 = ag in 2008
+
+### Save raster
+writeRaster(j2_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/brazil_full_2_projected_2018_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 3
+```{r}
+### Open model rasters
+j3 <- raster("/nfs/agfrontiers-data/luc_model/brazil_full_3_projected_2018_map.tif")
+
+### Mask cells that were ag in 2008
+j3_mask_08 <- mask(j3, jaman_08,
+                   inverse= FALSE,
+                   maskvalue = 1,
+                   updatevalue = 30)
+### 10 = ag in 2018
+### 30 = ag in 2008
+
+### Save raster
+writeRaster(j3_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/brazil_full_3_projected_2018_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+#### model 4
+```{r}
+### Open model rasters
+j4 <- raster("/nfs/agfrontiers-data/luc_model/brazil_full_4_projected_2018_map.tif")
+
+### Mask cells that were ag in 2008
+j4_mask_08 <- mask(j4, jaman_08,
+                   inverse= FALSE,
+                   maskvalue = 1,
+                   updatevalue = 30)
+### 10 = ag in 2018
+### 30 = ag in 2008
+
+### Save raster
+writeRaster(j4_mask_08,
+            filename = "/nfs/agfrontiers-data/luc_model/brazil_full_4_projected_2018_masked_map.tif",
+            format = "GTiff",
+            overwrite = TRUE,
+            options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+```
+
+# ANALYZE MODEL OUTPUT
+Analyze outputs from predict_luc.R for 2018
+
+## Analyze Monte Carlo simulations for buffer
+Output from predict_luc.R for 2018
+```{r}
+### Model 1
+m1_mc <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_1_project_2018/brazil_projected_loss_2018.csv") 
+
+### Make long, add value in sq km
+m1_mc <- m1_mc %>%
+  gather(simulation, value, 'X1298992091.59122':'X1299323160.74078') 
+m1_mc <- m1_mc %>%
+  mutate(value_km2 = value/1000000)
+
+### Take mean
+mean(m1_mc$value_km2)
+sd(m1_mc$value_km2)
+
+# ### Histogram
+# options(scipen=10000)
+# m1_hist <- ggplot(m1_mc, aes(x = value_km2)) + 
+#   geom_histogram() +
+#   xlab("Square km of forest loss") +
+#   ylab("Number of simulations")
+
+### Model 2
+m2_mc <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_2_project_2018/brazil_projected_loss_2_2018.csv") 
+
+### Make long, add value in sq km
+m2_mc <- m2_mc %>%
+  gather(simulation, value, 'X1305641363.55971':'X1305026006.77085') 
+m2_mc <- m2_mc %>%
+  mutate(value_km2 = value/1000000)
+
+### Take mean
+mean(m2_mc$value_km2)
+sd(m2_mc$value_km2)
+
+# ### Histogram
+# options(scipen=10000)
+# m2_hist <- ggplot(m2_mc, aes(x = value_km2)) + 
+#   geom_histogram() +
+#   xlab("Square km of forest loss") +
+#   ylab("Number of simulations")
+  
+### Model 3
+m3_mc <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_3_project_2018/brazil_projected_loss_3_2018.csv") 
+
+### Make long, add value in sq km
+m3_mc <- m3_mc %>%
+  gather(simulation, value, 'X1329399173.61844':'X1331372093.84938') 
+m3_mc <- m3_mc %>%
+  mutate(value_km2 = value/1000000)
+
+### Take mean
+mean(m3_mc$value_km2)
+sd(m3_mc$value_km2)
+
+# ### Histogram
+# options(scipen=10000)
+# m3_hist <- ggplot(m3_mc, aes(x = value_km2)) + 
+#   geom_histogram() +
+#   xlab("Square km of forest loss") +
+#   ylab("Number of simulations")
+
+### Model 4
+m4_mc <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_4_project_2018/brazil_projected_loss_4_2018.csv") 
+
+### Make long, add value in sq km
+m4_mc <- m4_mc %>%
+  gather(simulation, value, 'X1325042195.65288':'X1324453828.19687') 
+m4_mc <- m4_mc %>%
+  mutate(value_km2 = value/1000000)
+
+### Take mean
+mean(m4_mc$value_km2)
+sd(m4_mc$value_km2)
+
+# ### Histogram
+# options(scipen=10000)
+# m4_hist <- ggplot(m4_mc, aes(x = value_km2)) + 
+#   geom_histogram() +
+#   xlab("Square km of forest loss") +
+#   ylab("Number of simulations")
+
+### Add columns to dfs
+m1_mc <- m1_mc %>%
+  mutate(model = "model1")
+m2_mc <- m2_mc %>%
+  mutate(model = "model2")
+m3_mc <- m3_mc %>%
+  mutate(model = "model3")
+m4_mc <- m4_mc %>%
+  mutate(model = "model4")
+
+### rbind
+all_models <- rbind(m1_mc, m2_mc, 
+                    m3_mc, m4_mc)
+
+### Plot
+# ggplot(all_models, aes(x = value_km2, color = model)) +
+#   geom_density() +
+#   xlab("Square km of forest converted to agriculture") +
+#   ylab("Density")
+# ggsave("/nfs/agfrontiers-data/luc_model/brazil_allmodels_area_defor.png")
+
+### Write out csv
+write_csv(all_models,
+          "/nfs/agfrontiers-data/luc_model/brazil_2018_forest_loss_allmodels.csv")
+```
+## Analyze Monte Carlo simulations for JNF only
+Output from predict_luc.R for 2018
+```{r}
+### Open output
+jnf_1 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_1_project_2018/braz_1_projected_loss_jamanxim_2018.csv")
+
+### Add columns for model and extent
+jnf_1 <- jnf_1 %>%
+  mutate(model = "model1",
+         extent = "jamanxim_nf",
+         value_km2 = x/1000000)
+
+### Open output
+jnf_2 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_2_project_2018/braz_2_projected_loss_jamanxim_2018.csv")
+
+### Add columns for model and extent
+jnf_2 <- jnf_2 %>%
+  mutate(model = "model2",
+         extent = "jamanxim_nf",
+         value_km2 = x/1000000)
+
+### Open output
+jnf_3 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_3_project_2018/braz_3_projected_loss_jamanxim_2018.csv")
+
+### Add columns for model and extent
+jnf_3 <- jnf_3 %>%
+  mutate(model = "model3",
+         extent = "jamanxim_nf",
+         value_km2 = x/1000000)
+
+### Open output
+jnf_4 <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_4_project_2018/braz_4_projected_loss_jamanxim_2018.csv")
+
+### Add columns for model and extent
+jnf_4 <- jnf_4 %>%
+  mutate(model = "model4",
+         extent = "jamanxim_nf",
+         value_km2 = x/1000000)
+
+### Take means and sds of amboro np
+mean(jnf_1$value_km2)
+sd(jnf_1$value_km2)
+mean(jnf_2$value_km2)
+sd(jnf_2$value_km2)
+mean(jnf_3$value_km2)
+sd(jnf_3$value_km2)
+mean(jnf_4$value_km2)
+sd(jnf_4$value_km2)
+```
 
 
-
-
-
+## OLD CODE
 ## Graph model coefficients
 ```{r}
 ### Open Model 4 coefficients

@@ -5,6 +5,7 @@ library(tidyverse)
 library(sf)
 library(raster)
 library(spatialEco)
+library(blorr)
 
 ##################
 ### Brazil model 1 
@@ -13,59 +14,59 @@ library(spatialEco)
 ### Data prep
 #############
 
-# ### Open sample points
-# bra_dat_all <- read.csv("/nfs/agfrontiers-data/luc_model/brazil_data_for_model.csv")
-# 
-# ### Rename columns
-# colnames(bra_dat_all) <- c("uid", "lon", "lat", "lc_2008", "lc_2018",
-#                         "id", "aspect", "mines",
-#                         "roads", "rivers",
-#                         "cities", "elev",
-#                         "popdens", "poverty",
-#                         "ppt", "prot_status",
-#                         "slope", "soil",
-#                         "crop_suit", "field_res",
-#                         "paddd", "non_all_land",
-#                         "dist_ill_mines", "dist_ag",
-#                         "dist_fires", "fire_dens",
-#                         "dist_pr_rr",
-#                         "dist_pr_dams",
-#                         "agref_sett", "cattle",
-#                         "perc_diff")
+### Open sample points
+bra_dat_all <- read.csv("/nfs/agfrontiers-data/luc_model/braz_data/brazil_data_for_model.csv")
 
-# ### Make column for transition/none
-# bra_dat_all <- bra_dat_all %>%
-#   mutate(transition = ifelse(lc_2018 == "2",
-#                              "no_change",
-#                              ifelse(lc_2018 == "1",
-#                                     "f_to_ag",
-#                                     "other_change")),
-#          trans_rc = ifelse(transition == "no_change",
-#                            "0", ifelse(transition == "f_to_ag",
-#                                        "1", "2")))
+### Rename columns
+colnames(bra_dat_all) <- c("uid", "lon", "lat", "lc_2008", "lc_2018",
+                        "id", "aspect", "mines",
+                        "roads", "rivers",
+                        "cities", "elev",
+                        "popdens", "poverty",
+                        "ppt", "prot_status",
+                        "slope", "soil",
+                        "crop_suit", "field_res",
+                        "paddd", "non_all_land",
+                        "dist_ill_mines", "dist_ag",
+                        "dist_fires", "fire_dens",
+                        "dist_pr_rr",
+                        "dist_pr_dams",
+                        "agref_sett", "cattle",
+                        "perc_diff")
 
-# ### Make columns factor
-# fact_cols <- c("uid", "prot_status",
-#                "paddd", "agref_sett",
-#                "lc_2018", "trans_rc")
-# bra_dat_all <- bra_dat_all %>%
-#   mutate_each_(funs(factor(.)), fact_cols)
-# 
-# ### Restrict to transitions
-# bra_dat_use <- bra_dat_all %>%
-#   filter(trans_rc == "1" | trans_rc == "0")
+### Make column for transition/none
+bra_dat_all <- bra_dat_all %>%
+  mutate(transition = ifelse(lc_2018 == "2",
+                             "no_change",
+                             ifelse(lc_2018 == "1",
+                                    "f_to_ag",
+                                    "other_change")),
+         trans_rc = ifelse(transition == "no_change",
+                           "0", ifelse(transition == "f_to_ag",
+                                       "1", "2")))
+
+### Make columns factor
+fact_cols <- c("uid", "prot_status",
+               "paddd", "agref_sett",
+               "lc_2018", "trans_rc")
+bra_dat_all <- bra_dat_all %>%
+  mutate_each_(funs(factor(.)), fact_cols)
+
+### Restrict to transitions
+bra_dat_use <- bra_dat_all %>%
+  filter(trans_rc == "1" | trans_rc == "0")
 
 ### Model 1
 ###########
 
-# ### Run regression
-# fit_bra <- glm(trans_rc ~ aspect + slope + elev +
-#                  roads + rivers + mines + cities +
-#                  crop_suit + popdens + #poverty +
-#                  # (1|uid) + lon +
-#                  soil + perc_diff + prot_status,
-#                data = bra_dat_use,
-#                family = binomial())
+### Run regression
+fit_bra <- glm(trans_rc ~ aspect + slope + elev +
+                 roads + rivers + mines + cities +
+                 crop_suit + popdens + #poverty +
+                 # (1|uid) + lon +
+                 soil + perc_diff + prot_status,
+               data = bra_dat_use,
+               family = binomial())
 
 ### 2018 data
 #############
@@ -147,17 +148,17 @@ library(spatialEco)
 ##################
 ### Brazil model 2
 ##################
-# ### Run regression
-# fit_bra_2 <- glm(trans_rc ~ paddd + non_all_land +
-#                    # cattle +
-#                     # field_res +
-#                     dist_ill_mines +
-#                     dist_ag + dist_fires +
-#                     fire_dens + dist_pr_rr +
-#                     # dist_pr_dams +
-#                     agref_sett,
-#                   data = bra_dat_use,
-#                   family = binomial(link = "logit"))
+### Run regression
+fit_bra_2 <- glm(trans_rc ~ paddd + non_all_land +
+                   # cattle +
+                    # field_res +
+                    dist_ill_mines +
+                    dist_ag + dist_fires +
+                    fire_dens + dist_pr_rr +
+                    # dist_pr_dams +
+                    agref_sett,
+                  data = bra_dat_use,
+                  family = binomial(link = "logit"))
 
 ### Run prediction
 ##################
@@ -181,21 +182,21 @@ library(spatialEco)
 ##################
 ### Brazil model 3 
 ##################
-# ### Run regression
-# fit_bra_3 <- glm(trans_rc ~ paddd + non_all_land +
-#                    # field_res +
-#                    dist_ill_mines +
-#                    dist_ag + dist_fires +
-#                    fire_dens + dist_pr_rr +
-#                    # dist_pr_dams +
-#                    agref_sett + #cattle +
-#                    aspect + slope + elev +
-#                    roads + rivers + mines + cities +
-#                    crop_suit + popdens + #poverty +
-#                    # (1|uid) + lon +
-#                    soil + perc_diff + prot_status,
-#                  data = bra_dat_use,
-#                  family = binomial(link = "logit"))
+### Run regression
+fit_bra_3 <- glm(trans_rc ~ paddd + non_all_land +
+                   # field_res +
+                   dist_ill_mines +
+                   dist_ag + dist_fires +
+                   fire_dens + dist_pr_rr +
+                   # dist_pr_dams +
+                   agref_sett + #cattle +
+                   aspect + slope + elev +
+                   roads + rivers + mines + cities +
+                   crop_suit + popdens + #poverty +
+                   # (1|uid) + lon +
+                   soil + perc_diff + prot_status,
+                 data = bra_dat_use,
+                 family = binomial(link = "logit"))
 # 
 # ### Run prediction
 # ##################
@@ -217,16 +218,22 @@ library(spatialEco)
 ##################
 ### Brazil model 4 
 ##################
-# ### Run regression
-# fit_bra_4 <- glm(trans_rc ~ slope + elev + 
-#                    roads + cities + mines +
-#                    crop_suit + soil + perc_diff + prot_status +
-#                    paddd + non_all_land +
-#                    dist_ag + dist_fires +
-#                    fire_dens + dist_pr_rr +
-#                    agref_sett,
-#                  data = bra_dat_use,
-#                  family = binomial(link = "logit"))
+### Run regression
+fit_bra_4 <- glm(trans_rc ~ slope + elev +
+                   roads + cities + mines +
+                   crop_suit + soil + perc_diff + prot_status +
+                   paddd + non_all_land +
+                   dist_ag + dist_fires +
+                   fire_dens + dist_pr_rr +
+                   agref_sett,
+                 data = bra_dat_use,
+                 family = binomial(link = "logit"))
+
+### Adjusted pseudo R2
+blr_rsq_mcfadden_adj(fit_bra)
+blr_rsq_mcfadden_adj(fit_bra_2)
+blr_rsq_mcfadden_adj(fit_bra_3)
+blr_rsq_mcfadden_adj(fit_bra_4)
 
 ### Run prediction
 ##################
@@ -1134,156 +1141,709 @@ library(spatialEco)
 ######################
 ### Model 2 projection
 ######################
-### Open PP2 map
-pp2_brazil_mask_18 <- raster("/nfs/agfrontiers-data/luc_model/brazil_pp_2_masked_2018.tif")
+# ### Open PP2 map
+# pp2_brazil_mask_18 <- raster("/nfs/agfrontiers-data/luc_model/brazil_pp_2_masked_2018.tif")
+# 
+# ### Vector for area converted from forest to ag
+# area_vec <- rep("", times = 1000)
+# 
+# for (i in 1:length(area_vec)) {
+#   
+#   ### Make blank Jamanxim raster, fill with random values
+#   j_blank <- random.raster(pp2_brazil_mask_18,
+#                            min = 0,
+#                            max = 1,
+#                            distribution = "random")
+#   
+#   ### Set CRS
+#   j_crs <- crs(pp2_brazil_mask_18)
+#   crs(j_blank) <- j_crs
+#   
+#   ### Set extent
+#   extent(j_blank) <- extent(pp2_brazil_mask_18)
+#   
+#   ### Combine with model 1 PP map
+#   j_blank <- crop(j_blank, pp2_brazil_mask_18)
+#   j_stack <- stack(j_blank, pp2_brazil_mask_18)
+#   
+#   ### Reclassification function (1 = forest converts, 2 = forest stays forest)
+#   rc <- function(x1, x2) {
+#     ifelse(x1 < x2, 1, 0)
+#   }
+#   
+#   ### Make output raster
+#   j_classified <- overlay(j_stack, fun = rc)
+#   
+#   ### Save raster
+#   writeRaster(j_classified,
+#               filename = paste0("/nfs/agfrontiers-data/luc_model/brazil_2_project_2018/brazil_projected_2_2018_",
+#                                 i, ".tif"),
+#               format = "GTiff",
+#               overwrite = TRUE,
+#               options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+#   
+#   ### Calculate area that converts
+#   area_change <- as.data.frame(j_classified) %>%
+#     group_by(layer) %>%
+#     tally() %>%
+#     mutate(area = n * res(j_classified)[1] * res(j_classified)[2],
+#            iteration = i)
+#   
+#   ### Subset to area that converted
+#   forest_loss <- area_change[2, 3]
+#   
+#   ### Add to vector
+#   area_vec[i] <- forest_loss
+# }
+# 
+# ### Save vector of area lost
+# write.csv(area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/brazil_2_project_2018/brazil_projected_loss_2_2018.csv",
+#           row.names=FALSE)
+# 
+# ######################
+# ### Model 3 projection
+# ######################
+# ### Open PP3 map
+# pp3_brazil_mask_18 <- raster("/nfs/agfrontiers-data/luc_model/brazil_pp_3_masked_2018.tif")
+# 
+# ### Vector for area converted from forest to ag
+# area_vec <- rep("", times = 1000)
+# 
+# for (i in 1:length(area_vec)) {
+#   
+#   ### Make blank Jamanxim raster, fill with random values
+#   j_blank <- random.raster(pp3_brazil_mask_18,
+#                            min = 0,
+#                            max = 1,
+#                            distribution = "random")
+#   
+#   ### Set CRS
+#   j_crs <- crs(pp3_brazil_mask_18)
+#   crs(j_blank) <- j_crs
+#   
+#   ### Set extent
+#   extent(j_blank) <- extent(pp3_brazil_mask_18)
+#   
+#   ### Combine with model 1 PP map
+#   j_blank <- crop(j_blank, pp3_brazil_mask_18)
+#   j_stack <- stack(j_blank, pp3_brazil_mask_18)
+#   
+#   ### Reclassification function (1 = forest converts, 2 = forest stays forest)
+#   rc <- function(x1, x2) {
+#     ifelse(x1 < x2, 1, 0)
+#   }
+#   
+#   ### Make output raster
+#   j_classified <- overlay(j_stack, fun = rc)
+#   
+#   ### Save raster
+#   writeRaster(j_classified,
+#               filename = paste0("/nfs/agfrontiers-data/luc_model/brazil_3_project_2018/brazil_projected_3_2018_",
+#                                 i, ".tif"),
+#               format = "GTiff",
+#               overwrite = TRUE,
+#               options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+#   
+#   ### Calculate area that converts
+#   area_change <- as.data.frame(j_classified) %>%
+#     group_by(layer) %>%
+#     tally() %>%
+#     mutate(area = n * res(j_classified)[1] * res(j_classified)[2],
+#            iteration = i)
+#   
+#   ### Subset to area that converted
+#   forest_loss <- area_change[2, 3]
+#   
+#   ### Add to vector
+#   area_vec[i] <- forest_loss
+# }
+# 
+# ### Save vector of area lost
+# write.csv(area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/brazil_3_project_2018/brazil_projected_loss_3_2018.csv",
+#           row.names=FALSE)
+# 
+# ######################
+# ### Model 4 projection
+# ######################
+# ### Open PP4 map
+# pp4_brazil_mask_18 <- raster("/nfs/agfrontiers-data/luc_model/brazil_pp_4_masked_2018.tif")
+# 
+# ### Vector for area converted from forest to ag
+# area_vec <- rep("", times = 1000)
+# 
+# for (i in 1:length(area_vec)) {
+#   
+#   ### Make blank Jamanxim raster, fill with random values
+#   j_blank <- random.raster(pp4_brazil_mask_18,
+#                            min = 0,
+#                            max = 1,
+#                            distribution = "random")
+#   
+#   ### Set CRS
+#   j_crs <- crs(pp4_brazil_mask_18)
+#   crs(j_blank) <- j_crs
+#   
+#   ### Set extent
+#   extent(j_blank) <- extent(pp4_brazil_mask_18)
+#   
+#   ### Combine with model 1 PP map
+#   j_blank <- crop(j_blank, pp4_brazil_mask_18)
+#   j_stack <- stack(j_blank, pp4_brazil_mask_18)
+#   
+#   ### Reclassification function (1 = forest converts, 2 = forest stays forest)
+#   rc <- function(x1, x2) {
+#     ifelse(x1 < x2, 1, 0)
+#   }
+#   
+#   ### Make output raster
+#   j_classified <- overlay(j_stack, fun = rc)
+#   
+#   ### Save raster
+#   writeRaster(j_classified,
+#               filename = paste0("/nfs/agfrontiers-data/luc_model/brazil_4_project_2018/brazil_projected_4_2018_",
+#                                 i, ".tif"),
+#               format = "GTiff",
+#               overwrite = TRUE,
+#               options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+#   
+#   ### Calculate area that converts
+#   area_change <- as.data.frame(j_classified) %>%
+#     group_by(layer) %>%
+#     tally() %>%
+#     mutate(area = n * res(j_classified)[1] * res(j_classified)[2],
+#            iteration = i)
+#   
+#   ### Subset to area that converted
+#   forest_loss <- area_change[2, 3]
+#   
+#   ### Add to vector
+#   area_vec[i] <- forest_loss
+# }
+# 
+# ### Save vector of area lost
+# write.csv(area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/brazil_4_project_2018/brazil_projected_loss_4_2018.csv",
+#           row.names=FALSE)
 
-### Vector for area converted from forest to ag
-area_vec <- rep("", times = 1000)
+## Open Jamanxim without buffer
+jaman <- st_read("/nfs/agfrontiers-data/Case Study Info/Brazil/JamanBuffer/jamanxim_wdpa_march21_102033.shp")
 
-for (i in 1:length(area_vec)) {
-  
-  ### Make blank Jamanxim raster, fill with random values
-  j_blank <- random.raster(pp2_brazil_mask_18,
-                           min = 0,
-                           max = 1,
-                           distribution = "random")
-  
-  ### Set CRS
-  j_crs <- crs(pp2_brazil_mask_18)
-  crs(j_blank) <- j_crs
-  
-  ### Set extent
-  extent(j_blank) <- extent(pp2_brazil_mask_18)
-  
-  ### Combine with model 1 PP map
-  j_blank <- crop(j_blank, pp2_brazil_mask_18)
-  j_stack <- stack(j_blank, pp2_brazil_mask_18)
-  
-  ### Reclassification function (1 = forest converts, 2 = forest stays forest)
-  rc <- function(x1, x2) {
-    ifelse(x1 < x2, 1, 0)
-  }
-  
-  ### Make output raster
-  j_classified <- overlay(j_stack, fun = rc)
-  
-  ### Save raster
-  writeRaster(j_classified,
-              filename = paste0("/nfs/agfrontiers-data/luc_model/brazil_2_project_2018/brazil_projected_2_2018_",
-                                i, ".tif"),
-              format = "GTiff",
-              overwrite = TRUE,
-              options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
-  
-  ### Calculate area that converts
-  area_change <- as.data.frame(j_classified) %>%
-    group_by(layer) %>%
-    tally() %>%
-    mutate(area = n * res(j_classified)[1] * res(j_classified)[2],
-           iteration = i)
-  
-  ### Subset to area that converted
-  forest_loss <- area_change[2, 3]
-  
-  ### Add to vector
-  area_vec[i] <- forest_loss
-}
+###################
+########## Model 1
+###################
+# ### Try on subset of layers in Brazil Model 1
+# test_layers <- list.files(path = "/nfs/agfrontiers-data/luc_model/brazil_1_project_2018",
+#                           pattern = "*.tif",
+#                           full.names = TRUE)
+#
+### First set
+# test_layers_1 <- test_layers[1:200]
+# test_layers_2 <- test_layers[201:400]
+# test_layers_3 <- test_layers[401:600]
+# test_layers_4 <- test_layers[601:800]
+# test_layers_5 <- test_layers[801:1000]
+# 
+# ### Vector for area converted from forest to ag within Jaman
+# jam_area_vec <- rep("", times = 200)
+# 
+# ### Blank raster for adding all rasters
+# raster_fill <- raster(test_layers[1])
+# raster_fill[raster_fill > 0] <- 0
+# 
+# ### Write loop
+# for (i in 1:length(test_layers_5)) {
+#     
+#     ### Open raster
+#     ch_rast <- raster(test_layers_5[i])
+#     
+#     ###################################
+#     ### Add raster values
+#     ###################################
+#     ### Stack with raster_fill
+#     raster_fill <- stack(raster_fill, ch_rast)
+#     
+#     ### Add raster values
+#     raster_fill <- calc(raster_fill, sum)
+#     
+#     ###################################
+#     ### Calculate forest loss within JNP
+#     ###################################
+#     ### Clip raster to shapefile
+#     rast_crop <- crop(ch_rast, jaman)
+#     rast_crop <- mask(rast_crop, jaman)
+#     
+#     ### Calculate # pixels that convert
+#     forest_loss <- freq(rast_crop, value = 1)
+#     
+#     ### Calculate area that converts
+#     forest_loss <- forest_loss * res(rast_crop)[1] * res(rast_crop)[2]
+#     
+#     ### Add to vector
+#     jam_area_vec[i] <- forest_loss
+#     
+#   }
+# 
+# ### Write out sum raster
+# writeRaster(raster_fill,
+#             filename = "/nfs/agfrontiers-data/luc_model/brazil_m1_2018_stacked_5.tif",
+#             format = "GTiff",
+#             overwrite = TRUE,
+#             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+# 
+# ### Save vector of area lost
+# write.csv(jam_area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/brazil_m1_2018_jamanxim_forestloss_5.csv",
+#           row.names=FALSE)
+# 
+# ###################
+# ########## Model 2
+# ###################
+# ### Try on subset of layers in Brazil Model 2
+# test_layers <- list.files(path = "/nfs/agfrontiers-data/luc_model/brazil_2_project_2018",
+#                           pattern = "*.tif",
+#                           full.names = TRUE)
 
-### Save vector of area lost
-write.csv(area_vec,
-          file = "/nfs/agfrontiers-data/luc_model/brazil_2_project_2018/brazil_projected_loss_2_2018.csv",
-          row.names=FALSE)
+### First set
+# test_layers_1 <- test_layers[1:200]
+# test_layers_2 <- test_layers[201:400]
+# test_layers_3 <- test_layers[401:600]
+# test_layers_4 <- test_layers[601:800]
+# test_layers_5 <- test_layers[801:1000]
+# 
+# ### Vector for area converted from forest to ag within Jaman
+# jam_area_vec <- rep("", times = 200)
+# 
+# ### Blank raster for adding all rasters
+# raster_fill <- raster(test_layers[1])
+# raster_fill[raster_fill > 0] <- 0
+# 
+# ### Write loop
+# # for (i in 1:length(test_layers_5)) {
+# 
+#   ### Open raster
+#   ch_rast <- raster(test_layers_5[i])
+# 
+#   ###################################
+#   ### Add raster values
+#   ###################################
+#   ### Stack with raster_fill
+#   raster_fill <- stack(raster_fill, ch_rast)
+# 
+#   ### Add raster values
+#   raster_fill <- calc(raster_fill, sum)
+# 
+#   ###################################
+#   ### Calculate forest loss within JNP
+#   ###################################
+#   ### Clip raster to shapefile
+#   rast_crop <- crop(ch_rast, jaman)
+#   rast_crop <- mask(rast_crop, jaman)
+# 
+#   ### Calculate # pixels that convert
+#   forest_loss <- freq(rast_crop, value = 1)
+# 
+#   ### Calculate area that converts
+#   forest_loss <- forest_loss * res(rast_crop)[1] * res(rast_crop)[2]
+# 
+#   ### Add to vector
+#   jam_area_vec[i] <- forest_loss
+# 
+# }
+# 
+# ### Write out sum raster
+# writeRaster(raster_fill,
+#             filename = "/nfs/agfrontiers-data/luc_model/brazil_m2_2018_stacked_5.tif",
+#             format = "GTiff",
+#             overwrite = TRUE,
+# #             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+# 
+# ### Save vector of area lost
+# write.csv(jam_area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/brazil_m2_2018_jamanxim_forestloss_5.csv",
+#           row.names=FALSE)
 
-######################
-### Model 3 projection
-######################
-### Open PP3 map
-pp3_brazil_mask_18 <- raster("/nfs/agfrontiers-data/luc_model/brazil_pp_3_masked_2018.tif")
+###################
+########## Model 3
+# ###################
+# ### Try on subset of layers in Brazil Model 3
+# test_layers <- list.files(path = "/nfs/agfrontiers-data/luc_model/brazil_3_project_2018",
+#                           pattern = "*.tif",
+#                           full.names = TRUE)
+# 
+# ### First set
+# # test_layers_1 <- test_layers[1:200]
+# # test_layers_2 <- test_layers[201:400]
+# # test_layers_3 <- test_layers[401:600]
+# # test_layers_4 <- test_layers[601:800]
+# test_layers_5 <- test_layers[801:1000]
 
-### Vector for area converted from forest to ag
-area_vec <- rep("", times = 1000)
+# ### Vector for area converted from forest to ag within Jaman
+# jam_area_vec <- rep("", times = 200)
+# 
+# ### Blank raster for adding all rasters
+# raster_fill <- raster(test_layers[1])
+# raster_fill[raster_fill > 0] <- 0
+# 
+# ### Write loop
+# for (i in 1:length(test_layers_5)) {
+# 
+#   ### Open raster
+#   ch_rast <- raster(test_layers_5[i])
+# 
+#   ###################################
+#   ### Add raster values
+#   ###################################
+#   ### Stack with raster_fill
+#   raster_fill <- stack(raster_fill, ch_rast)
+# 
+#   ### Add raster values
+#   raster_fill <- calc(raster_fill, sum)
+# 
+#   ###################################
+#   ### Calculate forest loss within JNP
+#   ###################################
+#   ### Clip raster to shapefile
+#   rast_crop <- crop(ch_rast, jaman)
+#   rast_crop <- mask(rast_crop, jaman)
+# 
+#   ### Calculate # pixels that convert
+#   forest_loss <- freq(rast_crop, value = 1)
+# 
+#   ### Calculate area that converts
+#   forest_loss <- forest_loss * res(rast_crop)[1] * res(rast_crop)[2]
+# 
+#   ### Add to vector
+#   jam_area_vec[i] <- forest_loss
+# 
+# # }
+# 
+# ### Write out sum raster
+# writeRaster(raster_fill,
+#             filename = "/nfs/agfrontiers-data/luc_model/brazil_m3_2018_stacked_5.tif",
+#             format = "GTiff",
+#             overwrite = TRUE,
+#             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+# 
+# ### Save vector of area lost
+# write.csv(jam_area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/brazil_m3_2018_jamanxim_forestloss_5.csv",
+#           row.names=FALSE)
+# 
+# ###################
+# ########## Model 4
+# ###################
+# ### Try on subset of layers in Brazil Model 4
+# test_layers <- list.files(path = "/nfs/agfrontiers-data/luc_model/brazil_4_project_2018",
+#                           pattern = "*.tif",
+#                           full.names = TRUE)
+#
+### First set
+# test_layers_1 <- test_layers[1:200]
+# test_layers_2 <- test_layers[201:400]
+# test_layers_3 <- test_layers[401:600]
+# test_layers_4 <- test_layers[601:800]
+# test_layers_5 <- test_layers[801:1000]
+# 
+# ### Vector for area converted from forest to ag within Jaman
+# jam_area_vec <- rep("", times = 200)
+# 
+# ### Blank raster for adding all rasters
+# raster_fill <- raster(test_layers[1])
+# raster_fill[raster_fill > 0] <- 0
+# 
+# ### Write loop
+# for (i in 1:length(test_layers_5)) {
+# 
+#   ### Open raster
+#   ch_rast <- raster(test_layers_5[i])
+# 
+#   ###################################
+#   ### Add raster values
+#   ###################################
+#   ### Stack with raster_fill
+#   raster_fill <- stack(raster_fill, ch_rast)
+# 
+#   ### Add raster values
+#   raster_fill <- calc(raster_fill, sum)
+# 
+#   ###################################
+#   ### Calculate forest loss within JNP
+#   ###################################
+#   ### Clip raster to shapefile
+#   rast_crop <- crop(ch_rast, jaman)
+#   rast_crop <- mask(rast_crop, jaman)
+# 
+#   ### Calculate # pixels that convert
+#   forest_loss <- freq(rast_crop, value = 1)
+# 
+#   ### Calculate area that converts
+#   forest_loss <- forest_loss * res(rast_crop)[1] * res(rast_crop)[2]
+# 
+#   ### Add to vector
+#   jam_area_vec[i] <- forest_loss
+# 
+# }
+# 
+# ### Write out sum raster
+# writeRaster(raster_fill,
+#             filename = "/nfs/agfrontiers-data/luc_model/brazil_m4_2018_stacked_5.tif",
+#             format = "GTiff",
+#             overwrite = TRUE,
+#             options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
+# 
+# ### Save vector of area lost
+# write.csv(jam_area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/brazil_m4_2018_jamanxim_forestloss_5.csv",
+#           row.names=FALSE)
 
-for (i in 1:length(area_vec)) {
-  
-  ### Make blank Jamanxim raster, fill with random values
-  j_blank <- random.raster(pp3_brazil_mask_18,
-                           min = 0,
-                           max = 1,
-                           distribution = "random")
-  
-  ### Set CRS
-  j_crs <- crs(pp3_brazil_mask_18)
-  crs(j_blank) <- j_crs
-  
-  ### Set extent
-  extent(j_blank) <- extent(pp3_brazil_mask_18)
-  
-  ### Combine with model 1 PP map
-  j_blank <- crop(j_blank, pp3_brazil_mask_18)
-  j_stack <- stack(j_blank, pp3_brazil_mask_18)
-  
-  ### Reclassification function (1 = forest converts, 2 = forest stays forest)
-  rc <- function(x1, x2) {
-    ifelse(x1 < x2, 1, 0)
-  }
-  
-  ### Make output raster
-  j_classified <- overlay(j_stack, fun = rc)
-  
-  ### Save raster
-  writeRaster(j_classified,
-              filename = paste0("/nfs/agfrontiers-data/luc_model/brazil_3_project_2018/brazil_projected_3_2018_",
-                                i, ".tif"),
-              format = "GTiff",
-              overwrite = TRUE,
-              options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
-  
-  ### Calculate area that converts
-  area_change <- as.data.frame(j_classified) %>%
-    group_by(layer) %>%
-    tally() %>%
-    mutate(area = n * res(j_classified)[1] * res(j_classified)[2],
-           iteration = i)
-  
-  ### Subset to area that converted
-  forest_loss <- area_change[2, 3]
-  
-  ### Add to vector
-  area_vec[i] <- forest_loss
-}
+##################
+### MC forest loss in JNF (not buffer)
+##################
+# #######
+# ## M1
+# #######
+# ### Open PP1 map
+# pp_1_braz_mask <- raster("/nfs/agfrontiers-data/luc_model/brazil_pp_m1_masked_2018.tif")
+# 
+# ### Vector for area converted from forest to ag
+# area_vec <- rep("", times = 1000)
+# 
+# ### Vector for area converted from forest to ag within Jamanxim NF
+# jaman_area_vec <- rep("", times = 1000)
+# 
+# for (i in 1:length(area_vec)) {
+# 
+#   ### Make blank raster, fill with random values
+#   j_blank <- random.raster(pp_1_braz_mask,
+#                            min = 0,
+#                            max = 1,
+#                            distribution = "random")
+# 
+#   ### Set CRS
+#   j_crs <- crs(pp_1_braz_mask)
+#   crs(j_blank) <- j_crs
+# 
+#   ### Set extent
+#   extent(j_blank) <- extent(pp_1_braz_mask)
+# 
+#   ### Combine with model 1 PP map
+#   j_blank <- crop(j_blank, pp_1_braz_mask)
+#   j_stack <- stack(j_blank, pp_1_braz_mask)
+# 
+#   ### Reclassification function (1 = forest converts, 2 = forest stays forest)
+#   rc <- function(x1, x2) {
+#     ifelse(x1 < x2, 1, 0)
+#   }
+# 
+#   ### Make output raster
+#   j_classified <- overlay(j_stack, fun = rc)
+# 
+#   ## Calculate area that converts
+#   area_change <- freq(j_classified, value = 1)
+#   forest_loss <- area_change * res(j_classified)[1] * res(j_classified)[2]
+# 
+#   ### Add to vector
+#   area_vec[i] <- forest_loss
+# 
+#   #######################
+#   ### Jamanxim NF
+#   #######################
+#   ### Clip raster to shapefile
+#   rast_jaman <- crop(j_classified, jaman)
+#   rast_jaman <- mask(rast_jaman, jaman)
+# 
+#   ### Calculate # pixels that convert
+#   forest_loss_jaman <- freq(rast_jaman, value = 1)
+# 
+#   ### Calculate area that converts
+#   forest_loss_jaman <- forest_loss_jaman * res(rast_jaman)[1] * res(rast_jaman)[2]
+# 
+#   ### Add to vector
+#   jaman_area_vec[i] <- forest_loss_jaman
+# }
+# 
+# ### Save vector of area lost
+# write.csv(area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/brazil_1_project_2018/braz_1_projected_loss_2018.csv",
+#           row.names=FALSE)
+# write.csv(jaman_area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/brazil_1_project_2018/braz_1_projected_loss_jamanxim_2018.csv",
+#           row.names=FALSE)
+# 
+# #######
+# ## M2
+# #######
+# ### Open PP2 map
+# pp_2_braz_mask <- raster("/nfs/agfrontiers-data/luc_model/brazil_pp_2_masked_2018.tif")
+# 
+# ### Vector for area converted from forest to ag
+# area_vec <- rep("", times = 1000)
+# 
+# ### Vector for area converted from forest to ag within Jamanxim NF
+# jaman_area_vec <- rep("", times = 1000)
+# 
+# for (i in 1:length(area_vec)) {
+# 
+#   ### Make blank raster, fill with random values
+#   j_blank <- random.raster(pp_2_braz_mask,
+#                            min = 0,
+#                            max = 1,
+#                            distribution = "random")
+# 
+#   ### Set CRS
+#   j_crs <- crs(pp_2_braz_mask)
+#   crs(j_blank) <- j_crs
+# 
+#   ### Set extent
+#   extent(j_blank) <- extent(pp_2_braz_mask)
+# 
+#   ### Combine with model 2 PP map
+#   j_blank <- crop(j_blank, pp_2_braz_mask)
+#   j_stack <- stack(j_blank, pp_2_braz_mask)
+# 
+#   ### Reclassification function (1 = forest converts, 2 = forest stays forest)
+#   rc <- function(x1, x2) {
+#     ifelse(x1 < x2, 1, 0)
+#   }
+# 
+#   ### Make output raster
+#   j_classified <- overlay(j_stack, fun = rc)
+# 
+#   ## Calculate area that converts
+#   area_change <- freq(j_classified, value = 1)
+#   forest_loss <- area_change * res(j_classified)[1] * res(j_classified)[2]
+# 
+#   ### Add to vector
+#   area_vec[i] <- forest_loss
+# 
+#   #######################
+#   ### Jamanxim NF
+#   #######################
+#   ### Clip raster to shapefile
+#   rast_jaman <- crop(j_classified, jaman)
+#   rast_jaman <- mask(rast_jaman, jaman)
+# 
+#   ### Calculate # pixels that convert
+#   forest_loss_jaman <- freq(rast_jaman, value = 1)
+# 
+#   ### Calculate area that converts
+#   forest_loss_jaman <- forest_loss_jaman * res(rast_jaman)[1] * res(rast_jaman)[2]
+# 
+#   ### Add to vector
+#   jaman_area_vec[i] <- forest_loss_jaman
+# }
+# 
+# ### Save vector of area lost
+# write.csv(area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/brazil_2_project_2018/braz_2_projected_loss_2018.csv",
+#           row.names=FALSE)
+# write.csv(jaman_area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/brazil_2_project_2018/braz_2_projected_loss_jamanxim_2018.csv",
+#           row.names=FALSE)
+# 
+# #######
+# ## M3
+# #######
+# ### Open PP3 map
+# pp_3_braz_mask <- raster("/nfs/agfrontiers-data/luc_model/brazil_pp_3_masked_2018.tif")
+# 
+# ### Vector for area converted from forest to ag
+# area_vec <- rep("", times = 1000)
+# 
+# ### Vector for area converted from forest to ag within Jamanxim NF
+# jaman_area_vec <- rep("", times = 1000)
+# 
+# for (i in 1:length(area_vec)) {
+#   
+#   ### Make blank raster, fill with random values
+#   j_blank <- random.raster(pp_3_braz_mask,
+#                            min = 0,
+#                            max = 1,
+#                            distribution = "random")
+#   
+#   ### Set CRS
+#   j_crs <- crs(pp_3_braz_mask)
+#   crs(j_blank) <- j_crs
+#   
+#   ### Set extent
+#   extent(j_blank) <- extent(pp_3_braz_mask)
+#   
+#   ### Combine with model 3 PP map
+#   j_blank <- crop(j_blank, pp_3_braz_mask)
+#   j_stack <- stack(j_blank, pp_3_braz_mask)
+#   
+#   ### Reclassification function (1 = forest converts, 2 = forest stays forest)
+#   rc <- function(x1, x2) {
+#     ifelse(x1 < x2, 1, 0)
+#   }
+#   
+#   ### Make output raster
+#   j_classified <- overlay(j_stack, fun = rc)
+#   
+#   ## Calculate area that converts
+#   area_change <- freq(j_classified, value = 1)
+#   forest_loss <- area_change * res(j_classified)[1] * res(j_classified)[2]
+#   
+#   ### Add to vector
+#   area_vec[i] <- forest_loss
+#   
+#   #######################
+#   ### Jamanxim NF
+#   #######################
+#   ### Clip raster to shapefile
+#   rast_jaman <- crop(j_classified, jaman)
+#   rast_jaman <- mask(rast_jaman, jaman)
+#   
+#   ### Calculate # pixels that convert
+#   forest_loss_jaman <- freq(rast_jaman, value = 1)
+#   
+#   ### Calculate area that converts
+#   forest_loss_jaman <- forest_loss_jaman * res(rast_jaman)[1] * res(rast_jaman)[2]
+#   
+#   ### Add to vector
+#   jaman_area_vec[i] <- forest_loss_jaman
+# }
+# 
+# ### Save vector of area lost
+# write.csv(area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/brazil_3_project_2018/braz_3_projected_loss_2018.csv",
+#           row.names=FALSE)
+# write.csv(jaman_area_vec,
+#           file = "/nfs/agfrontiers-data/luc_model/brazil_3_project_2018/braz_3_projected_loss_jamanxim_2018.csv",
+#           row.names=FALSE)
 
-### Save vector of area lost
-write.csv(area_vec,
-          file = "/nfs/agfrontiers-data/luc_model/brazil_3_project_2018/brazil_projected_loss_3_2018.csv",
-          row.names=FALSE)
-
-######################
-### Model 4 projection
-######################
+#######
+## M4
+#######
 ### Open PP4 map
-pp4_brazil_mask_18 <- raster("/nfs/agfrontiers-data/luc_model/brazil_pp_4_masked_2018.tif")
+pp_4_braz_mask <- raster("/nfs/agfrontiers-data/luc_model/brazil_pp_4_masked_2018.tif")
 
 ### Vector for area converted from forest to ag
 area_vec <- rep("", times = 1000)
 
+### Vector for area converted from forest to ag within Jamanxim NF
+jaman_area_vec <- rep("", times = 1000)
+
 for (i in 1:length(area_vec)) {
   
-  ### Make blank Jamanxim raster, fill with random values
-  j_blank <- random.raster(pp4_brazil_mask_18,
+  ### Make blank raster, fill with random values
+  j_blank <- random.raster(pp_4_braz_mask,
                            min = 0,
                            max = 1,
                            distribution = "random")
   
   ### Set CRS
-  j_crs <- crs(pp4_brazil_mask_18)
+  j_crs <- crs(pp_4_braz_mask)
   crs(j_blank) <- j_crs
   
   ### Set extent
-  extent(j_blank) <- extent(pp4_brazil_mask_18)
+  extent(j_blank) <- extent(pp_4_braz_mask)
   
-  ### Combine with model 1 PP map
-  j_blank <- crop(j_blank, pp4_brazil_mask_18)
-  j_stack <- stack(j_blank, pp4_brazil_mask_18)
+  ### Combine with model 4 PP map
+  j_blank <- crop(j_blank, pp_4_braz_mask)
+  j_stack <- stack(j_blank, pp_4_braz_mask)
   
   ### Reclassification function (1 = forest converts, 2 = forest stays forest)
   rc <- function(x1, x2) {
@@ -1293,29 +1853,34 @@ for (i in 1:length(area_vec)) {
   ### Make output raster
   j_classified <- overlay(j_stack, fun = rc)
   
-  ### Save raster
-  writeRaster(j_classified,
-              filename = paste0("/nfs/agfrontiers-data/luc_model/brazil_4_project_2018/brazil_projected_4_2018_",
-                                i, ".tif"),
-              format = "GTiff",
-              overwrite = TRUE,
-              options = c("INTERLEAVE=BAND","COMPRESS=LZW"))
-  
-  ### Calculate area that converts
-  area_change <- as.data.frame(j_classified) %>%
-    group_by(layer) %>%
-    tally() %>%
-    mutate(area = n * res(j_classified)[1] * res(j_classified)[2],
-           iteration = i)
-  
-  ### Subset to area that converted
-  forest_loss <- area_change[2, 3]
+  ## Calculate area that converts
+  area_change <- freq(j_classified, value = 1)
+  forest_loss <- area_change * res(j_classified)[1] * res(j_classified)[2]
   
   ### Add to vector
   area_vec[i] <- forest_loss
+  
+  #######################
+  ### Jamanxim NF
+  #######################
+  ### Clip raster to shapefile
+  rast_jaman <- crop(j_classified, jaman)
+  rast_jaman <- mask(rast_jaman, jaman)
+  
+  ### Calculate # pixels that convert
+  forest_loss_jaman <- freq(rast_jaman, value = 1)
+  
+  ### Calculate area that converts
+  forest_loss_jaman <- forest_loss_jaman * res(rast_jaman)[1] * res(rast_jaman)[2]
+  
+  ### Add to vector
+  jaman_area_vec[i] <- forest_loss_jaman
 }
 
 ### Save vector of area lost
 write.csv(area_vec,
-          file = "/nfs/agfrontiers-data/luc_model/brazil_4_project_2018/brazil_projected_loss_4_2018.csv",
+          file = "/nfs/agfrontiers-data/luc_model/brazil_4_project_2018/braz_4_projected_loss_2018.csv",
+          row.names=FALSE)
+write.csv(jaman_area_vec,
+          file = "/nfs/agfrontiers-data/luc_model/brazil_4_project_2018/braz_4_projected_loss_jamanxim_2018.csv",
           row.names=FALSE)
