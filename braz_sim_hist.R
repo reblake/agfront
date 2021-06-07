@@ -51,8 +51,8 @@ m1_layers <- list.files(path = "/nfs/agfrontiers-data/luc_model/brazil_1_project
                           pattern = "*.tif",
                           full.names = TRUE)
 
-### Data frame
-### do I need to make a blank data frame to fill here?
+### Data frame of results
+results <- list()
 
 ### Write loop
 for (i in 1:length(m1_layers)) {
@@ -79,9 +79,16 @@ for (i in 1:length(m1_layers)) {
   j1_mask_08_sub_rc <- reclassify(j1_mask_08_sub,
                                   reclass_sub_m)
   
-  ### Record % of pixels with each cell value in dataframe (one row per raster)
+  j1_freq <- freq(j1_mask_08_sub_rc)
+  
+  results[[i]] <- j1_freq
 
 }
 
+### Combine into dataframe
+results_df <- bind_rows(results)
+
 ### Save dataframe
+write_csv(results_df,
+          "/nfs/agfrontiers-data/luc_model/brazil_1_project_2018_freq.csv")
 
