@@ -72,7 +72,7 @@ for (i in 1:length(m1_layers)) {
                      maskvalue = 1,
                      updatevalue = 8)
   
-  ### Substract rasters
+  ### Subtract rasters
   j1_mask_08_sub <- j1_mask_08 - bra_18_rc
   
   ### Reclassify subtracted raster
