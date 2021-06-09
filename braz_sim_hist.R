@@ -1,4 +1,11 @@
 ### Simulation histogram
+# Modified by QDR 9 June 2021
+
+# Load packages
+library(raster)
+library(sf)
+library(dplyr)
+library(readr)
 
 ### Open brazil 2008 map
 bra_2008 <- raster("/nfs/agfrontiers-data/Remote Sensing/KS files/classi_bra_dry_2008_102033.tif")
@@ -13,9 +20,9 @@ jaman <- st_read("/nfs/agfrontiers-data/Case Study Info/Brazil/JamanBuffer/Jaman
 
 ### Crop LUC maps
 jaman_08 <- crop(bra_2008, jaman)
-jaman_08 <- mask(jaman_08, jaman)
+jaman_08 <- mask(jaman_08, jaman, filename = '/nfs/agfrontiers-data/Remote Sensing/KS files/jaman_08_mask.tif')
 jaman_18 <- crop(bra_2018, jaman)
-jaman_18 <- mask(jaman_18, jaman)
+jaman_18 <- mask(jaman_18, jaman, filename = '/nfs/agfrontiers-data/Remote Sensing/KS files/jaman_18_mask.tif')
 
 ### Reclassification matrix
 reclass_df <- c(0, 1.5, 0.05,       ## ag
@@ -66,7 +73,7 @@ for (i in 1:length(m1_layers)) {
   
 
   ### Mask cells that were ag in 2008
-  j1_mask_08 <- mask(j1, 
+  j1_mask_08 <- mask(j_m1, 
                      jaman_08,
                      inverse = FALSE,
                      maskvalue = 1,
@@ -82,11 +89,13 @@ for (i in 1:length(m1_layers)) {
   j1_freq <- freq(j1_mask_08_sub_rc)
   
   results[[i]] <- j1_freq
+  
+  removeTmpFiles() # Clean up temp files, if any exist.
 
 }
 
-### Combine into dataframe
-results_df <- bind_rows(results)
+### Combine into dataframe. Add a column for which of the 1000 rasters it comes from.
+results_df <- bind_rows(lapply(results, as_tibble), .id = "raster_id")
 
 ### Save dataframe
 write_csv(results_df,
